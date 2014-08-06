@@ -257,7 +257,7 @@ static int chkid(FILE * f, SFILE * t, enum tokenty * tt)
 	return 0;
 }
 
-const char * hchkchars = "0123456789abcdefABCDEF";
+const char * hexchars = "0123456789abcdefABCDEF";
 const char * decchars = "0123456789";
 const char * octchars = "01234567";
 
@@ -283,7 +283,7 @@ static int readnum(FILE * f, SFILE * t, const char * allowed,
 	}
 
 	if (chkc(f, NULL, alphanum))
-		report(E_TOKENIZER, NULL, "unchkpected character in numeric literal");
+		report(E_TOKENIZER, NULL, "unexpected character in numeric literal");
 	return i;
 }
 
@@ -297,8 +297,8 @@ static int chknum(FILE * f, SFILE * t, enum tokenty * tt)
 		/* octal, hchk or zero */
 		if (chkc(f, t, "x")) {
 			*tt = T_HEX;
-			if (readnum(f, t, hchkchars, tt) == 0)
-				report(E_TOKENIZER, NULL, "unfinished hchkadecimal literal");
+			if (readnum(f, t, hexchars, tt) == 0)
+				report(E_TOKENIZER, NULL, "unfinished hexadecimal literal");
 			return 1;
 		}
 
@@ -333,10 +333,10 @@ static int readch(FILE * f, SFILE * t, char terminator)
 
 	/* escape sequence */
 	if (chkc(f, t, "x")) {
-		for (i = 0; chkc(f, t, hchkchars); ++i)
+		for (i = 0; chkc(f, t, hexchars); ++i)
 			;
 		if (i == 0)
-			report(E_TOKENIZER, NULL, "hchkadecimal escape sequences cannot be empty");
+			report(E_TOKENIZER, NULL, "hexadecimal escape sequences cannot be empty");
 		return 1;
 	}
 
