@@ -270,7 +270,7 @@ static int readnum(FILE * f, SFILE * t, const char * allowed,
 	int i = 0;
 	while (chkc(f, t, allowed))
 		++i;
-	if (((i == 1 && allowed == octchars) || allowed == decchars) &&
+	if (((i == 1 && allowed == decchars) || allowed == octchars) &&
 		chkc(f, t, ".")) {
 		++i;
 		*tt = T_DOUBLE;
@@ -294,7 +294,7 @@ static int readnum(FILE * f, SFILE * t, const char * allowed,
 static int chknum(FILE * f, SFILE * t, enum tokenty * tt)
 {
 	if (chkc(f, t, "0")) {
-		/* octal, hchk or zero */
+		/* octal, hex or zero */
 		if (chkc(f, t, "x")) {
 			*tt = T_HEX;
 			if (readnum(f, t, hexchars, tt) == 0)
