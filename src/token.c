@@ -296,7 +296,7 @@ static int chknum(FILE * f, SFILE * t, enum tokenty * tt)
 	if (chkc(f, t, "0")) {
 		/* octal, hchk or zero */
 		if (chkc(f, t, "x")) {
-			*tt = T_Hchk;
+			*tt = T_HEX;
 			if (readnum(f, t, hchkchars, tt) == 0)
 				report(E_TOKENIZER, NULL, "unfinished hchkadecimal literal");
 			return 1;
