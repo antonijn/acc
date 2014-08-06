@@ -20,12 +20,12 @@ static void ssunputc(SFILE * ss);
 /* local functions */
 static void skipf(FILE * f);
 
-static int exc(FILE * f, SFILE * t, const char * chs);
+static int chkc(FILE * f, SFILE * t, const char * chs);
 
-static int exid(FILE * f, SFILE * t, enum tokenty * tt);
-static int exnum(FILE * f, SFILE * t, enum tokenty * tt);
-static int exstr(FILE * f, SFILE * t, enum tokenty * tt);
-static int exop(FILE * f, SFILE * t, enum tokenty * tt);
+static int chkid(FILE * f, SFILE * t, enum tokenty * tt);
+static int chknum(FILE * f, SFILE * t, enum tokenty * tt);
+static int chkstr(FILE * f, SFILE * t, enum tokenty * tt);
+static int chkop(FILE * f, SFILE * t, enum tokenty * tt);
 
 static int readnum(FILE * f, SFILE * t, const char * allowed,
 	enum tokenty * tt);
@@ -99,11 +99,11 @@ static void ssunputc(SFILE * ss)
 }
 
 /*
- * Expect character
+ * Check for character
  * If next char is in chs, returns 1 and advances stream
  * If not, returns 0
  */
-static int exc(FILE * f, SFILE * t, const char * chs)
+static int chkc(FILE * f, SFILE * t, const char * chs)
 {
 	char ch;
 	int act = fgetc(f);
@@ -139,52 +139,52 @@ static int exc(FILE * f, SFILE * t, const char * chs)
  */
 static void skipf(FILE * f)
 {
-	while (exc(f, NULL, " \n\t\v\r\f"))
+	while (chkc(f, NULL, " \n\t\v\r\f"))
 		;
 }
 
 /*
- * Expect operator
+ * Check for operator
  * Returns 1 if an operator was read
  */
-static int exop(FILE * f, SFILE * t, enum tokenty * tt)
+static int chkop(FILE * f, SFILE * t, enum tokenty * tt)
 {
-	if (exc(f, t, "*/%^!=")) {
-		exc(f, t, "=");
+	if (chkc(f, t, "*/%^!=")) {
+		chkc(f, t, "=");
 		goto ret;
 	}
 
-	if (exc(f, t, "-")) {
-		exc(f, t, ">-=");
+	if (chkc(f, t, "-")) {
+		chkc(f, t, ">-=");
 		goto ret;
 	}
 
-	if (exc(f, t, "+")) {
-		exc(f, t, "+=");
+	if (chkc(f, t, "+")) {
+		chkc(f, t, "+=");
 		goto ret;
 	}
 
-	if (exc(f, t, ">")) {
-		exc(f, t, ">=");
+	if (chkc(f, t, ">")) {
+		chkc(f, t, ">=");
 		goto ret;
 	}
 
-	if (exc(f, t, "<")) {
-		exc(f, t, "<=");
+	if (chkc(f, t, "<")) {
+		chkc(f, t, "<=");
 		goto ret;
 	}
 
-	if (exc(f, t, "&")) {
-		exc(f, t, "&=");
+	if (chkc(f, t, "&")) {
+		chkc(f, t, "&=");
 		goto ret;
 	}
 
-	if (exc(f, t, "|")) {
-		exc(f, t, "|=");
+	if (chkc(f, t, "|")) {
+		chkc(f, t, "|=");
 		goto ret;
 	}
 
-	return exc(f, t, "{};:()?#.,[]");
+	return chkc(f, t, "{};:()?#.,[]");
 
 ret:
 	*tt = T_OPERATOR;
@@ -210,7 +210,7 @@ static int isreserved(char * str)
 	       !strcmp(str, "double") ||
 	       !strcmp(str, "else") ||
 	       !strcmp(str, "enum") ||
-	       !strcmp(str, "extern") ||
+	       !strcmp(str, "chktern") ||
 	       !strcmp(str, "float") ||
 	       !strcmp(str, "for") ||
 	       !strcmp(str, "goto") ||
@@ -242,13 +242,13 @@ static const char * alphanum =
 	"_0123456789";
 
 /*
- * Expect identifier
+ * Check for identifier
  * Returns 1 if an identifier was read
  */
-static int exid(FILE * f, SFILE * t, enum tokenty * tt)
+static int chkid(FILE * f, SFILE * t, enum tokenty * tt)
 {
-	if (exc(f, t, alpha)) {
-		while (exc(f, t, alphanum))
+	if (chkc(f, t, alpha)) {
+		while (chkc(f, t, alphanum))
 			;
 		*tt = isreserved(ssgets(t)) ?
 			T_RESERVED : T_IDENTIFIER;
@@ -257,7 +257,7 @@ static int exid(FILE * f, SFILE * t, enum tokenty * tt)
 	return 0;
 }
 
-const char * hexchars = "0123456789abcdefABCDEF";
+const char * hchkchars = "0123456789abcdefABCDEF";
 const char * decchars = "0123456789";
 const char * octchars = "01234567";
 
@@ -268,37 +268,37 @@ static int readnum(FILE * f, SFILE * t, const char * allowed,
 	enum tokenty * tt)
 {
 	int i = 0;
-	while (exc(f, t, allowed))
+	while (chkc(f, t, allowed))
 		++i;
 	if (((i == 1 && allowed == octchars) || allowed == decchars) &&
-		exc(f, t, ".")) {
+		chkc(f, t, ".")) {
 		++i;
 		*tt = T_DOUBLE;
-		while (exc(f, t, decchars))
+		while (chkc(f, t, decchars))
 			++i;
-		if (exc(f, t, "f")) {
+		if (chkc(f, t, "f")) {
 			++i;
 			*tt = T_FLOAT;
 		}
 	}
 
-	if (exc(f, NULL, alphanum))
-		report(E_TOKENIZER, NULL, "unexpected character in numeric literal");
+	if (chkc(f, NULL, alphanum))
+		report(E_TOKENIZER, NULL, "unchkpected character in numeric literal");
 	return i;
 }
 
 /*
- * Expect numbers
+ * Check for number
  * Returns 1 if a number is read
  */
-static int exnum(FILE * f, SFILE * t, enum tokenty * tt)
+static int chknum(FILE * f, SFILE * t, enum tokenty * tt)
 {
-	if (exc(f, t, "0")) {
-		/* octal, hex or zero */
-		if (exc(f, t, "x")) {
-			*tt = T_HEX;
-			if (readnum(f, t, hexchars, tt) == 0)
-				report(E_TOKENIZER, NULL, "unfinished hexadecimal literal");
+	if (chkc(f, t, "0")) {
+		/* octal, hchk or zero */
+		if (chkc(f, t, "x")) {
+			*tt = T_Hchk;
+			if (readnum(f, t, hchkchars, tt) == 0)
+				report(E_TOKENIZER, NULL, "unfinished hchkadecimal literal");
 			return 1;
 		}
 
@@ -323,57 +323,57 @@ static int readch(FILE * f, SFILE * t, char terminator)
 
 	termstr[0] = terminator;
 	termstr[1] = '\0';
-	if (exc(f, t, termstr))
+	if (chkc(f, t, termstr))
 		return 0;
 
-	if (!exc(f, t, "\\")) {
-		exc(f, t, NULL);
+	if (!chkc(f, t, "\\")) {
+		chkc(f, t, NULL);
 		return 1;
 	}
 
 	/* escape sequence */
-	if (exc(f, t, "x")) {
-		for (i = 0; exc(f, t, hexchars); ++i)
+	if (chkc(f, t, "x")) {
+		for (i = 0; chkc(f, t, hchkchars); ++i)
 			;
 		if (i == 0)
-			report(E_TOKENIZER, NULL, "hexadecimal escape sequences cannot be empty");
+			report(E_TOKENIZER, NULL, "hchkadecimal escape sequences cannot be empty");
 		return 1;
 	}
 
 	/* octal number */
-	for (i = 0; i < 3 && exc(f, t, octchars); ++i)
+	for (i = 0; i < 3 && chkc(f, t, octchars); ++i)
 		;
 	if (i != 0)
 		return 1;
 
-	if (exc(f, NULL, "\n")) {
+	if (chkc(f, NULL, "\n")) {
 		ssunputc(t);
 		return 1;
 	}
 
-	if (!exc(f, t, "abfnrtv\\'\"?"))
+	if (!chkc(f, t, "abfnrtv\\'\"?"))
 		report(E_TOKENIZER, NULL, "invalid escape sequence");
 	
 	return 1;
 }
 
 /*
- * Expect string
+ * Check for string
  * Returns 1 if a string or character literal is read
  */
-static int exstr(FILE * f, SFILE * t, enum tokenty * tt)
+static int chkstr(FILE * f, SFILE * t, enum tokenty * tt)
 {
-	if (exc(f, t, "\"")) {
+	if (chkc(f, t, "\"")) {
 		while (readch(f, t, '"'))
 			;
 		*tt = T_STRING;
 		return 1;
 	}
 
-	if (exc(f, t, "'")) {
+	if (chkc(f, t, "'")) {
 		if (!readch(f, t, '\''))
 			report(E_TOKENIZER, NULL, "character literals may not be empty");
-		if (!exc(f, t, "'"))
+		if (!chkc(f, t, "'"))
 			report(E_TOKENIZER, NULL,
 				"character literals may only contain one character");
 		*tt = T_CHAR;
@@ -395,24 +395,24 @@ struct token gettok(FILE * f)
 	t = ssopen();
 
 	/* look for comments */
-	if (exc(f, NULL, "/")) {
-		if (exc(f, NULL, "*")) {
-			while (!exc(f, NULL, "*") || !exc(f, NULL, "/"))
-				exc(f, NULL, NULL);
+	if (chkc(f, NULL, "/")) {
+		if (chkc(f, NULL, "*")) {
+			while (!chkc(f, NULL, "*") || !chkc(f, NULL, "/"))
+				chkc(f, NULL, NULL);
 			skipf(f);
 		} else
 			ungetc('/', f);
 	}
 
-	if (exop(f, t, &res.type))
+	if (chkop(f, t, &res.type))
 		;
-	else if (exid(f, t, &res.type))
+	else if (chkid(f, t, &res.type))
 		;
-	else if (exnum(f, t, &res.type))
+	else if (chknum(f, t, &res.type))
 		;
-	else if (exstr(f, t, &res.type))
+	else if (chkstr(f, t, &res.type))
 		;
-	else if (exc(f, t, eof))
+	else if (chkc(f, t, eof))
 		res.type = T_EOF;
 	else
 		report(E_TOKENIZER, NULL, "character out of place");
