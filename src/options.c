@@ -18,7 +18,7 @@
  */
 
 #include <string.h>
- 
+
 #include <acc/options.h>
 #include <acc/error.h>
 
@@ -57,6 +57,8 @@ void options_init(int argc, char * argv[])
 			arch = ARCH_8086;
 		else if (!strcmp(arg, "-march=amd64"))
 			arch = ARCH_AMD64;
+		else if (arg[0] == '-' && arg[1] == 'f')
+			enableext(&arg[2]);
 		else
 			list_push_back(input, arg);
 	}

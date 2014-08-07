@@ -20,17 +20,21 @@
 #ifndef ERROR_H
 #define ERROR_H
 
+#include <acc/token.h>
+
 enum errorty {
+	E_ERROR = 0x00,
 	E_FATAL = 0x01,
 	E_WARNING = 0x02,
 	E_HIDE_TOKEN = 0x04,
 	E_HIDE_LOCATION = 0x08,
 
 	E_TOKENIZER = E_FATAL | E_HIDE_TOKEN,
-	E_OPTIONS = E_FATAL | E_HIDE_TOKEN | E_HIDE_LOCATION
+	E_OPTIONS = E_FATAL | E_HIDE_TOKEN | E_HIDE_LOCATION,
+	E_INTERNAL = E_FATAL | E_HIDE_TOKEN | E_HIDE_LOCATION,
+	E_PARSER = E_ERROR
 };
 
-struct token;
 void report(enum errorty ty, struct token * tok, const char * frmt, ...);
 
 #endif

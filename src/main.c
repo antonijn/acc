@@ -33,13 +33,13 @@ static void compilefile(FILE * f)
 	while (1) {
 		tok = gettok(f);
 		if (tok.type == T_EOF) {
-			freetok(&tok);
+			freetok(tok);
 			break;
 		}
 
-		printf("%s\n", tok.lexeme);
+		printf("%2d: %s\n", tok.type, tok.lexeme);
 
-		freetok(&tok);
+		freetok(tok);
 	}
 }
 

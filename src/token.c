@@ -23,6 +23,7 @@
 
 #include <acc/token.h>
 #include <acc/error.h>
+#include <acc/ext.h>
 
 /* string stream */
 typedef struct {
@@ -173,6 +174,7 @@ static int chkppdir(FILE * f, SFILE * t, enum tokenty * tt)
 	if (chkc(f, t, "#")) {
 		while (!(!chkc(f, NULL, "\\") && chkc(f, NULL, "\n")))
 			chkc(f, t, NULL);
+		*tt = T_PREPROC;
 		return 1;
 	}
 	return 0;
@@ -184,7 +186,7 @@ static int chkppdir(FILE * f, SFILE * t, enum tokenty * tt)
  */
 static int chkop(FILE * f, SFILE * t, enum tokenty * tt)
 {
-	if (chkc(f, t, "*/%^!=")) {
+	if (chkc(f, t, "*/%^!=~")) {
 		chkc(f, t, "=");
 		goto ret;
 	}
@@ -219,7 +221,10 @@ static int chkop(FILE * f, SFILE * t, enum tokenty * tt)
 		goto ret;
 	}
 
-	return chkc(f, t, "{};:()?.,[]");
+	if (chkc(f, t, "{};:()?.,[]"))
+		goto ret;
+
+	return 0;
 
 ret:
 	*tt = T_OPERATOR;
@@ -232,6 +237,9 @@ ret:
 static int isreserved(char * str)
 {
 	if (str[0] == '_' && isupper(str[1]))
+		return 1;
+
+	if (isext(EX_RESTRICT) && !strcmp(str, "restrict"))
 		return 1;
 
 	return !strcmp(str, "auto") ||
@@ -465,7 +473,17 @@ struct token gettok(FILE * f)
 	return res;
 }
 
-void freetok(struct token * t)
+void ungettok(FILE * f, struct token t)
 {
-	free(t->lexeme);
+	size_t len = strlen(t.lexeme);
+	int i;
+	for (i = len - 1; i >= 0; --i) {
+		ungetc(t.lexeme[i], f);
+		--column;
+	}
+}
+
+void freetok(struct token t)
+{
+	free(t.lexeme);
 }
