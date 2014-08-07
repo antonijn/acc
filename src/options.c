@@ -1,4 +1,5 @@
 #include <acc/options.h>
+#include <acc/error.h>
 #include <string.h>
 
 static char * outfile = "a.out";
@@ -9,14 +10,16 @@ static int warnings = 1;
 
 void options_init(int argc, char * argv[])
 {
+	int i;
 	input = new_list(NULL, 0);
 
-	int i;
 	for (i = 1; i < argc; ++i) {
 		char * arg = argv[i];
-		if (!strcmp(arg, "-o"))
+		if (!strcmp(arg, "-o")) {
+			if (++i >= argc)
+				report(E_OPTIONS, NULL, "expected output file name");
 			outfile = argv[++i];
-		else if (!strcmp(arg, "-w"))
+		} else if (!strcmp(arg, "-w"))
 			warnings = 0;
 		else if (!strcmp(arg, "-O0"))
 			optimize = 0;
@@ -34,7 +37,8 @@ void options_init(int argc, char * argv[])
 			arch = ARCH_8086;
 		else if (!strcmp(arg, "-march=amd64"))
 			arch = ARCH_AMD64;
-		list_push_back(input, arg);
+		else
+			list_push_back(input, arg);
 	}
 
 	if (arch != ARCH_INVALID)

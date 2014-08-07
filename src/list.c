@@ -141,9 +141,10 @@ void list_push_back(struct list * l, void * data)
 	n->next = NULL;
 	n->previous = l->last;
 	n->data = data;
-	if (l->last) {
+	if (l->last)
 		l->last->next = n;
-	}
+	else
+		l->head = n;
 	l->last = n;
 	++l->length;
 }

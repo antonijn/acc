@@ -3,9 +3,10 @@
 #include <acc/error.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 
 /* string stream */
-typedef struct sstream {
+typedef struct {
 	char * buf;
 	int av;
 	int count;
@@ -26,13 +27,14 @@ static int chkid(FILE * f, SFILE * t, enum tokenty * tt);
 static int chknum(FILE * f, SFILE * t, enum tokenty * tt);
 static int chkstr(FILE * f, SFILE * t, enum tokenty * tt);
 static int chkop(FILE * f, SFILE * t, enum tokenty * tt);
+static int chkppdir(FILE * f, SFILE * t, enum tokenty * tt);
 
 static int readnum(FILE * f, SFILE * t, const char * allowed,
 	enum tokenty * tt);
 static int readch(FILE * f, SFILE * t, char terminator);
 
-static int line;
-static int column;
+static int line = 1;
+static int column = 0;
 
 int get_line(void)
 {
@@ -144,6 +146,20 @@ static void skipf(FILE * f)
 }
 
 /*
+ * Check for preprocessor directive
+ * Returns 1 if a preprocessor directive was read
+ */
+static int chkppdir(FILE * f, SFILE * t, enum tokenty * tt)
+{
+	if (chkc(f, t, "#")) {
+		while (!(!chkc(f, NULL, "\\") && chkc(f, NULL, "\n")))
+			chkc(f, t, NULL);
+		return 1;
+	}
+	return 0;
+}
+
+/*
  * Check for operator
  * Returns 1 if an operator was read
  */
@@ -184,7 +200,7 @@ static int chkop(FILE * f, SFILE * t, enum tokenty * tt)
 		goto ret;
 	}
 
-	return chkc(f, t, "{};:()?#.,[]");
+	return chkc(f, t, "{};:()?.,[]");
 
 ret:
 	*tt = T_OPERATOR;
@@ -235,10 +251,10 @@ static int isreserved(char * str)
 
 static const char * alpha =
 	"abcdefghijklmnopqrstuvwxyz"
-	"ABCEEFGHIJKLMNOPQRSTUVWXYZ_";
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 static const char * alphanum =
 	"abcdefghijklmnopqrstuvwxyz"
-	"ABCEEFGHIJKLMNOPQRSTUVWXYZ"
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	"_0123456789";
 
 /*
@@ -326,6 +342,9 @@ static int readch(FILE * f, SFILE * t, char terminator)
 	if (chkc(f, t, termstr))
 		return 0;
 
+	if (chkc(f, t, "\n"))
+		report(E_TOKENIZER, NULL, "newline in string literal");
+
 	if (!chkc(f, t, "\\")) {
 		chkc(f, t, NULL);
 		return 1;
@@ -400,8 +419,10 @@ struct token gettok(FILE * f)
 			while (!chkc(f, NULL, "*") || !chkc(f, NULL, "/"))
 				chkc(f, NULL, NULL);
 			skipf(f);
-		} else
+		} else {
+			--column;
 			ungetc('/', f);
+		}
 	}
 
 	if (chkop(f, t, &res.type))
@@ -412,9 +433,13 @@ struct token gettok(FILE * f)
 		;
 	else if (chkstr(f, t, &res.type))
 		;
-	else if (chkc(f, t, eof))
+	else if (chkppdir(f, t, &res.type))
+		;
+	else if (chkc(f, t, eof)) {
 		res.type = T_EOF;
-	else
+		line = 1;
+		column = 0;
+	} else
 		report(E_TOKENIZER, NULL, "character out of place");
 
 	res.lexeme = ssclose(t);

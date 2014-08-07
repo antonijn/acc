@@ -7,6 +7,7 @@ enum tokenty {
 	T_IDENTIFIER,
 	T_RESERVED,
 	T_OPERATOR,
+	T_PREPROC,
 	T_OCT,
 	T_HEX,
 	T_DEC,
@@ -14,7 +15,7 @@ enum tokenty {
 	T_DOUBLE,
 	T_CHAR,
 	T_STRING,
-	T_EOF,
+	T_EOF
 };
 
 struct token {
