@@ -37,7 +37,8 @@ enum ctypeid {
 	PRIMITIVE,
 	FUNCTION,
 	STRUCTURE,
-	UNION
+	UNION,
+	QUALIFIED
 };
 
 enum storageclass {
@@ -46,6 +47,12 @@ enum storageclass {
 	SC_STATIC,
 	SC_REGISTER,
 	SC_EXTERN
+};
+
+enum qualifier {
+	Q_NONE = 0x0,
+	Q_CONST = 0x1,
+	Q_VOLATILE = 0x2
 };
 
 struct ctype {
@@ -91,12 +98,19 @@ struct carray {
 	struct ctype * elementtype;
 };
 
+struct cqualified {
+	struct ctype base;
+	struct ctype * type;
+	enum qualifier qualifiers;
+};
+
 struct ctype * new_pointer(struct ctype * base);
 struct ctype * new_struct(char * id);
 void struct_add_field(struct ctype * type, struct ctype * ty, char * id);
 struct field * struct_get_field(struct ctype * type, char * name);
 struct ctype * new_union(char * name);
 struct ctype * new_array(struct ctype * etype, int length);
+struct ctype * new_qualified(struct ctype * base, enum qualifier q);
 
 struct symbol {
 	struct ctype * type;
@@ -104,6 +118,9 @@ struct symbol {
 	int implemented;
 	enum storageclass storage;
 };
+
+struct symbol * new_symbol(struct ctype * type, char * id,
+	enum storageclass sc, int reg);
 
 struct enumerator {
 	struct ctype * type;

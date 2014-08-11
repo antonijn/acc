@@ -26,21 +26,23 @@
 #include <acc/options.h>
 #include <acc/token.h>
 #include <acc/error.h>
+#include <acc/parser.h>
 
 static void compilefile(FILE * f)
 {
-	struct token tok;
+	/*struct token tok;
 	while (1) {
 		tok = gettok(f);
 		if (tok.type == T_EOF) {
-			freetok(tok);
+			freetok(&tok);
 			break;
 		}
 
 		printf("%2d: %s\n", tok.type, tok.lexeme);
 
-		freetok(tok);
-	}
+		freetok(&tok);
+	}*/
+	parsefile(f);
 }
 
 int main(int argc, char *argv[])
@@ -50,6 +52,7 @@ int main(int argc, char *argv[])
 
 	setlocale(LC_ALL, "C");
 	options_init(argc, argv);
+	ast_init();
 
 	li = list_iterator(option_input());
 	while (iterator_next(&li, (void **)&filename)) {
@@ -67,6 +70,7 @@ int main(int argc, char *argv[])
 		compilefile(file);
 	}
 
+	ast_destroy();
 	options_destroy();
 	return EXIT_SUCCESS;
 }

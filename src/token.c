@@ -51,6 +51,7 @@ static struct lchar fgetlc(FILE * f);
 static void ungetlc(struct lchar * lc, FILE * f);
 
 static int chkc(FILE * f, SFILE * t, const char * chs);
+static int chks(FILE * f, SFILE * t, const char * s);
 
 static int chkid(FILE * f, SFILE * t, enum tokenty * tt);
 static int chknum(FILE * f, SFILE * t, enum tokenty * tt);
@@ -82,7 +83,7 @@ static SFILE * ssopen(void)
 {
 	SFILE * res = malloc(sizeof(SFILE));
 	res->count = 0;
-	res->av = 128;
+	res->av = 16;
 	res->buf = calloc(res->av + 1, sizeof(char));
 	return res;
 }
@@ -249,26 +250,49 @@ static int chkc(FILE * f, SFILE * t, const char * chs)
 }
 
 /*
+ * Check for string
+ * Like chkc but checks for an entire sequence.
+ */
+static int chks(FILE * f, SFILE * t, const char * s)
+{
+	size_t len = strlen(s);
+	struct lchar *lcs = malloc(sizeof(struct lchar) * len);
+	int i;
+	for (i = 0; s[i]; ++i) {
+		lcs[i] = fgetlc(f);
+		if (lcs[i].ch != s[i])
+			goto cleanup;
+		if (t)
+			ssputc(t, s[i]);
+	}
+	free(lcs);
+	return 1;
+
+cleanup:
+	for (; i >= 0; --i) {
+		if (t)
+			ssunputc(t);
+		ungetlc(&lcs[i], f);
+	}
+
+	free(lcs);
+	return 0;
+}
+
+/*
  * Skip formatting characters
  */
 static void skipf(FILE * f)
 {
-	struct lchar lc;
-
 	while (chkc(f, NULL, " \n\t\v\r\f"))
 		;
 	
 	/* look for comments */
-	lc = fgetlc(f);
-	if (lc.ch == '/') {
-		if (chkc(f, NULL, "*")) {
-			while (!chkc(f, NULL, "*") || !chkc(f, NULL, "/"))
-				chkc(f, NULL, NULL);
-			skipf(f);
-			return;
-		}
+	if (chks(f, NULL, "/*")) {
+		while (!chks(f, NULL, "*/"))
+			chkc(f, NULL, NULL);
+		skipf(f);
 	}
-	ungetlc(&lc, f);
 }
 
 /*
@@ -561,23 +585,23 @@ struct token gettok(FILE * f)
 		line = 1;
 		column = 0;
 	} else
-		report(E_TOKENIZER, NULL, "character out of place");
+		report(E_TOKENIZER, NULL, "character out of place: '%c'", fgetc(f));
 
 	res.lexeme = ssclose(t);
 	return res;
 }
 
-void ungettok(FILE * f, struct token t)
+void ungettok(struct token * t, FILE * f)
 {
-	size_t len = strlen(t.lexeme);
+	size_t len = strlen(t->lexeme);
 	int i;
 	for (i = len - 1; i >= 0; --i) {
-		ungetc(t.lexeme[i], f);
+		ungetc(t->lexeme[i], f);
 		--column;
 	}
 }
 
-void freetok(struct token t)
+void freetok(struct token * t)
 {
-	free(t.lexeme);
+	free(t->lexeme);
 }

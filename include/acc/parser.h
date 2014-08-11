@@ -1,5 +1,5 @@
 /*
- * Tokenizer
+ * Parsing and generation of intermediate representation
  * Copyright (C) 2014  Antonie Blom
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -17,38 +17,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef TOKEN_H
-#define TOKEN_H
+#ifndef PARSER_H
+#define PARSER_H
 
 #include <stdio.h>
 
-enum tokenty {
-	T_IDENTIFIER,
-	T_RESERVED,
-	T_OPERATOR,
-	T_PREPROC,
-	T_OCT,
-	T_HEX,
-	T_DEC,
-	T_FLOAT,
-	T_DOUBLE,
-	T_CHAR,
-	T_STRING,
-	T_EOF
-};
+#include <acc/intermediate.h>
 
-struct token {
-	enum tokenty type;
-	char * lexeme;
-	int column;
-	int line;
-};
-
-struct token gettok(FILE * f);
-void ungettok(struct token * t, FILE * f);
-void freetok(struct token * t);
-
-int get_line(void);
-int get_column(void);
+struct itm_module parsefile(FILE * f);
 
 #endif

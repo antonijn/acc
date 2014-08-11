@@ -144,6 +144,7 @@ struct ctype * new_pointer(struct ctype * base)
 	ty->base.name = NULL;
 	ty->base.to_string = &pointer_to_string;
 	ty->base.compare = &pointer_compare;
+	ty->pointsto = base;
 	registerty((struct ctype *)ty);
 	return (struct ctype *)ty;
 }
@@ -217,6 +218,40 @@ struct ctype * new_array(struct ctype * etype, int length)
 	return NULL;
 }
 
+static void qualified_to_string(FILE * f, struct ctype * ty, const char * id)
+{
+	struct cqualified * cq = (struct cqualified *)ty;
+	size_t len = strlen(id) + sizeof("const volatile ");
+	char * nxt = calloc(sizeof(char), len);
+	if (cq->qualifiers & Q_CONST)
+		strcat(nxt, "const ");
+	if (cq->qualifiers & Q_VOLATILE)
+		strcat(nxt, "volatile ");
+	strcat(nxt, id);
+	cq->type->to_string(f, cq->type, (const char *)nxt);
+	free(nxt);
+}
+
+static enum typecomp qualified_compare(struct ctype * l, struct ctype * r)
+{
+	/* TODO: proper implementation */
+	return EXPLICIT;
+}
+
+struct ctype * new_qualified(struct ctype * base, enum qualifier q)
+{
+	struct cqualified * ty = malloc(sizeof(struct cqualified));
+	ty->base.free = (void (*)(struct ctype *))&free;
+	ty->base.type = QUALIFIED;
+	ty->base.size = base->size;
+	ty->base.name = NULL;
+	ty->base.to_string = &qualified_to_string;
+	ty->base.compare = &qualified_compare;
+	ty->type = base;
+	ty->qualifiers = q;
+	registerty((struct ctype *)ty);
+	return (struct ctype *)ty;
+}
 
 struct symbol * get_symbol(char * id)
 {
@@ -267,6 +302,17 @@ struct cunion * get_union(char * name)
 				return (struct cunion *)sym;
 	}
 	return NULL;
+}
+
+struct symbol * new_symbol(struct ctype * type, char * id,
+	enum storageclass sc, int reg)
+{
+	struct symbol * sym = malloc(sizeof(struct symbol));
+	sym->type = type;
+	sym->id = calloc(sizeof(char), strlen(id));
+	sprintf(sym->id, "%s", id);
+	sym->storage = sc;
+	return sym;
 }
 
 struct operator binop_plus = { 6, 0, "+" };

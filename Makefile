@@ -23,4 +23,4 @@ release:
 	$(CC) $(CFLAGS) -O2 -DNDEBUG -o acc src/*.c
 
 debug:
-	$(CC) $(CFLAGS) -o acc src/*.c
+	$(CC) $(CFLAGS) -Og -g -o acc src/*.c

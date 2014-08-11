@@ -58,14 +58,14 @@ void itm_instr_to_string(FILE * f, struct itm_instr * i)
 	}
 
 	if (i->typeoperand) {
-		fprintf(f, "%s", i->typeoperand->fullname);
+		i->typeoperand->to_string(f, i->typeoperand, "");
 	}
 	fprintf(f, "\n");
 }
 
 static void itm_instr_expr_to_string(FILE * f, struct itm_expr * e)
 {
-	int inum = itm_instr_number(e);
+	int inum = itm_instr_number((struct itm_instr *)e);
 	size_t strsize = snprintf(NULL, 0, "%%%d", inum);
 	char * buf = malloc(strsize + 1);
 	snprintf(buf, strsize + 1, "%%%d", inum);
