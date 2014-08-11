@@ -40,6 +40,14 @@ enum ctypeid {
 	UNION
 };
 
+enum storageclass {
+	SC_DEFAULT,
+	SC_AUTO,
+	SC_STATIC,
+	SC_REGISTER,
+	SC_EXTERN
+};
+
 struct ctype {
 	void (*free)(struct ctype * t);
 	enum ctypeid type;
@@ -94,6 +102,7 @@ struct symbol {
 	struct ctype * type;
 	char * id;
 	int implemented;
+	enum storageclass storage;
 };
 
 struct enumerator {

@@ -50,7 +50,7 @@ void itm_instr_to_string(FILE * f, struct itm_instr * i)
 	}
 
 	it = list_iterator(i->operands);
-	for (j = 0; ex = iterator_next(&it); ++j) {
+	for (j = 0; iterator_next(&it, (void **)&ex); ++j) {
 		ex->to_string(f, ex);
 		if (j != list_length(i->operands) - 1 || i->typeoperand) {
 			fprintf(f, ", ");
@@ -231,9 +231,9 @@ struct itm_instr *itm_deepptr(struct itm_instr * i, struct itm_expr * l, struct 
 		j = ((struct itm_literal *)r)->value.i;
 		deeptype = get_list_item(((struct cstruct *)deeptype)->fields, j);
 		break;
-	/*case ARRAY:
+	case ARRAY:
 		deeptype = ((struct carray *)deeptype)->elementtype;
-		break;*/
+		break;
 	default:
 		report(E_INTERNAL, NULL, "ITM: trying to access member of non-composite time");
 		break;

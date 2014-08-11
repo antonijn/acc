@@ -199,7 +199,7 @@ struct field * struct_get_field(struct ctype * type, char * name)
 	void * it;
 	struct field * fi;
 	it = list_iterator(cs->fields);
-	while (fi = iterator_next(&it))
+	while (iterator_next(&it, (void **)&fi))
 		if (!strcmp(name, fi->id))
 			return fi;
 
@@ -226,7 +226,7 @@ struct symbol * get_symbol(char * id)
 		void * it;
 		struct symbol * sym;
 		it = list_iterator(l);
-		while (sym = iterator_next(&it))
+		while (iterator_next(&it, (void **)&sym))
 			if (!strcmp(sym->id, id))
 				return sym;
 	}
@@ -247,7 +247,7 @@ struct cstruct * get_struct(char * name)
 		void * it;
 		struct ctype * sym;
 		it = list_iterator(l);
-		while (sym = iterator_next(&it))
+		while (iterator_next(&it, (void **)&sym))
 			if (sym->type == STRUCTURE && !strcmp(sym->name, name))
 				return (struct cstruct *)sym;
 	}
@@ -262,7 +262,7 @@ struct cunion * get_union(char * name)
 		void * it;
 		struct ctype * sym;
 		it = list_iterator(l);
-		while (sym = iterator_next(&it))
+		while (iterator_next(&it, (void **)&sym))
 			if (sym->type == UNION && !strcmp(sym->name, name))
 				return (struct cunion *)sym;
 	}

@@ -44,7 +44,9 @@ static struct extension extensions[] = {
 	{ "variadic-macros", EX_VARIADIC_MACROS },
 	{ "restrict", EX_RESTRICT },
 	{ "universal-character-names", EX_UNIVERSAL_CHARACTER_NAMES },
-	{ "unicode-strings", EX_UNICODE_STRINGS }
+	{ "unicode-strings", EX_UNICODE_STRINGS },
+	{ "unsigned-char", EX_UNSIGNED_CHAR },
+	{ "binary-literals", EX_BINARY_LITERALS }
 };
 
 static enum exno enabled = 0;

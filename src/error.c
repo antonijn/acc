@@ -25,6 +25,8 @@
 #include <acc/token.h>
 #include <acc/options.h>
 
+const char * currentfile = NULL;
+
 void report(enum errorty ty, struct token * tok, const char * frmt, ...)
 {
 	va_list ap;
@@ -32,9 +34,8 @@ void report(enum errorty ty, struct token * tok, const char * frmt, ...)
 		return;
 
 	if ((ty & E_HIDE_LOCATION) == 0)
-		fprintf(stderr, "%s:%d:%d: ", "???", get_line(), get_column());
-	if ((ty & E_HIDE_TOKEN) == 0)
-		fprintf(stderr, " at token '%s': ", tok->lexeme);
+		fprintf(stderr, "%s:%d:%d: ", currentfile ?
+			currentfile : "???", get_line(), get_column());
 
 	if (ty & E_FATAL)
 		fprintf(stderr, "FATAL: ");
@@ -48,6 +49,8 @@ void report(enum errorty ty, struct token * tok, const char * frmt, ...)
 	va_end(ap);
 
 	fprintf(stderr, "\n");
+	if ((ty & E_HIDE_TOKEN) == 0)
+		fprintf(stderr, "\t%s\n", tok->lexeme);
 
 	if (ty & E_FATAL)
 		exit(1);

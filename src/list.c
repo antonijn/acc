@@ -81,7 +81,7 @@ struct list * clone_list(struct list * l)
 	prev = NULL;
 	head = NULL;
 	it = list_iterator(l);
-	while (item = iterator_next(&it)) {
+	while (iterator_next(&it, &item)) {
 		struct node * n;
 		n = malloc(sizeof(struct node));
 		n->data = item;
@@ -122,17 +122,15 @@ void * list_iterator(struct list * l)
 	return l->head;
 }
 
-void * iterator_next(void ** it)
+int iterator_next(void ** it, void ** item)
 {
-	struct node * n;
-	void * item;
-	n = *it;
+	struct node * n = *it;
 	if (!n) {
-		return NULL;
+		return 0;
 	}
-	item = n->data;
+	*item = n->data;
 	*it = n->next;
-	return item;
+	return 1;
 }
 
 void * get_list_item(struct list * l, int idx)

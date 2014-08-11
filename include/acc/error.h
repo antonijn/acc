@@ -37,4 +37,6 @@ enum errorty {
 
 void report(enum errorty ty, struct token * tok, const char * frmt, ...);
 
+extern const char * currentfile;
+
 #endif

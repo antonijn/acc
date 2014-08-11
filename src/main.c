@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 	options_init(argc, argv);
 
 	li = list_iterator(option_input());
-	while (filename = iterator_next(&li)) {
+	while (iterator_next(&li, (void **)&filename)) {
 		FILE * file;
 
 		if (!strcmp(filename, "-")) {

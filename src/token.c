@@ -41,6 +41,15 @@ static void ssunputc(SFILE * ss);
 /* local functions */
 static void skipf(FILE * f);
 
+struct lchar {
+	int ch;
+	int chars[3];
+	size_t len;
+};
+
+static struct lchar fgetlc(FILE * f);
+static void ungetlc(struct lchar * lc, FILE * f);
+
 static int chkc(FILE * f, SFILE * t, const char * chs);
 
 static int chkid(FILE * f, SFILE * t, enum tokenty * tt);
@@ -69,14 +78,14 @@ int get_column(void)
 /*
  * Open string stream
  */
- static SFILE * ssopen(void)
- {
- 	SFILE * res = malloc(sizeof(SFILE));
- 	res->count = 0;
- 	res->av = 128;
- 	res->buf = calloc(res->av + 1, sizeof(char));
- 	return res;
- }
+static SFILE * ssopen(void)
+{
+	SFILE * res = malloc(sizeof(SFILE));
+	res->count = 0;
+	res->av = 128;
+	res->buf = calloc(res->av + 1, sizeof(char));
+	return res;
+}
 
  /*
   * Close string stream
@@ -121,6 +130,77 @@ static void ssunputc(SFILE * ss)
 }
 
 /*
+ * Get logical C character
+ * Filters out trigraphs.
+ */
+static struct lchar fgetlc(FILE * f)
+{
+	struct lchar res;
+	res.chars[0] = res.ch = fgetc(f);
+	if (res.chars[0] != '?') {
+		res.len = 1;
+		return res;
+	}
+	res.chars[1] = fgetc(f);
+	if (res.chars[1] != '?') {
+		ungetc(res.chars[1], f);
+		res.len = 1;
+		return res;
+	}
+	res.chars[2] = fgetc(f);
+	switch (res.chars[2]) {
+	case '=':
+		res.ch = '#';
+		res.len = 3;
+		return res;
+	case '/':
+		res.ch = '\\';
+		res.len = 3;
+		return res;
+	case '\'':
+		res.ch = '^';
+		res.len = 3;
+		return res;
+	case '(':
+		res.ch = '[';
+		res.len = 3;
+		return res;
+	case ')':
+		res.ch = ']';
+		res.len = 3;
+		return res;
+	case '!':
+		res.ch = '|';
+		res.len = 3;
+		return res;
+	case '<':
+		res.ch = '{';
+		res.len = 3;
+		return res;
+	case '>':
+		res.ch = '}';
+		res.len = 3;
+		return res;
+	case '-':
+		res.ch = '~';
+		res.len = 3;
+		return res;
+	}
+	report(E_TOKENIZER, NULL, "invalid trigraph sequence: \"??%c\"", res.chars[2]);
+	ungetc(res.chars[2], f);
+	ungetc(res.chars[1], f);
+	res.len = 1;
+	return res;
+}
+
+static void ungetlc(struct lchar * lc, FILE * f)
+{
+	int i;
+	for (i = lc->len - 1; i >= 0; --i)
+		ungetc(lc->chars[i], f);
+}
+
+/*
  * Check for character
  * If next char is in chs, returns 1 and advances stream
  * If not, returns 0
@@ -128,31 +208,37 @@ static void ssunputc(SFILE * ss)
 static int chkc(FILE * f, SFILE * t, const char * chs)
 {
 	char ch;
-	int act = fgetc(f);
+	struct lchar act = fgetlc(f);
 	++column;
+
+	if (act.ch == '\n') {
+		++line;
+		column = 0;
+	}
+	if (act.ch == '\\') {
+		struct lchar nxt = fgetlc(f);
+		if (nxt.ch != '\n')
+			ungetlc(&nxt, f);
+		++line;
+		column = 0;
+		act = fgetlc(f);
+	}
+
 	if (!chs) {
-		if (act == '\n') {
-			++line;
-			column = 0;
-		}
 		if (t)
-			ssputc(t, act);
+			ssputc(t, act.ch);
 		return 1;
 	}
 
 	for (; ch = *chs; ++chs) {
-		if (ch != act)
+		if (ch != act.ch)
 			continue;
-		if (ch == '\n') {
-			++line;
-			column = 0;
-		}
 		if (t)
 			ssputc(t, ch);
 		return 1;
 	}
 	--column;
-	ungetc(act, f);
+	ungetlc(&act, f);
 	return 0;
 }
 
@@ -163,6 +249,18 @@ static void skipf(FILE * f)
 {
 	while (chkc(f, NULL, " \n\t\v\r\f"))
 		;
+	
+	/* look for comments */
+	if (chkc(f, NULL, "/")) {
+		if (chkc(f, NULL, "*")) {
+			while (!chkc(f, NULL, "*") || !chkc(f, NULL, "/"))
+				chkc(f, NULL, NULL);
+			skipf(f);
+		} else {
+			--column;
+			ungetc('/', f);
+		}
+	}
 }
 
 /*
@@ -439,18 +537,6 @@ struct token gettok(FILE * f)
 	skipf(f);
 
 	t = ssopen();
-
-	/* look for comments */
-	if (chkc(f, NULL, "/")) {
-		if (chkc(f, NULL, "*")) {
-			while (!chkc(f, NULL, "*") || !chkc(f, NULL, "/"))
-				chkc(f, NULL, NULL);
-			skipf(f);
-		} else {
-			--column;
-			ungetc('/', f);
-		}
-	}
 
 	if (chkop(f, t, &res.type))
 		;

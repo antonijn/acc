@@ -107,6 +107,9 @@ struct itm_block {
 	struct itm_instr * first;
 };
 
+struct itm_block new_itm_block(struct itm_block * previous);
+void delete_itm_block(struct itm_block * block);
+
 void itm_instr_to_block(struct itm_block * block, struct itm_instr * i);
 #ifndef NDEBUG
 void itm_block_to_string(struct itm_block * block);
@@ -141,6 +144,8 @@ struct itm_module {
 	struct list * symbols;
 };
 
+struct itm_module new_itm_module(void);
+void delete_itm_module(struct itm_module mod);
 #ifndef NDEBUG
 void itm_module_to_string(struct itm_module * itm);
 #endif

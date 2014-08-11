@@ -27,7 +27,7 @@ struct list * clone_list(struct list * l);
 void delete_list(struct list * l, void (*destr)(void *));
 
 void * list_iterator(struct list * l);
-void * iterator_next(void ** it);
+int iterator_next(void ** it, void ** item);
 
 void * get_list_item(struct list * l, int idx);
 void set_list_item(struct list * l, int idx, void * data);
