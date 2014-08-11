@@ -137,7 +137,12 @@ static struct lchar fgetlc(FILE * f)
 {
 	struct lchar res;
 	res.chars[0] = res.ch = fgetc(f);
+	++column;
 	if (res.chars[0] != '?') {
+		if (res.chars[0] == '\n') {
+			++line;
+			column = 0;
+		}
 		res.len = 1;
 		return res;
 	}
@@ -147,6 +152,7 @@ static struct lchar fgetlc(FILE * f)
 		res.len = 1;
 		return res;
 	}
+	column += 2;
 	res.chars[2] = fgetc(f);
 	switch (res.chars[2]) {
 	case '=':
@@ -189,6 +195,7 @@ static struct lchar fgetlc(FILE * f)
 	report(E_TOKENIZER, NULL, "invalid trigraph sequence: \"??%c\"", res.chars[2]);
 	ungetc(res.chars[2], f);
 	ungetc(res.chars[1], f);
+	column -= 2;
 	res.len = 1;
 	return res;
 }
@@ -196,8 +203,14 @@ static struct lchar fgetlc(FILE * f)
 static void ungetlc(struct lchar * lc, FILE * f)
 {
 	int i;
-	for (i = lc->len - 1; i >= 0; --i)
-		ungetc(lc->chars[i], f);
+	for (i = lc->len - 1; i >= 0; --i) {
+		int c = lc->chars[i];
+		if (c == '\n')
+			--line;
+		else
+			--column;
+		ungetc(c, f);
+	}
 }
 
 /*
@@ -209,19 +222,13 @@ static int chkc(FILE * f, SFILE * t, const char * chs)
 {
 	char ch;
 	struct lchar act = fgetlc(f);
-	++column;
 
-	if (act.ch == '\n') {
-		++line;
-		column = 0;
-	}
 	if (act.ch == '\\') {
 		struct lchar nxt = fgetlc(f);
-		if (nxt.ch != '\n')
+		if (nxt.ch == '\n')
+			act = fgetlc(f);
+		else
 			ungetlc(&nxt, f);
-		++line;
-		column = 0;
-		act = fgetlc(f);
 	}
 
 	if (!chs) {
@@ -237,7 +244,6 @@ static int chkc(FILE * f, SFILE * t, const char * chs)
 			ssputc(t, ch);
 		return 1;
 	}
-	--column;
 	ungetlc(&act, f);
 	return 0;
 }
@@ -247,20 +253,22 @@ static int chkc(FILE * f, SFILE * t, const char * chs)
  */
 static void skipf(FILE * f)
 {
+	struct lchar lc;
+
 	while (chkc(f, NULL, " \n\t\v\r\f"))
 		;
 	
 	/* look for comments */
-	if (chkc(f, NULL, "/")) {
+	lc = fgetlc(f);
+	if (lc.ch == '/') {
 		if (chkc(f, NULL, "*")) {
 			while (!chkc(f, NULL, "*") || !chkc(f, NULL, "/"))
 				chkc(f, NULL, NULL);
 			skipf(f);
-		} else {
-			--column;
-			ungetc('/', f);
+			return;
 		}
 	}
+	ungetlc(&lc, f);
 }
 
 /*
