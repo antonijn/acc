@@ -56,8 +56,10 @@ enum declflags {
 	DF_REGISTER_SYMBOL = 0x200,
 	DF_FINISH_SEMICOLON = 0x400,
 
-	DF_GLOBAL = DF_INIT | DF_FUNCTION | DF_MULTIPLE | DF_EXTERN | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
-	DF_LOCAL = DF_INIT | DF_MULTIPLE | DF_REGISTER | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
+	DF_GLOBAL = DF_INIT | DF_FUNCTION | DF_MULTIPLE |
+		DF_EXTERN | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
+	DF_LOCAL = DF_INIT | DF_MULTIPLE | DF_REGISTER |
+		DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
 	DF_FIELD = DF_BITFIELD | DF_MULTIPLE | DF_FINISH_SEMICOLON,
 	DF_TYPEDEF = DF_FUNCTION | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
 	DF_CAST = DF_NO_ID,
@@ -67,14 +69,19 @@ enum declflags {
 /* primitive modifiers */
 enum primmod {
 	PM_NONE = 0x00,
-	PM_UNSIGNED = 0x01,
-	PM_SIGNED = 0x02,
-	PM_LONG = 0x04,
-	PM_LONG_LONG = 0x08,
-	PM_SHORT = 0x10
+	PM_IMOD = 0x200,
+	PM_UNSIGNED = 0x01 | PM_IMOD,
+	PM_SIGNED = 0x02 | PM_IMOD,
+	PM_LONG = 0x04 | PM_IMOD,
+	PM_LONG_LONG = 0x08 | PM_IMOD,
+	PM_SHORT = 0x10 | PM_IMOD,
+	PM_INT = 0x20 | PM_IMOD,
+	PM_CHAR = 0x40 | PM_IMOD,
+	PM_FLOAT = 0x80,
+	PM_DOUBLE = 0x100
 };
 
-static void parsedecl(FILE * f, enum declflags flags, struct list * syms);
+static int parsedecl(FILE * f, enum declflags flags, struct list * syms);
 static int parsemod(FILE * f, enum declflags flags, enum qualifier * quals,
 	enum primmod * pm, enum storageclass * sc);
 static struct ctype * parsebasety(FILE * f, enum declflags flags,
@@ -84,7 +91,12 @@ static struct symbol * parsedeclarator(FILE * f, enum declflags flags,
 static struct symbol * parseddeclarator(FILE * f, enum declflags flags,
 	struct ctype * ty, enum storageclass sc);
 
-static struct ctype * parseprimitive(FILE * f, enum primmod mods);
+static int aremods(enum primmod new, enum primmod prev,
+	enum primmod l, enum primmod r);
+static void checkmods(struct token * tok, enum primmod new, enum primmod prev);
+
+static struct ctype * getprimitive(enum primmod mods);
+
 static struct ctype * parsestructure(FILE * f);
 static struct ctype * parsetypedef(FILE * f);
 
@@ -137,10 +149,12 @@ static void freetp(struct token * t)
 }
 
 /* declarations */
-static void parsedecl(FILE * f, enum declflags flags, struct list * syms)
+static int parsedecl(FILE * f, enum declflags flags, struct list * syms)
 {
 	enum storageclass sc;
 	struct ctype * basety = parsebasety(f, flags, &sc);
+	if (!basety)
+		return 0;
 
 	while (1) {
 		struct token tok;
@@ -164,6 +178,8 @@ static void parsedecl(FILE * f, enum declflags flags, struct list * syms)
 		report(E_PARSER, &tok, "unexpected token in declaration");
 		break;
 	}
+
+	return 1;
 }
 
 static int parsestorage(FILE * f, enum storageclass * sc,
@@ -180,6 +196,36 @@ static int parsestorage(FILE * f, enum storageclass * sc,
 		return 1;
 	}
 	return 0;
+}
+
+static int aremods(enum primmod new, enum primmod prev,
+	enum primmod l, enum primmod r)
+{
+	return ((prev & l) == l && (new & r) == r) ||
+	       ((new & l) == l && (prev & r) == r);
+}
+
+static void checkmods(struct token * tok, enum primmod new, enum primmod prev)
+{
+	if (prev == PM_NONE)
+		return;
+
+	if ((prev & new) == new)
+		report(E_PARSER, tok, "duplicate modifier");
+
+	if (((prev & PM_IMOD) && !(new & PM_IMOD)) ||
+	    ((new & PM_IMOD) && !(prev & PM_IMOD)))
+		report(E_PARSER, tok, "invalid modifier for type");
+	if (aremods(prev, new, PM_LONG, PM_CHAR))
+		report(E_PARSER, tok, "invalid modifier for type");
+	if (aremods(prev, new, PM_SHORT, PM_CHAR))
+		report(E_PARSER, tok, "invalid modifier for type");
+	if (aremods(prev, new, PM_SIGNED, PM_UNSIGNED))
+		report(E_PARSER, tok, "\"signed\" and \"unsigned\" are mutually exclusive");
+	if (aremods(prev, new, PM_LONG, PM_SHORT))
+		report(E_PARSER, tok, "\"short\" and \"long\" are mutually exclusive");
+	if (aremods(prev, new, PM_FLOAT, PM_DOUBLE))
+		report(E_PARSER, tok, "\"float\" and \"double\" are mutually exclusive");
 }
 
 static int parsemod(FILE * f, enum declflags flags, enum qualifier * quals,
@@ -206,40 +252,44 @@ static int parsemod(FILE * f, enum declflags flags, enum qualifier * quals,
 		return 1;
 	else if ((flags & DF_REGISTER) && parsestorage(f, sc, "register", SC_REGISTER))
 		return 1;
-	else if (nxt = chktp(f, "unsigned")) {
-		if (*pm & PM_UNSIGNED)
-			report(E_PARSER, nxt, "duplicate \"unsigned\" modifier");
-		if (*pm & PM_SIGNED)
-			report(E_PARSER, nxt, "\"signed\" and \"unsigned\" are mutually exclusive");
-		else
-			*pm |= PM_UNSIGNED;
+	else if (pm && (nxt = chktp(f, "unsigned"))) {
+		checkmods(nxt, PM_UNSIGNED, *pm);
+		*pm |= PM_UNSIGNED;
 		freetp(nxt);
 		return 1;
-	} else if (nxt = chktp(f, "signed")) {
-		if (*pm & PM_SIGNED)
-			report(E_PARSER, nxt, "duplicate \"signed\" modifier");
-		if (*pm & PM_UNSIGNED)
-			report(E_PARSER, nxt, "\"signed\" and \"unsigned\" are mutually exclusive");
-		else
-			*pm |= PM_SIGNED;
+	} else if (pm && (nxt = chktp(f, "signed"))) {
+		checkmods(nxt, PM_SIGNED, *pm);
+		*pm |= PM_SIGNED;
 		freetp(nxt);
 		return 1;
-	} else if (nxt = chktp(f, "short")) {
-		if (*pm & PM_SHORT)
-			report(E_PARSER, nxt, "duplicate \"short\" modifier");
-		if (*pm & PM_LONG)
-			report(E_PARSER, nxt, "\"short\" and \"long\" are mutually exclusive");
-		else
-			*pm |= PM_SHORT;
+	} else if (pm && (nxt = chktp(f, "short"))) {
+		checkmods(nxt, PM_SHORT, *pm);
+		*pm |= PM_SHORT;
 		freetp(nxt);
 		return 1;
-	} else if (nxt = chktp(f, "long")) {
-		if (*pm & PM_LONG)
-			report(E_PARSER, nxt, "duplicate \"long\" modifier");
-		if (*pm & PM_SHORT)
-			report(E_PARSER, nxt, "\"short\" and \"long\" are mutually exclusive");
-		else
-			*pm |= PM_LONG;
+	} else if (pm && (nxt = chktp(f, "long"))) {
+		checkmods(nxt, PM_LONG, *pm);
+		*pm |= PM_LONG;
+		freetp(nxt);
+		return 1;
+	} else if (pm && (nxt = chktp(f, "int"))) {
+		checkmods(nxt, PM_INT, *pm);
+		*pm |= PM_INT;
+		freetp(nxt);
+		return 1;
+	} else if (pm && (nxt = chktp(f, "char"))) {
+		checkmods(nxt, PM_CHAR, *pm);
+		*pm |= PM_CHAR;
+		freetp(nxt);
+		return 1;
+	} else if (pm && (nxt = chktp(f, "float"))) {
+		checkmods(nxt, PM_FLOAT, *pm);
+		*pm |= PM_FLOAT;
+		freetp(nxt);
+		return 1;
+	} else if (pm && (nxt = chktp(f, "double"))) {
+		checkmods(nxt, PM_DOUBLE, *pm);
+		*pm |= PM_DOUBLE;
 		freetp(nxt);
 		return 1;
 	}
@@ -257,6 +307,11 @@ static struct ctype * parsebasety(FILE * f, enum declflags flags,
 	while (parsemod(f, flags, &quals, &pm, sc))
 		;
 
+	if (pm != PM_NONE) {
+		res = getprimitive(pm);
+		goto ret;
+	}
+
 	if (*sc == SC_DEFAULT)
 		*sc = SC_AUTO;
 
@@ -264,10 +319,11 @@ static struct ctype * parsebasety(FILE * f, enum declflags flags,
 		goto ret;
 	if (res = parsetypedef(f))
 		goto ret;
-	if (res = parseprimitive(f, pm))
-		goto ret;
 
+	return NULL;
 ret:
+	while (parsemod(f, flags, &quals, NULL, sc))
+		;
 	if (quals != Q_NONE)
 		res = new_qualified(res, quals);
 	return res;
@@ -312,51 +368,30 @@ static struct symbol * parseddeclarator(FILE * f, enum declflags flags,
 	return res;
 }
 
-static struct ctype * parseprimitive(FILE * f, enum primmod mods)
+static struct ctype * getprimitive(enum primmod mods)
 {
-	struct token * tok;
-	if (mods == PM_NONE) {
-		if (chkt(f, "float"))
-			return &cfloat;
-		if (chkt(f, "double"))
-			return &cdouble;
-		if (chkt(f, "int"))
-			return &cint;
-		if (chkt(f, "char"))
-			return isext(EX_UNSIGNED_CHAR) ? &cuchar : &cchar;
-		if (chkt(f, "void"))
-			return &cvoid;
-		return NULL;
-	}
-
-	if (tok = chktp(f, "char")) {
-		if (mods == PM_SIGNED)
-			return &cchar;
-		if (mods == PM_UNSIGNED)
-			return &cuchar;
-		report(E_PARSER, tok, "invalid modifiers for type \"char\"");
-		freetp(tok);
-		return &cchar;
-	}
-
-	chkt(f, "int");
-
-	switch (mods) {
-	case (PM_SIGNED | PM_SHORT):
-	case PM_SHORT:
-		return &cshort;
-	case (PM_UNSIGNED | PM_SHORT):
-		return &cushort;
-	case (PM_SIGNED | PM_LONG):
-	case PM_LONG:
+	if ((mods & PM_LONG) == PM_LONG) {
+		if ((mods & PM_UNSIGNED) == PM_UNSIGNED)
+			return &culong;
 		return &clong;
-	case (PM_UNSIGNED | PM_LONG):
-		return &culong;
-	case PM_SIGNED:
+	} else if ((mods & PM_SHORT) == PM_SHORT) {
+		if ((mods & PM_UNSIGNED) == PM_UNSIGNED)
+			return &cushort;
+		return &cshort;
+	} else if ((mods & PM_CHAR) == PM_CHAR) {
+		if ((mods & PM_UNSIGNED) == PM_UNSIGNED)
+			return &cuchar;
+		else if ((mods & PM_SIGNED) == PM_SIGNED)
+			return &cchar;
+		return isext(EX_UNSIGNED_CHAR) ? &cuchar : &cchar;
+	} else if (mods & PM_IMOD) {
+		if ((mods & PM_UNSIGNED) == PM_UNSIGNED)
+			return &cuint;
 		return &cint;
-	case PM_UNSIGNED:
-		return &cuint;
-	}
+	} else if (mods & PM_FLOAT)
+		return &cfloat;
+	else if (mods & PM_DOUBLE)
+		return &cdouble;
 
 	/* unreachable */
 	return NULL;
