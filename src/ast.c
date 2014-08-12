@@ -152,7 +152,7 @@ struct ctype * new_pointer(struct ctype * base)
 static void struct_to_string(FILE * f, struct ctype * p, const char * id)
 {
 	struct cstruct * cs = (struct cstruct *)p;
-	fprintf(f, "struct %s %s", cs->base.name, id);
+	fprintf(f, "struct %s %s", cs->base.name ? cs->base.name : "{ ... }", id);
 }
 
 static enum typecomp struct_compare(struct ctype * l, struct ctype * r)
@@ -174,8 +174,11 @@ struct ctype * new_struct(char * id)
 	ty->base.free = &free_struct;
 	ty->base.type = STRUCTURE;
 	ty->base.size = -1; /* TODO: get target-specific value */
-	ty->base.name = calloc(sizeof(char), strlen(id) + 1);
-	sprintf((char *)ty->base.name, "%s", id);
+	if (id) {
+		ty->base.name = calloc(sizeof(char), strlen(id) + 1);
+		sprintf((char *)ty->base.name, "%s", id);
+	} else
+		ty->base.name = NULL;
 	ty->base.to_string = &struct_to_string;
 	ty->base.compare = &struct_compare;
 	ty->fields = new_list(NULL, 0);

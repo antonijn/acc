@@ -78,7 +78,8 @@ enum primmod {
 	PM_INT = 0x20 | PM_IMOD,
 	PM_CHAR = 0x40 | PM_IMOD,
 	PM_FLOAT = 0x80,
-	PM_DOUBLE = 0x100
+	PM_DOUBLE = 0x100,
+	PM_VOID = 0x400
 };
 
 static int parsedecl(FILE * f, enum declflags flags, struct list * syms);
@@ -226,6 +227,10 @@ static void checkmods(struct token * tok, enum primmod new, enum primmod prev)
 		report(E_PARSER, tok, "\"short\" and \"long\" are mutually exclusive");
 	if (aremods(prev, new, PM_FLOAT, PM_DOUBLE))
 		report(E_PARSER, tok, "\"float\" and \"double\" are mutually exclusive");
+	if (aremods(prev, new, PM_FLOAT, PM_VOID))
+		report(E_PARSER, tok, "\"float\" and \"void\" are mutually exclusive");
+	if (aremods(prev, new, PM_VOID, PM_DOUBLE))
+		report(E_PARSER, tok, "\"void\" and \"double\" are mutually exclusive");
 }
 
 static int parsemod(FILE * f, enum declflags flags, enum qualifier * quals,
@@ -290,6 +295,11 @@ static int parsemod(FILE * f, enum declflags flags, enum qualifier * quals,
 	} else if (pm && (nxt = chktp(f, "double"))) {
 		checkmods(nxt, PM_DOUBLE, *pm);
 		*pm |= PM_DOUBLE;
+		freetp(nxt);
+		return 1;
+	} else if (pm && (nxt = chktp(f, "void"))) {
+		checkmods(nxt, PM_VOID, *pm);
+		*pm |= PM_VOID;
 		freetp(nxt);
 		return 1;
 	}
@@ -395,6 +405,8 @@ static struct ctype * getprimitive(enum primmod mods)
 		return &cfloat;
 	else if (mods & PM_DOUBLE)
 		return &cdouble;
+	else if (mods & PM_VOID)
+		return &cvoid;
 
 	/* unreachable */
 	return NULL;
@@ -428,8 +440,9 @@ static struct ctype * parsestructure(FILE * f)
 		return NULL;
 	}
 
-	str = (struct cstruct *)new_struct(idtok->lexeme);
-	freetp(idtok);
+	str = (struct cstruct *)new_struct(idtok ? idtok->lexeme : NULL);
+	if (idtok)
+		freetp(idtok);
 	while (!chkt(f, "}")) {
 		struct list * syms = new_list(NULL, 0);
 		struct symbol * sym;
