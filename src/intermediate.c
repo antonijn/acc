@@ -66,11 +66,9 @@ void itm_instr_to_string(FILE * f, struct itm_instr * i)
 static void itm_instr_expr_to_string(FILE * f, struct itm_expr * e)
 {
 	int inum = itm_instr_number((struct itm_instr *)e);
-	size_t strsize = snprintf(NULL, 0, "%%%d", inum);
-	char * buf = malloc(strsize + 1);
-	snprintf(buf, strsize + 1, "%%%d", inum);
+	char buf[32] = { 0 };
+	sprintf(buf, "%%%d", inum);
 	e->type->to_string(f, e->type, buf);
-	free(buf);
 }
 
 #endif
