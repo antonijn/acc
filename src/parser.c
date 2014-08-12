@@ -312,18 +312,21 @@ static struct ctype * parsebasety(FILE * f, enum declflags flags,
 		goto ret;
 	}
 
-	if (*sc == SC_DEFAULT)
-		*sc = SC_AUTO;
-
 	if (res = parsestructure(f))
 		goto ret;
 	if (res = parsetypedef(f))
 		goto ret;
+	if (quals != Q_NONE || *sc != SC_DEFAULT) {
+		res = getprimitive(PM_INT);
+		goto ret;
+	}
 
 	return NULL;
 ret:
 	while (parsemod(f, flags, &quals, NULL, sc))
 		;
+	if (*sc == SC_DEFAULT)
+		*sc = SC_AUTO;
 	if (quals != Q_NONE)
 		res = new_qualified(res, quals);
 	return res;
