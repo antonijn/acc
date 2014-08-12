@@ -324,6 +324,8 @@ static struct ctype * parseprimitive(FILE * f, enum primmod mods)
 			return &cint;
 		if (chkt(f, "char"))
 			return isext(EX_UNSIGNED_CHAR) ? &cuchar : &cchar;
+		if (chkt(f, "void"))
+			return &cvoid;
 		return NULL;
 	}
 
