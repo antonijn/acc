@@ -452,9 +452,6 @@ static struct ctype * getfullty(struct ctype * incomp, struct ctype * ty)
 		return ty;
 
 	cp = (struct cpointer *)incomp;
-	if (cp == (void *)cp->pointsto) {
-		printf("abjip\n");
-	}
 	cp->pointsto = getfullty(cp->pointsto, ty);
 	return incomp;
 }
