@@ -162,7 +162,8 @@ static int parsedecl(FILE * f, enum declflags flags, struct list * syms)
 
 		sym = parsedeclarator(f, flags, basety, sc);
 		list_push_back(syms, sym);
-		if ((flags & DF_INIT) && chkt(f, "=")) {
+		if ((flags & DF_INIT) && chkt(f, "=") &&
+		    sc != SC_EXTERN && sc != SC_TYPEDEF) {
 			/* TODO: parse initial expression */
 		}
 		if ((flags & DF_BITFIELD) && chkt(f, ":")) {
@@ -244,13 +245,15 @@ static int parsemod(FILE * f, enum declflags flags, enum qualifier * quals,
 		*quals |= Q_VOLATILE;
 		freetp(nxt);
 		return 1;
-	} else if (parsestorage(f, sc, "auto", SC_AUTO))
+	} else if (sc && parsestorage(f, sc, "auto", SC_AUTO))
 		return 1;
-	else if (parsestorage(f, sc, "static", SC_STATIC))
+	else if (sc && parsestorage(f, sc, "static", SC_STATIC))
 		return 1;
-	else if ((flags & DF_EXTERN) && parsestorage(f, sc, "extern", SC_EXTERN))
+	else if (sc && parsestorage(f, sc, "typedef", SC_TYPEDEF))
 		return 1;
-	else if ((flags & DF_REGISTER) && parsestorage(f, sc, "register", SC_REGISTER))
+	else if (sc && (flags & DF_EXTERN) && parsestorage(f, sc, "extern", SC_EXTERN))
+		return 1;
+	else if (sc && (flags & DF_REGISTER) && parsestorage(f, sc, "register", SC_REGISTER))
 		return 1;
 	else if (pm && (nxt = chktp(f, "unsigned"))) {
 		checkmods(nxt, PM_UNSIGNED, *pm);

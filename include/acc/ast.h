@@ -46,7 +46,8 @@ enum storageclass {
 	SC_AUTO,
 	SC_STATIC,
 	SC_REGISTER,
-	SC_EXTERN
+	SC_EXTERN,
+	SC_TYPEDEF
 };
 
 enum qualifier {
