@@ -448,11 +448,21 @@ static struct ctype * parsearray(FILE * f, struct ctype * ty)
 static struct ctype * getfullty(struct ctype * incomp, struct ctype * ty)
 {
 	struct cpointer * cp;
+	struct cfunction * cf;
 	if (!incomp)
 		return ty;
 
-	cp = (struct cpointer *)incomp;
-	cp->pointsto = getfullty(cp->pointsto, ty);
+	switch (incomp->type) {
+	case POINTER:
+		cp = (struct cpointer *)incomp;
+		cp->pointsto = getfullty(cp->pointsto, ty);
+		return incomp;
+	case FUNCTION:
+		cf = (struct cfunction *)incomp;
+		cf->ret = getfullty(cf->ret, ty);
+		return incomp;
+	}
+
 	return incomp;
 }
 
