@@ -256,6 +256,60 @@ struct ctype * new_qualified(struct ctype * base, enum qualifier q)
 	return (struct ctype *)ty;
 }
 
+static void free_function(struct ctype * ty)
+{
+	struct cfunction * f = (struct cfunction *)ty;
+	delete_list(f->parameters, NULL);
+	free(f);
+}
+
+static void function_to_string(FILE * f, struct ctype * ty, const char * id)
+{
+	int i;
+	void * it;
+	struct symbol * sym;
+	struct cfunction * cf = (struct cfunction *)ty;
+	char * nid = calloc(sizeof(char), strlen(id) + 3);
+	sprintf(nid, "(%s)", id);
+	cf->ret->to_string(f, cf->ret, nid);
+	free(nid);
+	fprintf(f, "(");
+
+	i = 0;
+	it = list_iterator(cf->parameters);
+	while (iterator_next(&it, (void **)&sym)) {
+		if (sym->id)
+			sym->type->to_string(f, sym->type, sym->id);
+		else
+			sym->type->to_string(f, sym->type, "");
+
+		if (i != list_length(cf->parameters) - 1)
+			fprintf(f, ", ");
+	}
+	fprintf(f, ")");
+}
+
+static enum typecomp function_compare(struct ctype * l, struct ctype * r)
+{
+	/* TODO: proper implementation */
+	return INCOMPATIBLE;
+}
+
+struct ctype * new_function(struct ctype * ret, struct list * params)
+{
+	struct cfunction * ty = malloc(sizeof(struct cfunction));
+	ty->base.free = &free_function;
+	ty->base.type = FUNCTION;
+	ty->base.size = -1;
+	ty->base.name = NULL;
+	ty->base.to_string = &function_to_string;
+	ty->base.compare = &function_compare;
+	ty->ret = ret;
+	ty->parameters = clone_list(params);
+	registerty((struct ctype *)ty);
+	return (struct ctype *)ty;
+}
+
 struct symbol * get_symbol(char * id)
 {
 	int i;

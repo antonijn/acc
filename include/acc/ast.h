@@ -105,6 +105,12 @@ struct cqualified {
 	enum qualifier qualifiers;
 };
 
+struct cfunction {
+	struct ctype base;
+	struct ctype * ret;
+	struct list * parameters; /* symbol list */
+};
+
 struct ctype * new_pointer(struct ctype * base);
 struct ctype * new_struct(char * id);
 void struct_add_field(struct ctype * type, struct ctype * ty, char * id);
@@ -112,6 +118,7 @@ struct field * struct_get_field(struct ctype * type, char * name);
 struct ctype * new_union(char * name);
 struct ctype * new_array(struct ctype * etype, int length);
 struct ctype * new_qualified(struct ctype * base, enum qualifier q);
+struct ctype * new_function(struct ctype * ret, struct list * params);
 
 struct symbol {
 	struct ctype * type;

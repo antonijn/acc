@@ -55,6 +55,7 @@ enum declflags {
 	DF_EXTERN = 0x100,
 	DF_REGISTER_SYMBOL = 0x200,
 	DF_FINISH_SEMICOLON = 0x400,
+	DF_FINISH_PARENT = 0x800, /* doesn't remove ) from file stream */
 
 	DF_GLOBAL = DF_INIT | DF_FUNCTION | DF_MULTIPLE |
 		DF_EXTERN | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
@@ -63,7 +64,8 @@ enum declflags {
 	DF_FIELD = DF_BITFIELD | DF_MULTIPLE | DF_FINISH_SEMICOLON,
 	DF_TYPEDEF = DF_FUNCTION | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
 	DF_CAST = DF_NO_ID,
-	DF_PARAM = DF_OPTIONAL_ID | DF_FINISH_COMMA | DF_REGISTER_SYMBOL
+	DF_PARAM = DF_OPTIONAL_ID | DF_FINISH_COMMA | DF_REGISTER_SYMBOL |
+		DF_FINISH_PARENT
 };
 
 /* primitive modifiers */
@@ -91,6 +93,11 @@ static struct symbol * parsedeclarator(FILE * f, enum declflags flags,
 	struct ctype * ty, enum storageclass sc);
 static struct symbol * parseddeclarator(FILE * f, enum declflags flags,
 	struct ctype * ty, enum storageclass sc);
+static struct ctype * parseddend(FILE * f, struct ctype * ty);
+static struct ctype * parseparamlist(FILE * f, struct ctype * ty);
+static struct ctype * parsearray(FILE * f, struct ctype * ty);
+
+static struct ctype * getfullty(struct ctype * incomp, struct ctype * ty);
 
 static int aremods(enum primmod new, enum primmod prev,
 	enum primmod l, enum primmod r);
@@ -158,6 +165,7 @@ static int parsedecl(FILE * f, enum declflags flags, struct list * syms)
 		return 0;
 
 	while (1) {
+		struct token * closep;
 		struct token tok;
 		struct symbol * sym;
 
@@ -173,6 +181,11 @@ static int parsedecl(FILE * f, enum declflags flags, struct list * syms)
 		if (((flags & DF_FINISH_SEMICOLON) && chkt(f, ";")) ||
 		    ((flags & DF_FINISH_COMMA) && chkt(f, ",")))
 			break;
+		if ((flags & DF_FINISH_PARENT) && (closep = chktp(f, ")"))) {
+			ungettok(closep, f);
+			freetp(closep);
+			break;
+		}
 		if ((flags & DF_MULTIPLE) && chkt(f, ","))
 			continue;
 
@@ -367,21 +380,83 @@ static struct symbol * parseddeclarator(FILE * f, enum declflags flags,
 	struct symbol * res;
 	struct token * tok;
 	struct token t;
+	char * ident;
 	if (tok = chkttp(f, T_IDENTIFIER)) {
-		res = new_symbol(ty, tok->lexeme, sc, flags & DF_REGISTER_SYMBOL);
+		res = new_symbol(parseddend(f, ty), tok->lexeme, sc,
+			flags & DF_REGISTER_SYMBOL);
 		freetp(tok);
 	} else if (chkt(f, "(")) {
-		res = parsedeclarator(f, flags, ty, sc);
+		res = parsedeclarator(f, flags, NULL, sc);
 		t = gettok(f);
 		if (strcmp(t.lexeme, ")")) {
 			report(E_PARSER, &t, "expected ')' to finish declarator");
 			ungettok(&t, f);
 		}
 		freetok(&t);
-	}
-	/* TODO: parameter list */
-	/* TODO: array */
+		res->type = getfullty(res->type, parseddend(f, ty));
+	} else
+		return NULL;
+
 	return res;
+}
+
+static struct ctype * parseddend(FILE * f, struct ctype * ty)
+{
+	struct ctype * backup = ty;
+	ty = parseparamlist(f, ty);
+	ty = parsearray(f, ty);
+	if (backup != ty)
+		return parseddend(f, ty);
+	return ty;
+}
+
+static struct ctype * parseparamlist(FILE * f, struct ctype * ty)
+{
+	struct token * tok1, * tok2;
+	struct list * paramlist;
+	if (!chkt(f, "("))
+		return ty;
+
+	paramlist = new_list(NULL, 0);
+
+	if (tok1 = chktp(f, "void")) {
+		if (tok2 = chktp(f, ")")) {
+			freetp(tok1);
+			freetp(tok2);
+			goto ret;
+		} else {
+			ungettok(tok1, f);
+			freetp(tok1);
+		}
+	}
+
+	while (parsedecl(f, DF_PARAM, paramlist) && !chkt(f, ")"))
+		;
+
+ret:
+	ty = new_function(ty, paramlist);
+	delete_list(paramlist, NULL);
+	return ty;
+}
+
+static struct ctype * parsearray(FILE * f, struct ctype * ty)
+{
+	/* TODO: placeholder implementation */
+	return ty;
+}
+
+static struct ctype * getfullty(struct ctype * incomp, struct ctype * ty)
+{
+	struct cpointer * cp;
+	if (!incomp)
+		return ty;
+
+	cp = (struct cpointer *)incomp;
+	if (cp == (void *)cp->pointsto) {
+		printf("abjip\n");
+	}
+	cp->pointsto = getfullty(cp->pointsto, ty);
+	return incomp;
 }
 
 static struct ctype * getprimitive(enum primmod mods)
