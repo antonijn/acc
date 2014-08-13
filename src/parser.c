@@ -559,8 +559,8 @@ struct itm_module parsefile(FILE * f)
 
 	it = list_iterator(syms);
 	while (iterator_next(&it, (void **)&sym)) {
-		sym->type->to_string(stdout, sym->type, sym->id);
-		printf("\n");
+		sym->type->to_string(stdout, sym->type);
+		printf(" %s\n", sym->id);
 	}
 	delete_list(syms, NULL);
 

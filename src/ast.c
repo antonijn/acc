@@ -50,9 +50,9 @@ static void primitive_free(struct ctype * p)
 {
 }
 
-static void primitive_to_string(FILE * f, struct ctype * p, const char * id)
+static void primitive_to_string(FILE * f, struct ctype * p)
 {
-	fprintf(f, "%s %s", p->name, id);
+	fprintf(f, "%s", p->name);
 }
 
 static enum typecomp primitive_compare(struct ctype * l, struct ctype * r)
@@ -119,14 +119,12 @@ void leave_scope(void)
 }
 
 
-static void pointer_to_string(FILE * f, struct ctype * p, const char * id)
+static void pointer_to_string(FILE * f, struct ctype * p)
 {
 	struct cpointer * ptr = (struct cpointer *)p;
-	size_t strl = strlen(id) + 2;
-	char * nid = calloc(sizeof(char), strl);
-	sprintf(nid, "*%s", id);
-	ptr->pointsto->to_string(f, ptr->pointsto, (const char *)nid);
-	free(nid);
+	fprintf(f, "ptr(");
+	ptr->pointsto->to_string(f, ptr->pointsto);
+	fprintf(f, ")");
 }
 
 static enum typecomp pointer_compare(struct ctype * l, struct ctype * r)
@@ -149,10 +147,10 @@ struct ctype * new_pointer(struct ctype * base)
 	return (struct ctype *)ty;
 }
 
-static void struct_to_string(FILE * f, struct ctype * p, const char * id)
+static void struct_to_string(FILE * f, struct ctype * p)
 {
 	struct cstruct * cs = (struct cstruct *)p;
-	fprintf(f, "struct %s %s", cs->base.name ? cs->base.name : "{ ... }", id);
+	fprintf(f, "struct %s", cs->base.name ? cs->base.name : "{ ... }");
 }
 
 static enum typecomp struct_compare(struct ctype * l, struct ctype * r)
@@ -221,18 +219,18 @@ struct ctype * new_array(struct ctype * etype, int length)
 	return NULL;
 }
 
-static void qualified_to_string(FILE * f, struct ctype * ty, const char * id)
+static void qualified_to_string(FILE * f, struct ctype * ty)
 {
 	struct cqualified * cq = (struct cqualified *)ty;
-	size_t len = strlen(id) + sizeof("const volatile ");
-	char * nxt = calloc(sizeof(char), len);
 	if (cq->qualifiers & Q_CONST)
-		strcat(nxt, "const ");
+		fprintf(f, "const(");
 	if (cq->qualifiers & Q_VOLATILE)
-		strcat(nxt, "volatile ");
-	strcat(nxt, id);
-	cq->type->to_string(f, cq->type, (const char *)nxt);
-	free(nxt);
+		fprintf(f, "volatile(");
+	cq->type->to_string(f, cq->type);
+	if (cq->qualifiers & Q_CONST)
+		fprintf(f, ")");
+	if (cq->qualifiers & Q_VOLATILE)
+		fprintf(f, ")");
 }
 
 static enum typecomp qualified_compare(struct ctype * l, struct ctype * r)
@@ -263,27 +261,22 @@ static void free_function(struct ctype * ty)
 	free(f);
 }
 
-static void function_to_string(FILE * f, struct ctype * ty, const char * id)
+static void function_to_string(FILE * f, struct ctype * ty)
 {
 	int i;
 	void * it;
 	struct symbol * sym;
 	struct cfunction * cf = (struct cfunction *)ty;
-	char * nid = calloc(sizeof(char), strlen(id) + 3);
-	sprintf(nid, "(%s)", id);
-	cf->ret->to_string(f, cf->ret, nid);
-	free(nid);
-	fprintf(f, "(");
+	fprintf(f, "ret(");
+	cf->ret->to_string(f, cf->ret);
+	fprintf(f, ") wparams (");
 
 	i = 0;
 	it = list_iterator(cf->parameters);
 	while (iterator_next(&it, (void **)&sym)) {
-		if (sym->id)
-			sym->type->to_string(f, sym->type, sym->id);
-		else
-			sym->type->to_string(f, sym->type, "");
+		sym->type->to_string(f, sym->type);
 
-		if (i != list_length(cf->parameters) - 1)
+		if (i++ != list_length(cf->parameters) - 1)
 			fprintf(f, ", ");
 	}
 	fprintf(f, ")");

@@ -61,7 +61,7 @@ struct ctype {
 	enum ctypeid type;
 	size_t size;
 	const char * name;
-	void (*to_string)(FILE * f, struct ctype * t, const char * id);
+	void (*to_string)(FILE * f, struct ctype * t);
 	enum typecomp (*compare)(struct ctype * t, struct ctype * r);
 };
 
