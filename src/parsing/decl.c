@@ -1,5 +1,5 @@
 /*
- * Parsing and generation of intermediate representation
+ * Declaration parsing and generation of intermediate representation
  * Copyright (C) 2014  Antonie Blom
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -15,61 +15,17 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- *
- * Let's establish some rules, shall we?
- *
- * When a parser function is entered, the token at which it shall begin to
- * parse will have yet to be retrieved from the file stream.
- * When a parser function returns, it shall leave the next logical token
- * unread.
  */
 
 #include <stdlib.h>
 #include <string.h>
 
-#include <acc/parser.h>
-#include <acc/ast.h>
-#include <acc/ext.h>
+#include <acc/parsing/decl.h>
+#include <acc/parsing/tools.h>
 #include <acc/error.h>
-#include <acc/token.h>
-
-static int chkt(FILE * f, const char * t);
-static int chktt(FILE * f, enum tokenty tt);
-static struct token * chktp(FILE * f, const char * t);
-static struct token * chkttp(FILE * f, enum tokenty tt);
-static void freetp(struct token * t);
-
-/* declaration parsing */
-
-/* flags for what is and what isn't allowed when parsing a declaration */
-enum declflags {
-	DF_INIT = 0x01,
-	DF_BITFIELD = 0x02,
-	DF_FUNCTION = 0x04,
-	DF_MULTIPLE = 0x08,
-	DF_NO_ID = 0x10,
-	DF_OPTIONAL_ID = 0x20,
-	DF_FINISH_COMMA = 0x40,
-	DF_REGISTER = 0x80,
-	DF_EXTERN = 0x100,
-	DF_REGISTER_SYMBOL = 0x200,
-	DF_FINISH_SEMICOLON = 0x400,
-	DF_FINISH_PARENT = 0x800, /* doesn't remove ) from file stream */
-	DF_FINISH_BRACE = 0x1000,
-	DF_ARRAY_POINTER = 0x2000,
-
-	DF_GLOBAL = DF_INIT | DF_FUNCTION | DF_MULTIPLE |
-		DF_EXTERN | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON |
-		DF_FINISH_BRACE,
-	DF_LOCAL = DF_INIT | DF_MULTIPLE | DF_REGISTER |
-		DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
-	DF_FIELD = DF_BITFIELD | DF_MULTIPLE | DF_FINISH_SEMICOLON,
-	DF_TYPEDEF = DF_FUNCTION | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
-	DF_CAST = DF_NO_ID,
-	DF_PARAM = DF_OPTIONAL_ID | DF_FINISH_COMMA | DF_REGISTER_SYMBOL |
-		DF_FINISH_PARENT | DF_ARRAY_POINTER
-};
+#include <acc/ext.h>
+#include <acc/intermediate.h>
+#include <acc/ast.h>
 
 /* primitive modifiers */
 enum primmod {
@@ -87,7 +43,6 @@ enum primmod {
 	PM_VOID = 0x400
 };
 
-static int parsedecl(FILE * f, enum declflags flags, struct list * syms);
 static int parsemod(FILE * f, enum declflags flags, enum qualifier * quals,
 	enum primmod * pm, enum storageclass * sc);
 static struct ctype * parsebasety(FILE * f, enum declflags flags,
@@ -111,56 +66,7 @@ static struct ctype * getprimitive(enum primmod mods);
 static struct ctype * parsestructure(FILE * f);
 static struct ctype * parsetypedef(FILE * f);
 
-/* implementations */
-/* token checking */
-static int chkt(FILE * f, const char * t)
-{
-	struct token * tok = chktp(f, t);
-	if (!tok)
-		return 0;
-	freetp(tok);
-	return 1;
-}
-
-static int chktt(FILE * f, enum tokenty tt)
-{
-	struct token * t = chkttp(f, tt);
-	if (!t)
-		return 0;
-	freetp(t);
-	return 1;
-}
-
-static struct token * chktp(FILE * f, const char * t)
-{
-	struct token * nxt = malloc(sizeof(struct token));
-	*nxt = gettok(f);
-	if (!strcmp(t, nxt->lexeme))
-		return nxt;
-	ungettok(nxt, f);
-	freetp(nxt);
-	return NULL;
-}
-
-static struct token * chkttp(FILE * f, enum tokenty tt)
-{
-	struct token * nxt = malloc(sizeof(struct token));
-	*nxt = gettok(f);
-	if (nxt->type == tt)
-		return nxt;
-	ungettok(nxt, f);
-	freetp(nxt);
-	return NULL;
-}
-
-static void freetp(struct token * t)
-{
-	freetok(t);
-	free(t);
-}
-
-/* declarations */
-static int parsedecl(FILE * f, enum declflags flags, struct list * syms)
+int parsedecl(FILE * f, enum declflags flags, struct list * syms)
 {
 	enum storageclass sc;
 	struct ctype * basety = parsebasety(f, flags, &sc);
@@ -560,23 +466,4 @@ static struct ctype * parsetypedef(FILE * f)
 		ungettok(tok, f);
 	freetp(tok);
 	return ty;
-}
-
-struct itm_module parsefile(FILE * f)
-{
-	struct itm_module res;
-	struct list * syms = new_list(NULL, 0);
-	void * it;
-	struct symbol * sym;
-	parsedecl(f, DF_GLOBAL, syms);
-	parsedecl(f, DF_GLOBAL, syms);
-
-	it = list_iterator(syms);
-	while (iterator_next(&it, (void **)&sym)) {
-		sym->type->to_string(stdout, sym->type);
-		printf(" %s\n", sym->id);
-	}
-	delete_list(syms, NULL);
-
-	return res;
 }

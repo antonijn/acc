@@ -26,7 +26,7 @@
 #include <acc/options.h>
 #include <acc/token.h>
 #include <acc/error.h>
-#include <acc/parser.h>
+#include <acc/parsing/file.h>
 
 static void compilefile(FILE * f)
 {

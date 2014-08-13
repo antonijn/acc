@@ -1,5 +1,5 @@
 /*
- * Parsing and generation of intermediate representation
+ * Parsing tools
  * Copyright (C) 2014  Antonie Blom
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -17,13 +17,17 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef PARSING_TOOLS_H
+#define PARSING_TOOLS_H
 
 #include <stdio.h>
 
-#include <acc/intermediate.h>
+#include <acc/token.h>
 
-struct itm_module parsefile(FILE * f);
+int chkt(FILE * f, const char * t);
+int chktt(FILE * f, enum tokenty tt);
+struct token * chktp(FILE * f, const char * t);
+struct token * chkttp(FILE * f, enum tokenty tt);
+void freetp(struct token * t);
 
 #endif

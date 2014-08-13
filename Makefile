@@ -20,7 +20,7 @@
 CFLAGS += -Iinclude -std=c89 -pedantic-errors
 
 release:
-	$(CC) $(CFLAGS) -O2 -DNDEBUG -o acc src/*.c
+	$(CC) $(CFLAGS) -O2 -DNDEBUG -o acc src/*.c src/parsing/*.c
 
 debug:
 	$(CC) $(CFLAGS) -Og -g -o acc src/*.c

@@ -36,6 +36,7 @@ struct ctype cvoid;
 
 static struct list * alltypes;
 static struct list * typescopes;
+static struct list * allsyms;
 static struct list * symscopes;
 
 static void registerty(struct ctype * t)
@@ -76,6 +77,7 @@ void ast_init(void)
 {
 	alltypes = new_list(NULL, 0);
 	typescopes = new_list(NULL, 0);
+	allsyms = new_list(NULL, 0);
 	symscopes = new_list(NULL, 0);
 
 	enter_scope();
@@ -93,13 +95,20 @@ void ast_init(void)
 	enter_scope();
 }
 
+static void destroy_type(void * ty)
+{
+	struct ctype * cty = ty;
+	cty->free(cty);
+}
+
 void ast_destroy(void)
 {
 	leave_scope();
 	leave_scope();
-	delete_list(alltypes, NULL);
+	delete_list(alltypes, &destroy_type);
 	delete_list(typescopes, NULL);
 	delete_list(symscopes, NULL);
+	delete_list(allsyms, &free);
 }
 
 void enter_scope(void)
@@ -365,6 +374,7 @@ struct symbol * new_symbol(struct ctype * type, char * id,
 	if (reg) {
 		struct list * topscope = list_last(symscopes);
 		list_push_back(topscope, sym);
+		list_push_back(allsyms, sym);
 	}
 	return sym;
 }
