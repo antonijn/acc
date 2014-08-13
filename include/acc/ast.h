@@ -152,6 +152,7 @@ struct symbol * get_symbol(char * id);
 struct enumerator * get_enumerator(char * id);
 struct cstruct * get_struct(char * name);
 struct cunion * get_union(char * name);
+struct ctype * get_typedef(char * id);
 
 extern struct operator binop_plus;
 extern struct operator binop_min;
