@@ -56,16 +56,19 @@ enum declflags {
 	DF_REGISTER_SYMBOL = 0x200,
 	DF_FINISH_SEMICOLON = 0x400,
 	DF_FINISH_PARENT = 0x800, /* doesn't remove ) from file stream */
+	DF_FINISH_BRACE = 0x1000,
+	DF_ARRAY_POINTER = 0x2000,
 
 	DF_GLOBAL = DF_INIT | DF_FUNCTION | DF_MULTIPLE |
-		DF_EXTERN | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
+		DF_EXTERN | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON |
+		DF_FINISH_BRACE,
 	DF_LOCAL = DF_INIT | DF_MULTIPLE | DF_REGISTER |
 		DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
 	DF_FIELD = DF_BITFIELD | DF_MULTIPLE | DF_FINISH_SEMICOLON,
 	DF_TYPEDEF = DF_FUNCTION | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
 	DF_CAST = DF_NO_ID,
 	DF_PARAM = DF_OPTIONAL_ID | DF_FINISH_COMMA | DF_REGISTER_SYMBOL |
-		DF_FINISH_PARENT
+		DF_FINISH_PARENT | DF_ARRAY_POINTER
 };
 
 /* primitive modifiers */
@@ -181,7 +184,9 @@ static int parsedecl(FILE * f, enum declflags flags, struct list * syms)
 		if (((flags & DF_FINISH_SEMICOLON) && chkt(f, ";")) ||
 		    ((flags & DF_FINISH_COMMA) && chkt(f, ",")))
 			break;
-		if ((flags & DF_FINISH_PARENT) && (closep = chktp(f, ")"))) {
+		if (((flags & DF_FINISH_PARENT) && (closep = chktp(f, ")"))) ||
+		    ((flags & DF_FINISH_BRACE) && sym->type->type == FUNCTION &&
+		     list_length(syms) == 1 && (closep = chktp(f, "{")))) {
 			ungettok(closep, f);
 			freetp(closep);
 			break;
@@ -430,7 +435,7 @@ static struct ctype * parseparamlist(FILE * f, struct ctype * ty)
 		}
 	}
 
-	while (parsedecl(f, DF_PARAM, paramlist) && !chkt(f, ")"))
+	while (!chkt(f, ")") && parsedecl(f, DF_PARAM, paramlist))
 		;
 
 ret:
