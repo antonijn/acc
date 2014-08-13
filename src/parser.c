@@ -550,8 +550,16 @@ static struct ctype * parsestructure(FILE * f)
 
 static struct ctype * parsetypedef(FILE * f)
 {
-	/* TODO: placeholder */
-	return NULL;
+	struct token * tok;
+	struct ctype * ty;
+	if (!(tok = chkttp(f, T_IDENTIFIER))) {
+		return NULL;
+	}
+	ty = get_typedef(tok->lexeme);
+	if (!ty)
+		ungettok(tok, f);
+	freetp(tok);
+	return ty;
 }
 
 struct itm_module parsefile(FILE * f)
@@ -560,6 +568,7 @@ struct itm_module parsefile(FILE * f)
 	struct list * syms = new_list(NULL, 0);
 	void * it;
 	struct symbol * sym;
+	parsedecl(f, DF_GLOBAL, syms);
 	parsedecl(f, DF_GLOBAL, syms);
 
 	it = list_iterator(syms);

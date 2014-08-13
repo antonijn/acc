@@ -306,13 +306,13 @@ struct ctype * new_function(struct ctype * ret, struct list * params)
 struct symbol * get_symbol(char * id)
 {
 	int i;
-	for (i = list_length(symscopes); i >= 0; --i) {
+	for (i = list_length(symscopes) - 1; i >= 0; --i) {
 		struct list * l = get_list_item(symscopes, i);
 		void * it;
 		struct symbol * sym;
 		it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym))
-			if (!strcmp(sym->id, id))
+			if (!strcmp(sym->id, id) && sym->storage != SC_TYPEDEF)
 				return sym;
 	}
 	return NULL;
@@ -327,7 +327,7 @@ struct enumerator * get_enumerator(char * id)
 struct cstruct * get_struct(char * name)
 {
 	int i;
-	for (i = list_length(typescopes); i >= 0; --i) {
+	for (i = list_length(typescopes) - 1; i >= 0; --i) {
 		struct list * l = get_list_item(typescopes, i);
 		void * it;
 		struct ctype * sym;
@@ -342,7 +342,7 @@ struct cstruct * get_struct(char * name)
 struct cunion * get_union(char * name)
 {
 	int i;
-	for (i = list_length(typescopes); i >= 0; --i) {
+	for (i = list_length(typescopes) - 1; i >= 0; --i) {
 		struct list * l = get_list_item(typescopes, i);
 		void * it;
 		struct ctype * sym;
@@ -362,7 +362,26 @@ struct symbol * new_symbol(struct ctype * type, char * id,
 	sym->id = calloc(sizeof(char), strlen(id));
 	sprintf(sym->id, "%s", id);
 	sym->storage = sc;
+	if (reg) {
+		struct list * topscope = list_last(symscopes);
+		list_push_back(topscope, sym);
+	}
 	return sym;
+}
+
+struct ctype * get_typedef(char * id)
+{
+	int i;
+	for (i = list_length(symscopes) - 1; i >= 0; --i) {
+		struct list * l = get_list_item(symscopes, i);
+		void * it;
+		struct symbol * sym;
+		it = list_iterator(l);
+		while (iterator_next(&it, (void **)&sym))
+			if (!strcmp(sym->id, id) && sym->storage == SC_TYPEDEF)
+				return sym->type;
+	}
+	return NULL;
 }
 
 struct operator binop_plus = { 6, 0, "+" };
