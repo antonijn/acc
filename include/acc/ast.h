@@ -65,6 +65,7 @@ struct ctype {
 	enum typecomp (*compare)(struct ctype * t, struct ctype * r);
 };
 
+extern struct ctype cbool;
 extern struct ctype cint;
 extern struct ctype cshort;
 extern struct ctype cchar;

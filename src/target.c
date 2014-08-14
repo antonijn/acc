@@ -49,8 +49,8 @@ int gettypesize(struct ctype * ty)
 	if (ty == &cdouble)
 		return 8;
 	
-	/*if (ty == &cbool)
-		return 1;*/
+	if (ty == &cbool)
+		return 1;
 	
 	if (ty->type == POINTER)
 		return (target.arch == &archx86_64) ? 8 : 4;

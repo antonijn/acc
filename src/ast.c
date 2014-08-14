@@ -22,7 +22,9 @@
 
 #include <acc/ast.h>
 #include <acc/target.h>
+#include <acc/ext.h>
 
+struct ctype cbool;
 struct ctype cint;
 struct ctype cshort;
 struct ctype cchar;
@@ -71,7 +73,8 @@ static void initprimitive(struct ctype * p, const char * name)
 	p->name = name;
 	p->to_string = &primitive_to_string;
 	p->compare = &primitive_compare;
-	registerty(p);
+	if (p != &cbool || isext(EX_BOOL))
+		registerty(p);
 }
 
 int hastc(struct ctype * ty, enum typeclass tc)
@@ -104,6 +107,7 @@ void ast_init(void)
 	symscopes = new_list(NULL, 0);
 
 	enter_scope();
+	initprimitive(&cbool, "_Bool");
 	initprimitive(&cint, "int");
 	initprimitive(&cshort, "short");
 	initprimitive(&cchar, "signed char");
@@ -154,7 +158,7 @@ void leave_scope(void)
 static void pointer_to_string(FILE * f, struct ctype * p)
 {
 	struct cpointer * ptr = (struct cpointer *)p;
-	fprintf(f, "ptr(");
+	fprintf(f, "(ptr ");
 	ptr->pointsto->to_string(f, ptr->pointsto);
 	fprintf(f, ")");
 }
@@ -182,7 +186,7 @@ struct ctype * new_pointer(struct ctype * base)
 static void struct_to_string(FILE * f, struct ctype * p)
 {
 	struct cstruct * cs = (struct cstruct *)p;
-	fprintf(f, "struct %s", cs->base.name ? cs->base.name : "{ ... }");
+	fprintf(f, "(struct %s)", cs->base.name ? cs->base.name : "{ ... }");
 }
 
 static enum typecomp struct_compare(struct ctype * l, struct ctype * r)
@@ -254,15 +258,13 @@ struct ctype * new_array(struct ctype * etype, int length)
 static void qualified_to_string(FILE * f, struct ctype * ty)
 {
 	struct cqualified * cq = (struct cqualified *)ty;
+	fprintf(f, "(");
 	if (cq->qualifiers & Q_CONST)
-		fprintf(f, "const(");
+		fprintf(f, "const ");
 	if (cq->qualifiers & Q_VOLATILE)
-		fprintf(f, "volatile(");
+		fprintf(f, "volatile ");
 	cq->type->to_string(f, cq->type);
-	if (cq->qualifiers & Q_CONST)
-		fprintf(f, ")");
-	if (cq->qualifiers & Q_VOLATILE)
-		fprintf(f, ")");
+	fprintf(f, ")");
 }
 
 static enum typecomp qualified_compare(struct ctype * l, struct ctype * r)
@@ -299,9 +301,9 @@ static void function_to_string(FILE * f, struct ctype * ty)
 	void * it;
 	struct symbol * sym;
 	struct cfunction * cf = (struct cfunction *)ty;
-	fprintf(f, "ret(");
+	fprintf(f, "(function ");
 	cf->ret->to_string(f, cf->ret);
-	fprintf(f, ") wparams (");
+	fprintf(f, " (taking ");
 
 	i = 0;
 	it = list_iterator(cf->parameters);
@@ -311,7 +313,7 @@ static void function_to_string(FILE * f, struct ctype * ty)
 		if (i++ != list_length(cf->parameters) - 1)
 			fprintf(f, ", ");
 	}
-	fprintf(f, ")");
+	fprintf(f, "))");
 }
 
 static enum typecomp function_compare(struct ctype * l, struct ctype * r)
