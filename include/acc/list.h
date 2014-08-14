@@ -28,6 +28,8 @@ void delete_list(struct list * l, void (*destr)(void *));
 
 void * list_iterator(struct list * l);
 int iterator_next(void ** it, void ** item);
+void * list_rev_iterator(struct list * l);
+int rev_iterator_next(void ** it, void ** item);
 
 void * get_list_item(struct list * l, int idx);
 void set_list_item(struct list * l, int idx, void * data);

@@ -133,6 +133,22 @@ int iterator_next(void ** it, void ** item)
 	return 1;
 }
 
+void * list_rev_iterator(struct list * l)
+{
+	return l->last;
+}
+
+int rev_iterator_next(void ** it, void ** item)
+{
+	struct node * n = *it;
+	if (!n) {
+		return 0;
+	}
+	*item = n->data;
+	*it = n->previous;
+	return 1;
+}
+
 void * get_list_item(struct list * l, int idx)
 {
 	struct node * n;
@@ -174,6 +190,7 @@ void * list_pop_back(struct list * l)
 	struct node * nl;
 	data = l->last->data;
 
+	--l->length;
 	nl = l->last->previous;
 	if (!nl) {
 		l->last = NULL;
@@ -203,6 +220,7 @@ void * list_pop_front(struct list * l)
 	struct node * nh;
 	data = l->head->data;
 
+	--l->length;
 	nh = l->head->next;
 	if (!nh) {
 		l->last = NULL;
