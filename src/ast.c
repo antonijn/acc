@@ -103,14 +103,14 @@ void ast_init(void)
 	symscopes = new_list(NULL, 0);
 
 	enter_scope();
-	initprimitive(&cint, "signed int");
-	initprimitive(&cshort, "signed short int");
+	initprimitive(&cint, "int");
+	initprimitive(&cshort, "short");
 	initprimitive(&cchar, "signed char");
-	initprimitive(&clong, "signed long int");
-	initprimitive(&cuint, "unsigned int");
-	initprimitive(&cushort, "unsigned short int");
+	initprimitive(&clong, "long");
+	initprimitive(&cuint, "unsigned");
+	initprimitive(&cushort, "unsigned short");
 	initprimitive(&cuchar, "unsigned char");
-	initprimitive(&culong, "unsigned long int");
+	initprimitive(&culong, "unsigned long");
 	initprimitive(&cfloat, "float");
 	initprimitive(&cdouble, "double");
 	initprimitive(&cvoid, "void");

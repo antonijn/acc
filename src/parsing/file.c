@@ -35,10 +35,8 @@
 #include <acc/error.h>
 #include <acc/token.h>
 
-struct itm_module parsefile(FILE * f)
+void parsefile(FILE * f, struct list * syms)
 {
-	struct itm_module res;
-	struct list * syms = new_list(NULL, 0);
 	void * it;
 	struct symbol * sym;
 	parsedecl(f, DF_GLOBAL, syms);
@@ -49,7 +47,4 @@ struct itm_module parsefile(FILE * f)
 		sym->type->to_string(stdout, sym->type);
 		printf(" %s\n", sym->id);
 	}
-	delete_list(syms, NULL);
-
-	return res;
 }

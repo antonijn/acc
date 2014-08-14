@@ -52,11 +52,6 @@ struct itm_instr {
 	struct itm_block * block;
 };
 
-#ifndef NDEBUG
-int itm_instr_number(struct itm_instr * l);
-void itm_instr_to_string(FILE * f, struct itm_instr * i);
-#endif
-
 struct itm_literal {
 	struct itm_expr base;
 
@@ -68,6 +63,22 @@ struct itm_literal {
 };
 
 struct itm_literal * new_itm_literal(struct ctype * type);
+
+struct itm_block {
+#ifndef NDEBUG
+	int number;
+#endif
+	struct itm_block * previous;
+	struct list * next;
+	struct itm_instr * first;
+	struct itm_instr * last;
+};
+
+struct itm_block * new_itm_block(struct itm_block * previous);
+void delete_itm_block(struct itm_block * block);
+#ifndef NDEBUG
+void itm_block_to_string(FILE * f, struct itm_block * block);
+#endif
 
 struct itm_instr *itm_add(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
 struct itm_instr *itm_sub(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
@@ -101,34 +112,5 @@ struct itm_instr *itm_jmp(struct itm_block * b, struct itm_block * to);
 struct itm_instr *itm_split(struct itm_block * b, struct itm_expr * c, struct itm_block * t, struct itm_block * e);
 struct itm_instr *itm_ret(struct itm_block * b, struct itm_expr * l);
 struct itm_instr *itm_leave(struct itm_block * b);
-
-struct itm_block {
-#ifndef NDEBUG
-	int number;
-#endif
-	struct itm_block * previous;
-	struct list * next;
-	struct itm_instr * first;
-	struct itm_instr * last;
-};
-
-struct itm_block * new_itm_block(struct itm_block * previous);
-void delete_itm_block(struct itm_block * block);
-
-void itm_set_block_head(struct itm_block * block, struct itm_block * b);
-#ifndef NDEBUG
-void itm_block_to_string(FILE * f, struct itm_block * block);
-#endif
-
-/* TODO: implement the actual module system */
-struct itm_module {
-	struct list * symbols;
-};
-
-struct itm_module new_itm_module(void);
-void delete_itm_module(struct itm_module mod);
-#ifndef NDEBUG
-void itm_module_to_string(struct itm_module * itm);
-#endif
 
 #endif

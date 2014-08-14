@@ -24,6 +24,6 @@
 
 #include <acc/itm.h>
 
-struct itm_module parsefile(FILE * f);
+void parsefile(FILE * f, struct list * syms);
 
 #endif

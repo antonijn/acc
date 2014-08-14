@@ -46,7 +46,9 @@ static void compilefile(FILE * f)
 	
 	struct itm_block * b = new_itm_block(NULL);
 	struct itm_expr * e = parseexpr(f, EF_NORMAL | EF_FINISH_SEMICOLON, &b, NULL);
+#ifndef NDEBUG
 	itm_block_to_string(stdout, b);
+#endif
 	delete_itm_block(b);
 }
 

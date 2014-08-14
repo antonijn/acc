@@ -23,17 +23,18 @@
 #include <acc/itm.h>
 #include <acc/error.h>
 
+/* to_string functions */
 #ifndef NDEBUG
-int itm_instr_number(struct itm_instr * i)
+static int itm_instr_number(struct itm_instr * i)
 {
 	if (!i->previous)
-		return 0;
+		return i->block->number + 1;
 	if (i->base.type == &cvoid)
 		return itm_instr_number(i->previous);
 	return itm_instr_number(i->previous) + 1;
 }
 
-void itm_instr_to_string(FILE * f, struct itm_instr * i)
+static void itm_instr_to_string(FILE * f, struct itm_instr * i)
 {
 	void * it;
 	int j;
@@ -80,16 +81,75 @@ static void itm_literal_to_string(FILE * f, struct itm_expr * e)
 
 void itm_block_to_string(FILE * f, struct itm_block * block)
 {
-	/* TODO: implement and print number */
+	void * it;
+	struct itm_block * nxt;
+	
+	fprintf(f, "\n%%%d:\n", block->number);
 	itm_instr_to_string(f, block->first);
+	
+	it = list_iterator(block->next);
+	while (iterator_next(&it, (void **)&nxt))
+		itm_block_to_string(f, nxt);
 }
 
 #endif
+
+/* literal and block initializers/destructors */
+struct itm_literal *new_itm_literal(struct ctype * ty)
+{
+	struct itm_literal * lit = malloc(sizeof(struct itm_literal));
+	lit->base.etype = ITME_LITERAL;
+	lit->base.type = ty;
+	lit->base.free = (void (*)(struct itm_expr *))&free;
+#ifndef NDEBUG
+	lit->base.to_string = &itm_literal_to_string;
+#endif
+	return lit;
+}
+
+struct itm_block * new_itm_block(struct itm_block * previous)
+{
+	struct itm_block * res = malloc(sizeof(struct itm_block));
+	res->previous = previous;
+	if (previous) {
+		list_push_back(previous->next, res);
+#ifndef NDEBUG
+		res->number = itm_instr_number(previous->last) + 1;
+	} else {
+		res->number = 0;
+#endif
+	}
+	res->next = new_list(NULL, 0);
+	res->first = NULL;
+	res->last = NULL;
+	return res;
+}
+
+static void cleanup_instr(struct itm_instr * i)
+{
+	void * it;
+	struct itm_expr * op;
+	
+	it = list_iterator(i->operands);
+	while (iterator_next(&it, (void **)&op))
+		op->free(op);
+	
+	if (i->next)
+		cleanup_instr(i->next);
+}
+
+void delete_itm_block(struct itm_block * block)
+{
+	cleanup_instr(block->first);
+	delete_list(block->next, (void (*)(void *))&delete_itm_block);
+	free(block);
+}
 
 static void free_dummy(struct itm_expr * e)
 {
 }
 
+/* instruction initializers and instructions */
 static struct itm_instr * impl_op(struct itm_block * b, struct ctype * type, void (*id)(void),
 	const char * operation, int isterminal)
 {
@@ -282,44 +342,3 @@ struct itm_instr *itm_jmp(struct itm_block * b, struct itm_block * to);
 struct itm_instr *itm_split(struct itm_block * b, struct itm_expr * c, struct itm_block * t, struct itm_block * e);
 struct itm_instr *itm_ret(struct itm_block * b, struct itm_expr * l);
 struct itm_instr *itm_leave(struct itm_block * b);
-
-struct itm_literal *new_itm_literal(struct ctype * ty)
-{
-	struct itm_literal * lit = malloc(sizeof(struct itm_literal));
-	lit->base.etype = ITME_LITERAL;
-	lit->base.type = ty;
-	lit->base.free = (void (*)(struct itm_expr *))&free;
-#ifndef NDEBUG
-	lit->base.to_string = &itm_literal_to_string;
-#endif
-	return lit;
-}
-
-struct itm_block * new_itm_block(struct itm_block * previous)
-{
-	struct itm_block * res = malloc(sizeof(struct itm_block));
-	res->previous = previous;
-	res->next = new_list(NULL, 0);
-	res->first = NULL;
-	res->last = NULL;
-	return res;
-}
-
-static void cleanup_instr(struct itm_instr * i)
-{
-	void * it;
-	struct itm_expr * op;
-	
-	it = list_iterator(i->operands);
-	while (iterator_next(&it, (void **)&op))
-		op->free(op);
-	
-	if (i->next)
-		cleanup_instr(i->next);
-}
-
-void delete_itm_block(struct itm_block * block)
-{
-	cleanup_instr(block->first);
-	free(block);
-}

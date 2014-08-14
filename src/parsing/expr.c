@@ -60,12 +60,16 @@ static struct itm_expr * parseexpro(FILE * f, enum exprflags flags,
 	struct itm_expr * acc)
 {
 	struct itm_expr * res;
+	struct token * tok;
 	
-	if (((flags & EF_FINISH_BRACKET) && chkt(f, ")")) ||
-	    ((flags & EF_FINISH_SEMICOLON) && chkt(f, ";")) ||
-	    ((flags & EF_FINISH_SQUARE_BRACKET) && chkt(f, "]")) ||
-	    ((flags & EF_FINISH_COMMA) && chkt(f, ",")))
+	if (((flags & EF_FINISH_BRACKET) && (tok = chktp(f, ")"))) ||
+	    ((flags & EF_FINISH_SEMICOLON) && (tok = chktp(f, ";"))) ||
+	    ((flags & EF_FINISH_SQUARE_BRACKET) && (tok = chktp(f, "]"))) ||
+	    ((flags & EF_FINISH_COMMA) && (tok = chktp(f, ",")))) {
+		ungettok(tok, f);
+		freetp(tok);
 		return acc;
+	}
 	
 	if (res = parselit(f, flags, block, initty, operators, acc))
 		return res;
@@ -117,14 +121,31 @@ static struct itm_expr * parsebop(FILE * f, enum exprflags flags,
 		return NULL;
 	}
 	
+	if (op->rtol) {
+		if (list_length(operators) > 0 &&
+		   ((struct operator *)list_head(operators))->prec < op->prec)
+			goto opbreak;
+	} else {
+		if (list_length(operators) > 0 &&
+		   ((struct operator *)list_last(operators))->prec <= op->prec)
+			goto opbreak;
+	}
+	
+	list_push_back(operators, op);
 	r = parseexpro(f, flags, block, initty, operators, NULL);
+	list_pop_back(operators);
 	
 	if (e = performaop(op, flags, block, initty, operators, acc, r))
 		goto ret;
 	
 ret:
 	freetp(tok);
-	return e;
+	return parseexpro(f, flags, block, initty, operators, e);
+	
+opbreak:
+	ungettok(tok, f);
+	freetp(tok);
+	return acc;
 }
 
 static struct itm_expr * performaop(struct operator * op, enum exprflags flags,
