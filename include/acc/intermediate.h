@@ -25,14 +25,13 @@
 
 enum itm_expr_type {
 	ITME_LITERAL,
-	ITME_SYMBOL,
-	ITME_PARAMETER,
 	ITME_INSTRUCTION
 };
 
 struct itm_expr {
 	enum itm_expr_type etype;
 	struct ctype * type;
+	void (*free)(struct itm_expr * e);
 #ifndef NDEBUG
 	void (*to_string)(FILE * f, struct itm_expr * e);
 #endif
@@ -68,35 +67,40 @@ struct itm_literal {
 	} value;
 };
 
-struct itm_instr *itm_add(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_sub(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_mul(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_imul(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_div(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_idiv(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_rem(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_shl(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_shr(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_sal(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_sar(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
+struct itm_literal * new_itm_literal(struct ctype * type);
 
-struct itm_instr *itm_bitcast(struct itm_instr * i, struct itm_expr * l, struct ctype * to);
-struct itm_instr *itm_trunc(struct itm_instr * i, struct itm_expr * l, struct ctype * to);
-struct itm_instr *itm_zext(struct itm_instr * i, struct itm_expr * l, struct ctype * to);
-struct itm_instr *itm_sext(struct itm_instr * i, struct itm_expr * l, struct ctype * to);
-struct itm_instr *itm_itof(struct itm_instr * i, struct itm_expr * l, struct ctype * to);
-struct itm_instr *itm_ftoi(struct itm_instr * i, struct itm_expr * l, struct ctype * to);
+struct itm_instr *itm_add(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_sub(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_mul(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_imul(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_div(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_idiv(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_rem(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_shl(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_shr(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_sal(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_sar(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_or(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_and(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_xor(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
 
-struct itm_instr *itm_getptr(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_deepptr(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
-struct itm_instr *itm_alloca(struct itm_instr * i, struct ctype * ty);
-struct itm_instr *itm_load(struct itm_instr * i, struct itm_expr * l);
-struct itm_instr *itm_store(struct itm_instr * i, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_bitcast(struct itm_block * b, struct itm_expr * l, struct ctype * to);
+struct itm_instr *itm_trunc(struct itm_block * b, struct itm_expr * l, struct ctype * to);
+struct itm_instr *itm_zext(struct itm_block * b, struct itm_expr * l, struct ctype * to);
+struct itm_instr *itm_sext(struct itm_block * b, struct itm_expr * l, struct ctype * to);
+struct itm_instr *itm_itof(struct itm_block * b, struct itm_expr * l, struct ctype * to);
+struct itm_instr *itm_ftoi(struct itm_block * b, struct itm_expr * l, struct ctype * to);
 
-struct itm_instr *itm_jmp(struct itm_instr * i, struct itm_block * b);
-struct itm_instr *itm_split(struct itm_instr * i, struct itm_expr * c, struct itm_block * t, struct itm_block * e);
-struct itm_instr *itm_ret(struct itm_instr * i, struct itm_expr * l);
-struct itm_instr *itm_leave(struct itm_instr * i);
+struct itm_instr *itm_getptr(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_deepptr(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_alloca(struct itm_block * b, struct ctype * ty);
+struct itm_instr *itm_load(struct itm_block * b, struct itm_expr * l);
+struct itm_instr *itm_store(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+
+struct itm_instr *itm_jmp(struct itm_block * b, struct itm_block * to);
+struct itm_instr *itm_split(struct itm_block * b, struct itm_expr * c, struct itm_block * t, struct itm_block * e);
+struct itm_instr *itm_ret(struct itm_block * b, struct itm_expr * l);
+struct itm_instr *itm_leave(struct itm_block * b);
 
 struct itm_block {
 #ifndef NDEBUG
@@ -105,41 +109,18 @@ struct itm_block {
 	struct itm_block * previous;
 	struct list * next;
 	struct itm_instr * first;
+	struct itm_instr * last;
 };
 
-struct itm_block new_itm_block(struct itm_block * previous);
+struct itm_block * new_itm_block(struct itm_block * previous);
 void delete_itm_block(struct itm_block * block);
 
-void itm_instr_to_block(struct itm_block * block, struct itm_instr * i);
+void itm_set_block_head(struct itm_block * block, struct itm_block * b);
 #ifndef NDEBUG
-void itm_block_to_string(struct itm_block * block);
+void itm_block_to_string(FILE * f, struct itm_block * block);
 #endif
 
-enum itm_flags {
-	ITMF_NONE   = 0x0000,
-	ITMF_GLOBAL = 0x0001,
-	ITMF_PURE   = 0x0002,
-	ITMF_HIDDEN = 0x0004,
-	ITMF_CONST  = 0x0008
-};
-
-struct itm_symbol {
-	struct itm_expr base;
-
-	enum itm_flags flags;
-	char * id;
-	struct itm_expr * initial;
-	struct itm_block * block;
-};
-
-struct itm_symbol * new_itm_symbol(enum itm_flags flags,
-                                   char * id,
-                                   struct itm_expr * initial,
-                                   struct itm_block * block);
-#ifndef NDEBUG
-void itm_symbol_to_string(struct itm_symbol * sym);
-#endif
-
+/* TODO: implement the actual module system */
 struct itm_module {
 	struct list * symbols;
 };

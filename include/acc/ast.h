@@ -120,6 +120,19 @@ struct ctype * new_array(struct ctype * etype, int length);
 struct ctype * new_qualified(struct ctype * base, enum qualifier q);
 struct ctype * new_function(struct ctype * ret, struct list * params);
 
+enum typeclass {
+	TC_ARITHMETIC = 0x1,
+	TC_FLOATING = 0x2,
+	TC_INTEGRAL = 0x4,
+	TC_POINTER = 0x8,
+	TC_COMPOSITE = 0x10,
+	TC_SIGNED = 0x20,
+	TC_UNSIGNED = 0x40
+};
+
+int hastc(struct ctype * ty, enum typeclass tc);
+enum typeclass gettc(struct ctype * ty);
+
 struct symbol {
 	struct ctype * type;
 	char * id;
@@ -153,6 +166,9 @@ struct enumerator * get_enumerator(char * id);
 struct cstruct * get_struct(char * name);
 struct cunion * get_union(char * name);
 struct ctype * get_typedef(char * id);
+
+struct operator * getbop(const char * opname);
+struct operator * getuop(const char * opname);
 
 extern struct operator binop_plus;
 extern struct operator binop_min;

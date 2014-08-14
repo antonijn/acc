@@ -26,7 +26,7 @@
 #include <acc/options.h>
 #include <acc/token.h>
 #include <acc/error.h>
-#include <acc/parsing/file.h>
+#include <acc/parsing/expr.h>
 
 static void compilefile(FILE * f)
 {
@@ -41,8 +41,13 @@ static void compilefile(FILE * f)
 		printf("%2d: %s\n", tok.type, tok.lexeme);
 
 		freetok(&tok);
-	}*/
-	parsefile(f);
+	}
+	parsefile(f);*/
+	
+	struct itm_block * b = new_itm_block(NULL);
+	struct itm_expr * e = parseexpr(f, EF_NORMAL | EF_FINISH_SEMICOLON, &b, NULL);
+	itm_block_to_string(stdout, b);
+	delete_itm_block(b);
 }
 
 int main(int argc, char *argv[])

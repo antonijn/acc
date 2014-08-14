@@ -66,11 +66,33 @@ static void initprimitive(struct ctype * p, const char * name)
 {
 	p->free = &primitive_free;
 	p->type = PRIMITIVE;
-	p->size = -1; /* TODO: get platform-specific size */
+	p->size = 4; /* TODO: get platform-specific size */
 	p->name = name;
 	p->to_string = &primitive_to_string;
 	p->compare = &primitive_compare;
 	registerty(p);
+}
+
+int hastc(struct ctype * ty, enum typeclass tc)
+{
+	return gettc(ty) & tc;
+}
+
+enum typeclass gettc(struct ctype * ty)
+{
+	if (ty == &cfloat ||
+	    ty == &cdouble)
+		return TC_ARITHMETIC | TC_FLOATING;
+	if (ty == &cuchar ||
+	    ty == &cushort ||
+	    ty == &cuint ||
+	    ty == &culong)
+		return TC_ARITHMETIC | TC_INTEGRAL | TC_UNSIGNED;
+	if (ty->type == PRIMITIVE)
+		return TC_ARITHMETIC | TC_INTEGRAL | TC_SIGNED;
+	if (ty->type == POINTER)
+		return TC_POINTER;
+	return TC_COMPOSITE;
 }
 
 void ast_init(void)
@@ -391,6 +413,52 @@ struct ctype * get_typedef(char * id)
 			if (!strcmp(sym->id, id) && sym->storage == SC_TYPEDEF)
 				return sym->type;
 	}
+	return NULL;
+}
+
+struct operator * binoperators[] = {
+	&binop_plus, &binop_min,
+	&binop_div, &binop_mul,
+	&binop_mod, &binop_shl,
+	&binop_shr, &binop_or,
+	&binop_and, &binop_xor,
+	&binop_shcor, &binop_shcand,
+	&binop_lt, &binop_lte,
+	&binop_gt, &binop_gte,
+	&binop_eq, &binop_neq,
+	&binop_assign, &binop_assign_plus,
+	&binop_assign_min, &binop_assign_mul,
+	&binop_assign_div, &binop_assign_mod,
+	&binop_assign_shl, &binop_assign_shr,
+	&binop_assign_and, &binop_assign_xor,
+	&binop_assign_or
+};
+
+struct operator * unoperators[] = {
+	&unop_suffinc, &unop_suffdef,
+	&unop_preinc, &unop_predec,
+	&unop_plus, &unop_min,
+	&unop_deref, &unop_ref,
+	&unop_sizeof
+};
+
+struct operator * getbop(const char * opname)
+{
+	int i;
+	for (i = 0; i < sizeof(binoperators) / sizeof(struct operator *); ++i)
+		if (!strcmp(binoperators[i]->rep, opname))
+			return binoperators[i];
+
+	return NULL;
+}
+
+struct operator * getuop(const char * opname)
+{
+	int i;
+	for (i = 0; i < sizeof(unoperators) / sizeof(struct operator *); ++i)
+		if (!strcmp(unoperators[i]->rep, opname))
+			return unoperators[i];
+
 	return NULL;
 }
 
