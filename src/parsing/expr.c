@@ -45,6 +45,9 @@ static struct itm_expr * performaop(struct operator * op, enum exprflags flags,
 static struct itm_expr * parseuop(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
 	struct itm_expr * acc);
+static struct itm_expr * parseparents(FILE * f, enum exprflags flags,
+	struct itm_block ** block, struct ctype * initty, struct list * operators,
+	struct itm_expr * acc);
 static struct itm_expr * parselit(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
 	struct itm_expr * acc);
@@ -78,6 +81,8 @@ static struct itm_expr * parseexpro(FILE * f, enum exprflags flags,
 	if (res = parsebop(f, flags, block, initty, operators, acc))
 		return res;
 	if (res = parseuop(f, flags, block, initty, operators, acc))
+		return res;
+	if (res = parseparents(f, flags, block, initty, operators, acc))
 		return res;
 	if (res = parsefcall(f, flags, block, initty, operators, acc))
 		return res;
@@ -243,6 +248,32 @@ static struct itm_expr * parseuop(FILE * f, enum exprflags flags,
 	return NULL;
 }
 
+static struct itm_expr * parseparents(FILE * f, enum exprflags flags,
+	struct itm_block ** block, struct ctype * initty, struct list * operators,
+	struct itm_expr * acc)
+{
+	struct token close;
+	struct list * noperators;
+	if (acc)
+		return NULL;
+	
+	if (!chkt(f, "("))
+		return NULL;
+	
+	/* TODO: check for type cast */
+	
+	noperators = new_list(NULL, 0);
+	acc = parseexpro(f, EF_NORMAL | EF_FINISH_BRACKET,
+		block, initty, noperators, NULL);
+	delete_list(noperators, NULL);
+	
+	/* remove closing ) from the stream */
+	close = gettok(f);
+	freetok(&close);
+	
+	return parseexpro(f, flags, block, initty, operators, acc);
+}
+
 static struct itm_expr * parselit(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
 	struct itm_expr * acc)
@@ -299,11 +330,16 @@ static struct itm_expr * parseintlit(FILE * f, enum exprflags flags,
 		unsigned long top;
 		type = itypes[i];
 		if (type == &cuint ||
-		    type == &culong)
-			top = 1 << (type->size * 8);
-		else
-			top = 1 << (type->size * 8 - 1);
-		if (ul < top)
+		    type == &culong) {
+			top = (1ul << (type->size * 8 - 1)) - 1;
+			top <<= 1;
+			top |= 1;
+		} else {
+			top = (1ul << (type->size * 8 - 2)) - 1;
+			top <<= 1;
+			top |= 1;
+		}
+		if (ul <= top)
 			break;
 	}
 

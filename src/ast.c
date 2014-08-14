@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include <acc/ast.h>
+#include <acc/target.h>
 
 struct ctype cint;
 struct ctype cshort;
@@ -66,7 +67,7 @@ static void initprimitive(struct ctype * p, const char * name)
 {
 	p->free = &primitive_free;
 	p->type = PRIMITIVE;
-	p->size = 4; /* TODO: get platform-specific size */
+	p->size = gettypesize((struct ctype *)p);
 	p->name = name;
 	p->to_string = &primitive_to_string;
 	p->compare = &primitive_compare;
@@ -169,7 +170,7 @@ struct ctype * new_pointer(struct ctype * base)
 	struct cpointer * ty = malloc(sizeof(struct cpointer));
 	ty->base.free = (void (*)(struct ctype *))&free;
 	ty->base.type = POINTER;
-	ty->base.size = -1; /* TODO: get target-specific value */
+	ty->base.size = gettypesize((struct ctype *)ty);
 	ty->base.name = NULL;
 	ty->base.to_string = &pointer_to_string;
 	ty->base.compare = &pointer_compare;
@@ -202,7 +203,7 @@ struct ctype * new_struct(char * id)
 	struct cstruct * ty = malloc(sizeof(struct cpointer));
 	ty->base.free = &free_struct;
 	ty->base.type = STRUCTURE;
-	ty->base.size = -1; /* TODO: get target-specific value */
+	ty->base.size = gettypesize((struct ctype *)ty);
 	if (id) {
 		ty->base.name = calloc(sizeof(char), strlen(id) + 1);
 		sprintf((char *)ty->base.name, "%s", id);
