@@ -17,8 +17,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef INTERMEDIATE_H
-#define INTERMEDIATE_H
+#ifndef ITM_H
+#define ITM_H
 
 #include <acc/list.h>
 #include <acc/ast.h>

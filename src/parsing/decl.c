@@ -24,7 +24,7 @@
 #include <acc/parsing/tools.h>
 #include <acc/error.h>
 #include <acc/ext.h>
-#include <acc/intermediate.h>
+#include <acc/itm.h>
 #include <acc/ast.h>
 
 /* primitive modifiers */

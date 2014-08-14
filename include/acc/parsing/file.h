@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 
-#include <acc/intermediate.h>
+#include <acc/itm.h>
 
 struct itm_module parsefile(FILE * f);
 

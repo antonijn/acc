@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 
-#include <acc/intermediate.h>
+#include <acc/itm.h>
 
 enum statflags {
 	SF_ANY = 0x00,

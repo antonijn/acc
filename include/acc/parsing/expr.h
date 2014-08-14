@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 
-#include <acc/intermediate.h>
+#include <acc/itm.h>
 
 enum exprflags {
 	EF_NORMAL = 0x00,

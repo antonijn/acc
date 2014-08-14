@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include <acc/intermediate.h>
+#include <acc/itm.h>
 #include <acc/error.h>
 
 #ifndef NDEBUG
