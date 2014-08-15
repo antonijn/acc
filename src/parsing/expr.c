@@ -228,19 +228,19 @@ static struct itm_expr * performaop(struct operator * op, enum exprflags flags,
 		if (!hastc(acc->type, TC_INTEGRAL))
 			goto invalid;
 		ifunc = &itm_xor;
-	} else if (op == &binop_eq) {
+	} else if (op == &binop_eq)
 		ifunc = &itm_cmpeq;
-	} else if (op == &binop_neq) {
+	else if (op == &binop_neq)
 		ifunc = &itm_cmpneq;
-	} else if (op == &binop_gt) {
+	else if (op == &binop_gt)
 		ifunc = &itm_cmpgt;
-	} else if (op == &binop_gte) {
+	else if (op == &binop_gte)
 		ifunc = &itm_cmpgte;
-	} else if (op == &binop_lt) {
+	else if (op == &binop_lt)
 		ifunc = &itm_cmplt;
-	} else if (op == &binop_lte) {
+	else if (op == &binop_lte)
 		ifunc = &itm_cmplte;
-	} else
+	else
 		return NULL; /* this shouldn't happen. ever. */
 	
 	if (lt == &cdouble || rt == &cdouble)

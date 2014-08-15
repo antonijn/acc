@@ -27,29 +27,17 @@
 #include <acc/token.h>
 #include <acc/error.h>
 #include <acc/parsing/expr.h>
+#include <acc/parsing/stat.h>
 
 static void compilefile(FILE * f)
 {
-	/*struct token tok;
-	while (1) {
-		tok = gettok(f);
-		if (tok.type == T_EOF) {
-			freetok(&tok);
-			break;
-		}
-
-		printf("%2d: %s\n", tok.type, tok.lexeme);
-
-		freetok(&tok);
-	}
-	parsefile(f);*/
-	
-	struct itm_block * b = new_itm_block(NULL);
-	struct itm_expr * e = parseexpr(f, EF_NORMAL | EF_FINISH_SEMICOLON, &b, NULL);
+	struct itm_block * b = new_itm_block(NULL, NULL);
+	struct itm_block * bb = b;
+	parsestat(f, SF_NORMAL, &b);
 #ifndef NDEBUG
-	itm_block_to_string(stdout, b);
+	itm_block_to_string(stdout, bb);
 #endif
-	delete_itm_block(b);
+	delete_itm_block(bb);
 }
 
 int main(int argc, char *argv[])

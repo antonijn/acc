@@ -39,7 +39,7 @@ static int parseestat(FILE * f, enum statflags flags,
 static int parseif(FILE * f, enum statflags flags, struct itm_block ** block)
 {
 	struct itm_expr * cond;
-	struct itm_block * tblock, * eblock;
+	struct itm_block * tblock;
 	struct itm_label * tlabel, * elabel;
 	struct list * prev;
 	struct token tok;
@@ -61,32 +61,76 @@ static int parseif(FILE * f, enum statflags flags, struct itm_block ** block)
 	freetok(&tok);
 	
 	cond = cast(cond, &cbool, *block);
+
+	tlabel = new_itm_label();
+	elabel = new_itm_label();
+	itm_split(*block, cond, tlabel, elabel);
 	
 	prev = new_list(NULL, 0);
 	list_push_back(prev, *block);
-	tblock = new_itm_block(prev);
+	tblock = new_itm_block(*block, prev);
+	set_itm_label_block(tlabel, tblock);
+
+	parsestat(f, SF_NORMAL, &tblock);
+
+	if (chkt(f, "else")) {
+		struct itm_label * common = new_itm_label();
+
+		itm_jmp(tblock, common);
+
+		prev = new_list(NULL, 0);
+		list_push_back(prev, *block);
+		*block = new_itm_block(tblock, prev);
+		set_itm_label_block(elabel, *block);
+
+		parsestat(f, SF_NORMAL, block);
+
+		itm_jmp(*block, common);
+
+		prev = new_list(NULL, 0);
+		list_push_back(prev, *block);
+		*block = new_itm_block(*block, prev);
+		set_itm_label_block(common, *block);
+	} else {
+		itm_jmp(tblock, elabel);
+
+		prev = new_list(NULL, 0);
+		list_push_back(prev, tblock);
+		list_push_back(prev, *block);
+		*block = new_itm_block(tblock, prev);
+		set_itm_label_block(elabel, *block);
+	}
 }
 
 static int parsedo(FILE * f, enum statflags flags, struct itm_block ** block)
 {
-	
+	/* TODO: implement */
+	return 0;
 }
 
 static int parsefor(FILE * f, enum statflags flags, struct itm_block ** block)
 {
-	
+	/* TODO: implement */
+	return 0;
 }
 
 static int parsewhile(FILE * f, enum statflags flags,
 	struct itm_block ** block)
 {
-	
+	/* TODO: implement */
+	return 0;
 }
 
 static int parseestat(FILE * f, enum statflags flags,
 	struct itm_block ** block)
 {
-	
+	struct token tok;
+	if (!parseexpr(f, EF_FINISH_SEMICOLON, block, NULL))
+		return 0;
+	/* remove ; from stream */
+	tok = gettok(f);
+	freetok(&tok);
+	return 1;
 }
 
 int parsestat(FILE * f, enum statflags flags, struct itm_block ** block)
@@ -95,10 +139,12 @@ int parsestat(FILE * f, enum statflags flags, struct itm_block ** block)
 	       parsedo(f, flags, block) ||
 	       parsefor(f, flags, block) ||
 	       parsewhile(f, flags, block) ||
+	       parseblock(f, flags, block) ||
 	       parseestat(f, flags, block);
 }
 
 int parseblock(FILE * f, enum statflags flags, struct itm_block ** block)
 {
-	
+	/* TODO: implement */
+	return 0;
 }

@@ -77,6 +77,7 @@ struct itm_block {
 #ifndef NDEBUG
 	int number;
 #endif
+	struct itm_block * lexnext;
 	struct list * previous;
 	struct list * next;
 	struct itm_instr * first;
@@ -84,7 +85,7 @@ struct itm_block {
 	struct list * labels;
 };
 
-struct itm_block * new_itm_block(struct list * previous);
+struct itm_block * new_itm_block(struct itm_block * before, struct list * previous);
 void delete_itm_block(struct itm_block * block);
 #ifndef NDEBUG
 void itm_block_to_string(FILE * f, struct itm_block * block);

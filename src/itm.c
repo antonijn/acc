@@ -46,12 +46,12 @@ static void itm_instr_to_string(FILE * f, struct itm_instr * i)
 	assert(i != NULL);
 
 	fprintf(f, "\t");
-	if (i->base.type != &cvoid)
+	if (i->base.type != &cvoid) {
 		fprintf(f, "%%%d = ", itm_instr_number(i));
-	i->base.type->to_string(f, i->base.type);
-	fprintf(f, " %s", i->operation);
-	if (list_length(i->operands) > 0 || i->typeoperand)
+		i->base.type->to_string(f, i->base.type);
 		fprintf(f, " ");
+	}
+	fprintf(f, "%s ", i->operation);
 
 	it = list_iterator(i->operands);
 	for (j = 0; iterator_next(&it, (void **)&ex); ++j) {
@@ -112,11 +112,11 @@ void itm_block_to_string(FILE * f, struct itm_block * block)
 	struct itm_block * nxt;
 	
 	fprintf(f, "\n%%%d:\n", block->number);
-	itm_instr_to_string(f, block->first);
+	if (block->first)
+		itm_instr_to_string(f, block->first);
 	
-	it = list_iterator(block->next);
-	while (iterator_next(&it, (void **)&nxt))
-		itm_block_to_string(f, nxt);
+	if (block->lexnext)
+		itm_block_to_string(f, block->lexnext);
 }
 
 #endif
@@ -149,10 +149,22 @@ struct itm_literal *new_itm_literal(struct ctype * ty)
 	return lit;
 }
 
-struct itm_block * new_itm_block(struct list * previous)
+struct itm_block * new_itm_block(struct itm_block * before, struct list * previous)
 {
 	struct itm_block * res = malloc(sizeof(struct itm_block));
 	res->previous = previous;
+	res->lexnext = NULL;
+	if (before) {
+#ifndef NDEBUG
+		res->number = itm_instr_number(before->last) + 1;
+#endif
+		before->lexnext = res;
+	} else {
+#ifndef NDEBUG
+		res->number = 0;
+#endif
+	}
+	
 	if (previous) {
 		struct itm_block * fprev;
 		void * it;
@@ -160,12 +172,6 @@ struct itm_block * new_itm_block(struct list * previous)
 		it = list_iterator(previous);
 		while (iterator_next(&it, (void **)&fprev))
 			list_push_back(fprev->next, res);
-#ifndef NDEBUG
-		fprev = list_head(previous);
-		res->number = itm_instr_number(fprev->last) + 1;
-	} else {
-		res->number = 0;
-#endif
 	}
 	res->next = new_list(NULL, 0);
 	res->first = NULL;
@@ -190,33 +196,18 @@ static void cleanup_instr(struct itm_instr * i)
 		cleanup_instr(i->next);
 }
 
-/* to delete blocks, get all blocks in a graph, and delete them individually */
-static void delete_itm_block_simple(void * v)
+void delete_itm_block(struct itm_block * block)
 {
-	struct itm_block * block = v;
-	cleanup_instr(block->first);
+	struct list * blocks = new_list(NULL, 0);
+	if (block->lexnext)
+		delete_itm_block(block->lexnext);
+
+	if (block->first)
+		cleanup_instr(block->first);
 	delete_list(block->labels, &free);
 	if (block->previous)
 		delete_list(block->previous, NULL);
 	free(block);
-}
-
-static void append_next_blocks(struct itm_block * b, struct list * l)
-{
-	void * it;
-	struct itm_block * nxt;
-	list_push_back(l, b);
-	it = list_iterator(b->next);
-	while (iterator_next(&it, (void **)&nxt))
-		if (!list_contains(l, nxt))
-			append_next_blocks(nxt, l);
-}
-
-void delete_itm_block(struct itm_block * block)
-{
-	struct list * blocks = new_list(NULL, 0);
-	append_next_blocks(block, blocks);
-	delete_list(blocks, &delete_itm_block_simple);
 }
 
 static void free_dummy(struct itm_expr * e)

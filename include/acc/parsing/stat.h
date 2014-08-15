@@ -25,7 +25,7 @@
 #include <acc/itm.h>
 
 enum statflags {
-	SF_ANY = 0x00,
+	SF_NORMAL = 0x00,
 	SF_DECLARATION_ONLY = 0x01 /* for C99 for loops */
 };
 
