@@ -17,23 +17,26 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-CFLAGS += -Iinclude -std=c89 -pedantic-errors
+CC = gcc
+CFLAGS = -c -Iinclude -std=c89 -pedantic-errors
+LD = $(CC)
 
-release:
-	$(CC) $(CFLAGS) -O2 -DNDEBUG -o acc src/*.c src/parsing/*.c
+TARGET = acc
 
-debug:
-	$(CC) $(CFLAGS) -g -o acc src/*.c src/parsing/*.c
+SOURCES = $(wildcard src/*.c) $(wildcard src/**/*.c)
+OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
-win64:
-	x86_64-w64-mingw32-gcc $(CFLAGS) -O2 -DNDEBUG -o acc.exe src/*.c src/parsing/*.c
+release: CFLAGS += -DNDEBUG -O2
+debug: CFLAGS += -g -Og
 
-win64-debug:
-	x86_64-w64-mingw32-gcc $(CFLAGS) -g -o acc.exe src/*.c src/parsing/*.c
+release debug: $(TARGET)
 
-win32:
-	i686-w64-mingw32-gcc $(CFLAGS) -O2 -DNDEBUG -o acc.exe src/*.c src/parsing/*.c
+$(TARGET): $(OBJECTS)
+	$(LD) -o $@ $^ $(LDFLAGS)
 
-win32-debug:
-	i686-w64-mingw32-gcc $(CFLAGS) -g -o acc.exe src/*.c src/parsing/*.c
+%.o: %.c
+	$(CC) $(CFLAGS) $^ -o $@
+
+clean:
+	rm $(TARGET) $(OBJECTS)
 
