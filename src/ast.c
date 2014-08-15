@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include <acc/ast.h>
 #include <acc/target.h>

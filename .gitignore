@@ -1,3 +1,5 @@
 *.o
 acc
+*.exe
+*.obj
 !acc/

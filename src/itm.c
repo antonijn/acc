@@ -27,6 +27,8 @@
 #ifndef NDEBUG
 static int itm_instr_number(struct itm_instr * i)
 {
+	assert(i != NULL);
+
 	if (!i->previous)
 		return i->block->number + 1;
 	if (i->base.type == &cvoid)
@@ -39,6 +41,8 @@ static void itm_instr_to_string(FILE * f, struct itm_instr * i)
 	void * it;
 	int j;
 	struct itm_expr * ex;
+
+	assert(i != NULL);
 
 	fprintf(f, "\t");
 	if (i->base.type != &cvoid)
@@ -67,6 +71,9 @@ static void itm_instr_expr_to_string(FILE * f, struct itm_expr * e)
 {
 	int inum = itm_instr_number((struct itm_instr *)e);
 	char buf[32] = { 0 };
+
+	assert(e != NULL);
+
 	sprintf(buf, "%%%d", inum);
 	e->type->to_string(f, e->type);
 	fprintf(f, " %s", buf);
@@ -75,6 +82,9 @@ static void itm_instr_expr_to_string(FILE * f, struct itm_expr * e)
 static void itm_literal_to_string(FILE * f, struct itm_expr * e)
 {
 	struct itm_literal * li = (struct itm_literal *)e;
+
+	assert(li != NULL);
+
 	e->type->to_string(f, e->type);
 	fprintf(f, " %lu", li->value.i);
 }
@@ -98,6 +108,8 @@ void itm_block_to_string(FILE * f, struct itm_block * block)
 struct itm_literal *new_itm_literal(struct ctype * ty)
 {
 	struct itm_literal * lit = malloc(sizeof(struct itm_literal));
+	assert(ty != NULL);
+	lit->base.islvalue = 0;
 	lit->base.etype = ITME_LITERAL;
 	lit->base.type = ty;
 	lit->base.free = (void (*)(struct itm_expr *))&free;
@@ -154,6 +166,8 @@ static struct itm_instr * impl_op(struct itm_block * b, struct ctype * type, voi
 	const char * operation, int isterminal)
 {
 	struct itm_instr * res = malloc(sizeof(struct itm_instr));
+
+	assert(type != NULL);
 
 	res->base.islvalue = 0;
 	res->base.etype = ITME_INSTRUCTION;
@@ -347,6 +361,7 @@ struct itm_instr *itm_alloca(struct itm_block * b, struct ctype * ty)
 struct itm_instr *itm_load(struct itm_block * b, struct itm_expr * l)
 {
 	struct itm_instr * res;
+	assert(l->type->type == POINTER);
 	res = impl_op(b, ((struct cpointer *)l->type)->pointsto,
 		(void (*)(void))&itm_load, "load", 0);
 

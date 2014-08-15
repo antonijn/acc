@@ -24,3 +24,16 @@ release:
 
 debug:
 	$(CC) $(CFLAGS) -g -o acc src/*.c src/parsing/*.c
+
+win64:
+	x86_64-w64-mingw32-gcc $(CFLAGS) -O2 -DNDEBUG -o acc.exe src/*.c src/parsing/*.c
+
+win64-debug:
+	x86_64-w64-mingw32-gcc $(CFLAGS) -g -o acc.exe src/*.c src/parsing/*.c
+
+win32:
+	i686-w64-mingw32-gcc $(CFLAGS) -O2 -DNDEBUG -o acc.exe src/*.c src/parsing/*.c
+
+win32-debug:
+	i686-w64-mingw32-gcc $(CFLAGS) -g -o acc.exe src/*.c src/parsing/*.c
+
