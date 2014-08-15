@@ -406,10 +406,10 @@ static int isreserved(char * str)
 	       !strcmp(str, "while");
 }
 
-static const char * alpha =
+static const char alpha[] =
 	"abcdefghijklmnopqrstuvwxyz"
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ_";
-static const char * alphanum =
+static const char alphanum[] =
 	"abcdefghijklmnopqrstuvwxyz"
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	"_0123456789";
@@ -430,9 +430,9 @@ static int chkid(FILE * f, SFILE * t, enum tokenty * tt)
 	return 0;
 }
 
-const char * hexchars = "0123456789abcdefABCDEF";
-const char * decchars = "0123456789";
-const char * octchars = "01234567";
+const char hexchars[] = "0123456789abcdefABCDEF";
+const char decchars[] = "0123456789";
+const char octchars[] = "01234567";
 
 /*
  * Read a number composed of the characters in allowed
