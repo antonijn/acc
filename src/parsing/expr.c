@@ -414,9 +414,9 @@ struct itm_expr * cast(struct itm_expr * e, struct ctype * ty,
 		return (struct itm_expr *)itm_itof(b, e, ty);
 
 	if (hastc(e->type, TC_POINTER) && hastc(ty, TC_INTEGRAL)) {
-		if (e->size > ty->size)
+		if (e->type->size > ty->size)
 			return (struct itm_expr *)itm_trunc(b, e, ty);
-		if (e->size < ty->size)
+		if (e->type->size < ty->size)
 			return (struct itm_expr *)itm_zext(b, e, ty);
 		return (struct itm_expr *)itm_bitcast(b, e, ty);
 	}
