@@ -27,6 +27,9 @@
 #include <acc/ext.h>
 #include <acc/error.h>
 
+static struct itm_expr *pack(struct itm_block * b, struct itm_expr * e,
+	enum exprflags flags);
+
 static struct itm_expr * parseexpro(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
 	struct itm_expr * acc);
@@ -58,6 +61,15 @@ static struct itm_expr * parsefloatlit(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
 	struct itm_expr * acc);
 
+static struct itm_expr *pack(struct itm_block * b, struct itm_expr * e, enum exprflags flags)
+{
+	if ((flags & EF_EXPECT_RVALUE) && e->islvalue)
+		return (struct itm_expr *)itm_load(b, e);
+	if ((flags & EF_EXPECT_LVALUE) && !e->islvalue)
+		report(E_ERROR | E_HIDE_TOKEN, NULL, "expected lvalue");
+	return e;
+}
+
 static struct itm_expr * parseexpro(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
 	struct itm_expr * acc)
@@ -71,21 +83,16 @@ static struct itm_expr * parseexpro(FILE * f, enum exprflags flags,
 	    ((flags & EF_FINISH_COMMA) && (tok = chktp(f, ",")))) {
 		ungettok(tok, f);
 		freetp(tok);
-		return acc;
+		return pack(*block, acc, flags);
 	}
 	
-	if (res = parselit(f, flags, block, initty, operators, acc))
-		return res;
-	if (res = parseid(f, flags, block, initty, operators, acc))
-		return res;
-	if (res = parsebop(f, flags, block, initty, operators, acc))
-		return res;
-	if (res = parseuop(f, flags, block, initty, operators, acc))
-		return res;
-	if (res = parseparents(f, flags, block, initty, operators, acc))
-		return res;
-	if (res = parsefcall(f, flags, block, initty, operators, acc))
-		return res;
+	if ((res = parselit(f, flags, block, initty, operators, acc)) ||
+	    (res = parseid(f, flags, block, initty, operators, acc)) ||
+	    (res = parsebop(f, flags, block, initty, operators, acc)) ||
+	    (res = parseuop(f, flags, block, initty, operators, acc)) ||
+	    (res = parseparents(f, flags, block, initty, operators, acc)) ||
+	    (res = parsefcall(f, flags, block, initty, operators, acc)))
+		return pack(*block, res, flags);
 	return NULL;
 }
 
@@ -137,7 +144,8 @@ static struct itm_expr * parsebop(FILE * f, enum exprflags flags,
 	}
 	
 	list_push_back(operators, op);
-	r = parseexpro(f, flags, block, initty, operators, NULL);
+	r = parseexpro(f, (flags & EF_CLEAR_MASK) | EF_EXPECT_RVALUE,
+		block, initty, operators, NULL);
 	list_pop_back(operators);
 	
 	if (e = performaop(op, flags, block, initty, operators, acc, r))
@@ -162,6 +170,8 @@ static struct itm_expr * performaop(struct operator * op, enum exprflags flags,
 	struct ctype * lt = acc->type;
 	struct ctype * rt = r->type;
 	struct ctype * et;
+
+	acc = pack(*block, acc, EF_EXPECT_RVALUE);
 	
 	if (op == &binop_plus) {
 		if (hastc(acc->type, TC_ARITHMETIC))
@@ -215,7 +225,8 @@ static struct itm_expr * performaop(struct operator * op, enum exprflags flags,
 		if (!hastc(acc->type, TC_INTEGRAL))
 			goto invalid;
 		ifunc = &itm_xor;
-	}
+	} else
+		return NULL; /* this shouldn't happen. ever. */
 	
 	if (lt == &cdouble || rt == &cdouble)
 		et = &cdouble;

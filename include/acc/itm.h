@@ -32,6 +32,7 @@ struct itm_expr {
 	enum itm_expr_type etype;
 	struct ctype * type;
 	void (*free)(struct itm_expr * e);
+	int islvalue;
 #ifndef NDEBUG
 	void (*to_string)(FILE * f, struct itm_expr * e);
 #endif
@@ -46,6 +47,7 @@ struct itm_instr {
 
 	struct list * operands;
 	struct ctype * typeoperand;
+	struct list * blockoperands;
 
 	struct itm_instr * next;
 	struct itm_instr * previous;

@@ -154,7 +154,8 @@ static struct itm_instr * impl_op(struct itm_block * b, struct ctype * type, voi
 	const char * operation, int isterminal)
 {
 	struct itm_instr * res = malloc(sizeof(struct itm_instr));
-	
+
+	res->base.islvalue = 0;
 	res->base.etype = ITME_INSTRUCTION;
 	res->base.type = type;
 	res->base.free = &free_dummy;
@@ -164,10 +165,11 @@ static struct itm_instr * impl_op(struct itm_block * b, struct ctype * type, voi
 
 	res->id = id;
 	res->operation = operation;
-	res->isterminal = 0;
+	res->isterminal = isterminal;
 
 	res->operands = new_list(NULL, 0);
 	res->typeoperand = NULL;
+	res->blockoperands = NULL;
 	res->next = NULL;
 	res->previous = b->last;
 	if (b->last)
@@ -334,11 +336,72 @@ struct itm_instr *itm_deepptr(struct itm_block * b, struct itm_expr * l, struct 
 	return res;
 }
 
-struct itm_instr *itm_alloca(struct itm_block * b, struct ctype * ty);
-struct itm_instr *itm_load(struct itm_block * b, struct itm_expr * l);
-struct itm_instr *itm_store(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_alloca(struct itm_block * b, struct ctype * ty)
+{
+	struct itm_instr * res;
+	res = impl_op(b, new_pointer(ty), (void (*)(void))&itm_alloca, "alloca", 0);
+	res->typeoperand = ty;
+	return res;
+}
 
-struct itm_instr *itm_jmp(struct itm_block * b, struct itm_block * to);
-struct itm_instr *itm_split(struct itm_block * b, struct itm_expr * c, struct itm_block * t, struct itm_block * e);
-struct itm_instr *itm_ret(struct itm_block * b, struct itm_expr * l);
-struct itm_instr *itm_leave(struct itm_block * b);
+struct itm_instr *itm_load(struct itm_block * b, struct itm_expr * l)
+{
+	struct itm_instr * res;
+	res = impl_op(b, ((struct cpointer *)l->type)->pointsto,
+		(void (*)(void))&itm_load, "load", 0);
+
+	list_push_back(res->operands, l);
+
+	return res;
+}
+
+struct itm_instr *itm_store(struct itm_block * b, struct itm_expr * l, struct itm_expr * r)
+{
+	struct itm_instr * res;
+	res = impl_op(b, &cvoid, (void (*)(void))&itm_store, "store", 0);
+
+	list_push_back(res->operands, l);
+	list_push_back(res->operands, r);
+
+	return res;
+}
+
+struct itm_instr *itm_jmp(struct itm_block * b, struct itm_block * to)
+{
+	struct itm_instr * res;
+	res = impl_op(b, &cvoid, (void (*)(void))&itm_jmp, "jmp", 1);
+
+	res->blockoperands = new_list(NULL, 0);
+	list_push_back(res->blockoperands, to);
+
+	return res;
+}
+
+struct itm_instr *itm_split(struct itm_block * b, struct itm_expr * c, struct itm_block * t, struct itm_block * e)
+{
+	struct itm_instr * res;
+	res = impl_op(b, &cvoid, (void (*)(void))&itm_split, "split", 1);
+
+	list_push_back(res->operands, c);
+
+	res->blockoperands = new_list(NULL, 0);
+	list_push_back(res->blockoperands, t);
+	list_push_back(res->blockoperands, e);
+
+	return res;
+}
+
+struct itm_instr *itm_ret(struct itm_block * b, struct itm_expr * l)
+{
+	struct itm_instr * res;
+	res = impl_op(b, &cvoid, (void (*)(void))&itm_ret, "ret", 1);
+	list_push_back(res->operands, l);
+	return res;
+}
+
+struct itm_instr *itm_leave(struct itm_block * b)
+{
+	struct itm_instr * res;
+	res = impl_op(b, &cvoid, (void (*)(void))&itm_ret, "leave", 1);
+	return res;
+}

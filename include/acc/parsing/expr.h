@@ -30,7 +30,10 @@ enum exprflags {
 	EF_FINISH_BRACKET = 0x02,
 	EF_FINISH_SEMICOLON = 0x04,
 	EF_FINISH_SQUARE_BRACKET = 0x08,
-	EF_FINISH_COMMA = 0x10
+	EF_FINISH_COMMA = 0x10,
+	EF_EXPECT_RVALUE = 0x20,
+	EF_EXPECT_LVALUE = 0x40,
+	EF_CLEAR_MASK = ~(EF_EXPECT_LVALUE | EF_EXPECT_RVALUE)
 };
 
 struct itm_expr * parseexpr(FILE * f, enum exprflags flags,
