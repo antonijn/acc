@@ -145,6 +145,11 @@ int parsestat(FILE * f, enum statflags flags, struct itm_block ** block)
 
 int parseblock(FILE * f, enum statflags flags, struct itm_block ** block)
 {
-	/* TODO: implement */
-	return 0;
+	if (!chkt(f, "{"))
+		return 0;
+
+	while (!chkt(f, "}"))
+		parsestat(f, flags, block);
+
+	return 1;
 }
