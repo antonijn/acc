@@ -55,12 +55,11 @@ static int parseif(FILE * f, enum statflags flags, struct itm_block ** block)
 	}
 	
 	cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE, block, NULL);
-	
+	cond = cast(cond, &cbool, *block);
+
 	/* remove ) from stream */
 	tok = gettok(f);
 	freetok(&tok);
-	
-	cond = cast(cond, &cbool, *block);
 
 	tlabel = new_itm_label();
 	elabel = new_itm_label();
@@ -117,8 +116,60 @@ static int parsefor(FILE * f, enum statflags flags, struct itm_block ** block)
 static int parsewhile(FILE * f, enum statflags flags,
 	struct itm_block ** block)
 {
-	/* TODO: implement */
-	return 0;
+	struct itm_block * condb, * bodyb, * quitb;
+	struct itm_label * condl, * bodyl, * quitl;
+	struct list * prev;
+	struct itm_expr * cond;
+	struct token tok;
+
+	if (!chkt(f, "while"))
+		return 0;
+	
+	if (!chkt(f, "(")) {
+		tok = gettok(f);
+		report(E_PARSER, &tok, "expected '('");
+		ungettok(&tok, f);
+		freetok(&tok);
+	}
+
+	condl = new_itm_label();
+	bodyl = new_itm_label();
+	quitl = new_itm_label();
+
+	itm_jmp(*block, condl);
+
+	prev = new_list(NULL, 0);
+	list_push_back(prev, *block);
+	condb = new_itm_block(*block, prev);
+	set_itm_label_block(condl, condb);
+	
+	cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE, &condb, NULL);
+	cond = cast(cond, &cbool, condb);
+
+	/* remove ) from stream */
+	tok = gettok(f);
+	freetok(&tok);
+
+	itm_split(condb, cond, bodyl, quitl);
+
+	prev = new_list(NULL, 0);
+	list_push_back(prev, condb);
+	bodyb = new_itm_block(condb, prev);
+	set_itm_label_block(bodyl, bodyb);
+
+	parsestat(f, SF_NORMAL, &bodyb);
+
+	itm_jmp(bodyb, condl);
+
+	prev = new_list(NULL, 0);
+	list_push_back(prev, condb);
+	list_push_back(prev, bodyb);
+	quitb = new_itm_block(bodyb, prev);
+	set_itm_label_block(quitl, quitb);
+
+	*block = quitb;
+
+	return 1;
 }
 
 static int parseestat(FILE * f, enum statflags flags,
