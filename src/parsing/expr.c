@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include <acc/parsing/expr.h>
 #include <acc/parsing/tools.h>
@@ -399,6 +400,28 @@ struct itm_expr * parseexpr(FILE * f, enum exprflags flags,
 struct itm_expr * cast(struct itm_expr * e, struct ctype * ty,
 	struct itm_block * b)
 {
-	/* TODO: implement */
+	assert(e != NULL);
+	assert(ty != NULL);
+	assert(e->type != NULL);
+
+	if (e->type == ty)
+		return e;
+
+	if (hastc(e->type, TC_FLOATING) && hastc(ty, TC_INTEGRAL))
+		return (struct itm_expr *)itm_ftoi(b, e, ty);
+
+	if (hastc(e->type, TC_INTEGRAL) && hastc(ty, TC_FLOATING))
+		return (struct itm_expr *)itm_itof(b, e, ty);
+
+	if (hastc(e->type, TC_POINTER) && hastc(ty, TC_INTEGRAL)) {
+		if (e->size > ty->size)
+			return (struct itm_expr *)itm_trunc(b, e, ty);
+		if (e->size < ty->size)
+			return (struct itm_expr *)itm_zext(b, e, ty);
+		return (struct itm_expr *)itm_bitcast(b, e, ty);
+	}
+
+	/* TODO: other casts */
+
 	return e;
 }

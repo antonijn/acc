@@ -86,7 +86,12 @@ static void itm_literal_to_string(FILE * f, struct itm_expr * e)
 	assert(li != NULL);
 
 	e->type->to_string(f, e->type);
-	fprintf(f, " %lu", li->value.i);
+	if (e->type == &cdouble)
+		fprintf(f, " %f", li->value.d);
+	else if (e->type == &cfloat)
+		fprintf(f, " %f", (double)li->value.f);
+	else
+		fprintf(f, " %lu", li->value.i);
 }
 
 void itm_block_to_string(FILE * f, struct itm_block * block)
