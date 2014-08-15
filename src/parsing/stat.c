@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include <acc/parsing/stat.h>
+#include <acc/parsing/expr.h>
 #include <acc/parsing/tools.h>
 #include <acc/list.h>
 #include <acc/token.h>
@@ -37,17 +38,33 @@ static int parseestat(FILE * f, enum statflags flags,
 
 static int parseif(FILE * f, enum statflags flags, struct itm_block ** block)
 {
+	struct itm_expr * cond;
+	struct itm_block * tblock, * eblock;
+	struct itm_label * tlabel, * elabel;
+	struct list * prev;
+	struct token tok;
+	
 	if (!chkt(f, "if"))
 		return 0;
 	
 	if (!chkt(f, "(")) {
-		struct token tok = gettok(f);
+		tok = gettok(f);
 		report(E_PARSER, &tok, "expected '('");
 		ungettok(&tok, f);
 		freetok(&tok);
 	}
 	
+	cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE, block, NULL);
 	
+	/* remove ) from stream */
+	tok = gettok(f);
+	freetok(&tok);
+	
+	cond = cast(cond, &cbool, *block);
+	
+	prev = new_list(NULL, 0);
+	list_push_back(prev, *block);
+	tblock = new_itm_block(prev);
 }
 
 static int parsedo(FILE * f, enum statflags flags, struct itm_block ** block)

@@ -233,6 +233,18 @@ void * list_pop_front(struct list * l)
 	return data;
 }
 
+int list_contains(struct list * l, void * data)
+{
+	void * it;
+	void * dat;
+	it = list_iterator(l);
+	while (iterator_next(&it, &dat))
+		if (dat == data)
+			return 1;
+
+	return 0;
+}
+
 void * list_head(struct list * l)
 {
 	return l->head->data;

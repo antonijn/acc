@@ -41,6 +41,7 @@ static void itm_instr_to_string(FILE * f, struct itm_instr * i)
 	void * it;
 	int j;
 	struct itm_expr * ex;
+	struct itm_label * lbl;
 
 	assert(i != NULL);
 
@@ -55,8 +56,19 @@ static void itm_instr_to_string(FILE * f, struct itm_instr * i)
 	it = list_iterator(i->operands);
 	for (j = 0; iterator_next(&it, (void **)&ex); ++j) {
 		ex->to_string(f, ex);
-		if (j != list_length(i->operands) - 1 || i->typeoperand)
+		if (j != list_length(i->operands) - 1 ||
+		   (i->labeloperands && list_length(i->labeloperands) > 0) ||
+		    i->typeoperand)
 			fprintf(f, ", ");
+	}
+	
+	if (i->labeloperands) {
+		it = list_iterator(i->labeloperands);
+		for (j = 0; iterator_next(&it, (void **)&lbl); ++j) {
+			fprintf(f, "block %%%d", lbl->block->number);
+			if (j != list_length(i->labeloperands) - 1 || i->typeoperand)
+				fprintf(f, ", ");
+		}
 	}
 
 	if (i->typeoperand)
@@ -109,7 +121,20 @@ void itm_block_to_string(FILE * f, struct itm_block * block)
 
 #endif
 
-/* literal and block initializers/destructors */
+/* label, literal and block initializers/destructors */
+struct itm_label * new_itm_label(void)
+{
+	struct itm_label * lab = malloc(sizeof(struct itm_label));
+	lab->block = NULL;
+	return lab;
+}
+
+void set_itm_label_block(struct itm_label * l, struct itm_block * b)
+{
+	list_push_back(b->labels, l);
+	l->block = b;
+}
+
 struct itm_literal *new_itm_literal(struct ctype * ty)
 {
 	struct itm_literal * lit = malloc(sizeof(struct itm_literal));
@@ -124,14 +149,20 @@ struct itm_literal *new_itm_literal(struct ctype * ty)
 	return lit;
 }
 
-struct itm_block * new_itm_block(struct itm_block * previous)
+struct itm_block * new_itm_block(struct list * previous)
 {
 	struct itm_block * res = malloc(sizeof(struct itm_block));
 	res->previous = previous;
 	if (previous) {
-		list_push_back(previous->next, res);
+		struct itm_block * fprev;
+		void * it;
+		
+		it = list_iterator(previous);
+		while (iterator_next(&it, (void **)&fprev))
+			list_push_back(fprev->next, res);
 #ifndef NDEBUG
-		res->number = itm_instr_number(previous->last) + 1;
+		fprev = list_head(previous);
+		res->number = itm_instr_number(fprev->last) + 1;
 	} else {
 		res->number = 0;
 #endif
@@ -139,6 +170,7 @@ struct itm_block * new_itm_block(struct itm_block * previous)
 	res->next = new_list(NULL, 0);
 	res->first = NULL;
 	res->last = NULL;
+	res->labels = new_list(NULL, 0);
 	return res;
 }
 
@@ -151,15 +183,40 @@ static void cleanup_instr(struct itm_instr * i)
 	while (iterator_next(&it, (void **)&op))
 		op->free(op);
 	
+	if (i->labeloperands)
+		delete_list(i->labeloperands, NULL);
+	
 	if (i->next)
 		cleanup_instr(i->next);
 }
 
+/* to delete blocks, get all blocks in a graph, and delete them individually */
+static void delete_itm_block_simple(void * v)
+{
+	struct itm_block * block = v;
+	cleanup_instr(block->first);
+	delete_list(block->labels, &free);
+	if (block->previous)
+		delete_list(block->previous, NULL);
+	free(block);
+}
+
+static void append_next_blocks(struct itm_block * b, struct list * l)
+{
+	void * it;
+	struct itm_block * nxt;
+	list_push_back(l, b);
+	it = list_iterator(b->next);
+	while (iterator_next(&it, (void **)&nxt))
+		if (!list_contains(l, nxt))
+			append_next_blocks(nxt, l);
+}
+
 void delete_itm_block(struct itm_block * block)
 {
-	cleanup_instr(block->first);
-	delete_list(block->next, (void (*)(void *))&delete_itm_block);
-	free(block);
+	struct list * blocks = new_list(NULL, 0);
+	append_next_blocks(block, blocks);
+	delete_list(blocks, &delete_itm_block_simple);
 }
 
 static void free_dummy(struct itm_expr * e)
@@ -188,7 +245,7 @@ static struct itm_instr * impl_op(struct itm_block * b, struct ctype * type, voi
 
 	res->operands = new_list(NULL, 0);
 	res->typeoperand = NULL;
-	res->blockoperands = NULL;
+	res->labeloperands = NULL;
 	res->next = NULL;
 	res->previous = b->last;
 	if (b->last)
@@ -386,27 +443,27 @@ struct itm_instr *itm_store(struct itm_block * b, struct itm_expr * l, struct it
 	return res;
 }
 
-struct itm_instr *itm_jmp(struct itm_block * b, struct itm_block * to)
+struct itm_instr *itm_jmp(struct itm_block * b, struct itm_label * to)
 {
 	struct itm_instr * res;
 	res = impl_op(b, &cvoid, (void (*)(void))&itm_jmp, "jmp", 1);
 
-	res->blockoperands = new_list(NULL, 0);
-	list_push_back(res->blockoperands, to);
+	res->labeloperands = new_list(NULL, 0);
+	list_push_back(res->labeloperands, to);
 
 	return res;
 }
 
-struct itm_instr *itm_split(struct itm_block * b, struct itm_expr * c, struct itm_block * t, struct itm_block * e)
+struct itm_instr *itm_split(struct itm_block * b, struct itm_expr * c, struct itm_label * t, struct itm_label * e)
 {
 	struct itm_instr * res;
 	res = impl_op(b, &cvoid, (void (*)(void))&itm_split, "split", 1);
 
 	list_push_back(res->operands, c);
 
-	res->blockoperands = new_list(NULL, 0);
-	list_push_back(res->blockoperands, t);
-	list_push_back(res->blockoperands, e);
+	res->labeloperands = new_list(NULL, 0);
+	list_push_back(res->labeloperands, t);
+	list_push_back(res->labeloperands, e);
 
 	return res;
 }

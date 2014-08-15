@@ -38,6 +38,13 @@ struct itm_expr {
 #endif
 };
 
+struct itm_label {
+	struct itm_block * block;
+};
+
+struct itm_label * new_itm_label(void);
+void set_itm_label_block(struct itm_label * l, struct itm_block * b);
+
 struct itm_instr {
 	struct itm_expr base;
 	
@@ -47,7 +54,7 @@ struct itm_instr {
 
 	struct list * operands;
 	struct ctype * typeoperand;
-	struct list * blockoperands;
+	struct list * labeloperands;
 
 	struct itm_instr * next;
 	struct itm_instr * previous;
@@ -70,13 +77,14 @@ struct itm_block {
 #ifndef NDEBUG
 	int number;
 #endif
-	struct itm_block * previous;
+	struct list * previous;
 	struct list * next;
 	struct itm_instr * first;
 	struct itm_instr * last;
+	struct list * labels;
 };
 
-struct itm_block * new_itm_block(struct itm_block * previous);
+struct itm_block * new_itm_block(struct list * previous);
 void delete_itm_block(struct itm_block * block);
 #ifndef NDEBUG
 void itm_block_to_string(FILE * f, struct itm_block * block);
@@ -110,8 +118,8 @@ struct itm_instr *itm_alloca(struct itm_block * b, struct ctype * ty);
 struct itm_instr *itm_load(struct itm_block * b, struct itm_expr * l);
 struct itm_instr *itm_store(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
 
-struct itm_instr *itm_jmp(struct itm_block * b, struct itm_block * to);
-struct itm_instr *itm_split(struct itm_block * b, struct itm_expr * c, struct itm_block * t, struct itm_block * e);
+struct itm_instr *itm_jmp(struct itm_block * b, struct itm_label * to);
+struct itm_instr *itm_split(struct itm_block * b, struct itm_expr * c, struct itm_label * t, struct itm_label * e);
 struct itm_instr *itm_ret(struct itm_block * b, struct itm_expr * l);
 struct itm_instr *itm_leave(struct itm_block * b);
 
