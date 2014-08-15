@@ -105,6 +105,13 @@ struct itm_instr *itm_or(struct itm_block * b, struct itm_expr * l, struct itm_e
 struct itm_instr *itm_and(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
 struct itm_instr *itm_xor(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
 
+struct itm_instr *itm_cmpeq(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_cmpneq(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_cmpgt(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_cmpgte(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_cmplt(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+struct itm_instr *itm_cmplte(struct itm_block * b, struct itm_expr * l, struct itm_expr * r);
+
 struct itm_instr *itm_bitcast(struct itm_block * b, struct itm_expr * l, struct ctype * to);
 struct itm_instr *itm_trunc(struct itm_block * b, struct itm_expr * l, struct ctype * to);
 struct itm_instr *itm_zext(struct itm_block * b, struct itm_expr * l, struct ctype * to);

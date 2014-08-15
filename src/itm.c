@@ -349,6 +349,49 @@ struct itm_instr *itm_xor(struct itm_block * b, struct itm_expr * l, struct itm_
 }
 
 
+struct itm_instr *itm_cmpeq(struct itm_block * b, struct itm_expr * l, struct itm_expr * r)
+{
+	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmpeq, "cmp eq");
+	i->base.type = &cbool;
+	return i;
+}
+
+struct itm_instr *itm_cmpneq(struct itm_block * b, struct itm_expr * l, struct itm_expr * r)
+{
+	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmpneq, "cmp neq");
+	i->base.type = &cbool;
+	return i;
+}
+
+struct itm_instr *itm_cmpgt(struct itm_block * b, struct itm_expr * l, struct itm_expr * r)
+{
+	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmpgt, "cmp gt");
+	i->base.type = &cbool;
+	return i;
+}
+
+struct itm_instr *itm_cmpgte(struct itm_block * b, struct itm_expr * l, struct itm_expr * r)
+{
+	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmpgte, "cmp gte");
+	i->base.type = &cbool;
+	return i;
+}
+
+struct itm_instr *itm_cmplt(struct itm_block * b, struct itm_expr * l, struct itm_expr * r)
+{
+	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmplt, "cmp lt");
+	i->base.type = &cbool;
+	return i;
+}
+
+struct itm_instr *itm_cmplte(struct itm_block * b, struct itm_expr * l, struct itm_expr * r)
+{
+	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmplte, "cmp lte");
+	i->base.type = &cbool;
+	return i;
+}
+
+
 struct itm_instr *itm_bitcast(struct itm_block * b, struct itm_expr * l, struct ctype * to)
 {
 	return impl_cast(b, l, to, (void (*)(void))&itm_bitcast, "bitcast");

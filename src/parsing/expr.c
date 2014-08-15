@@ -64,6 +64,8 @@ static struct itm_expr * parsefloatlit(FILE * f, enum exprflags flags,
 
 static struct itm_expr *pack(struct itm_block * b, struct itm_expr * e, enum exprflags flags)
 {
+	assert(e != NULL);
+
 	if ((flags & EF_EXPECT_RVALUE) && e->islvalue)
 		return (struct itm_expr *)itm_load(b, e);
 	if ((flags & EF_EXPECT_LVALUE) && !e->islvalue)
@@ -226,6 +228,18 @@ static struct itm_expr * performaop(struct operator * op, enum exprflags flags,
 		if (!hastc(acc->type, TC_INTEGRAL))
 			goto invalid;
 		ifunc = &itm_xor;
+	} else if (op == &binop_eq) {
+		ifunc = &itm_cmpeq;
+	} else if (op == &binop_neq) {
+		ifunc = &itm_cmpneq;
+	} else if (op == &binop_gt) {
+		ifunc = &itm_cmpgt;
+	} else if (op == &binop_gte) {
+		ifunc = &itm_cmpgte;
+	} else if (op == &binop_lt) {
+		ifunc = &itm_cmplt;
+	} else if (op == &binop_lte) {
+		ifunc = &itm_cmplte;
 	} else
 		return NULL; /* this shouldn't happen. ever. */
 	
@@ -392,6 +406,10 @@ struct itm_expr * parseexpr(FILE * f, enum exprflags flags,
 {
 	struct list * operators = new_list(NULL, 0);
 	struct itm_expr * e;
+
+	assert(block != NULL);
+	assert(*block != NULL);
+
 	e = parseexpro(f, flags, block, initty, operators, NULL);
 	delete_list(operators, NULL);
 	return e;
