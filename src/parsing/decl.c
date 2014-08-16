@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include <acc/parsing/decl.h>
 #include <acc/parsing/tools.h>
@@ -66,9 +67,9 @@ static struct ctype * getprimitive(enum primmod mods);
 static struct ctype * parsestructure(FILE * f);
 static struct ctype * parsetypedef(FILE * f);
 
-int parsedecl(FILE * f, enum declflags flags, struct list * syms)
+int parsedecl(FILE * f, enum declflags flags, struct list * syms, struct itm_block * b)
 {
-	enum storageclass sc;
+	enum storageclass sc = SC_DEFAULT;
 	struct ctype * basety = parsebasety(f, flags, &sc);
 	if (!basety)
 		return 0;
@@ -79,7 +80,14 @@ int parsedecl(FILE * f, enum declflags flags, struct list * syms)
 		struct symbol * sym;
 
 		sym = parsedeclarator(f, flags, basety, sc);
-		list_push_back(syms, sym);
+		if (syms)
+			list_push_back(syms, sym);
+		if (flags & DF_ALLOCA) {
+			assert(b != NULL);
+			assert(sym != NULL);
+			sym->value = (struct itm_expr *)itm_alloca(b, sym->type);
+		}
+		
 		if ((flags & DF_INIT) && chkt(f, "=") &&
 		    sc != SC_EXTERN && sc != SC_TYPEDEF) {
 			/* TODO: parse initial expression */
@@ -92,7 +100,7 @@ int parsedecl(FILE * f, enum declflags flags, struct list * syms)
 			break;
 		if (((flags & DF_FINISH_PARENT) && (closep = chktp(f, ")"))) ||
 		    ((flags & DF_FINISH_BRACE) && sym->type->type == FUNCTION &&
-		     list_length(syms) == 1 && (closep = chktp(f, "{")))) {
+		     syms && list_length(syms) == 1 && (closep = chktp(f, "{")))) {
 			ungettok(closep, f);
 			freetp(closep);
 			break;
@@ -291,7 +299,6 @@ static struct symbol * parseddeclarator(FILE * f, enum declflags flags,
 	struct symbol * res;
 	struct token * tok;
 	struct token t;
-	char * ident;
 	if (tok = chkttp(f, T_IDENTIFIER)) {
 		res = new_symbol(parseddend(f, ty), tok->lexeme, sc,
 			flags & DF_REGISTER_SYMBOL);
@@ -341,7 +348,7 @@ static struct ctype * parseparamlist(FILE * f, struct ctype * ty)
 		}
 	}
 
-	while (!chkt(f, ")") && parsedecl(f, DF_PARAM, paramlist))
+	while (!chkt(f, ")") && parsedecl(f, DF_PARAM, paramlist, NULL))
 		;
 
 ret:
@@ -443,7 +450,7 @@ static struct ctype * parsestructure(FILE * f)
 		struct list * syms = new_list(NULL, 0);
 		struct symbol * sym;
 		void * it;
-		parsedecl(f, DF_FIELD, syms);
+		parsedecl(f, DF_FIELD, syms, NULL);
 
 		it = list_iterator(syms);
 		while (iterator_next(&it, (void **)&sym))

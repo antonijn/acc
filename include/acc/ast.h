@@ -140,6 +140,7 @@ struct symbol {
 	int implemented;
 	enum storageclass storage;
 	struct itm_block * block;
+	struct itm_expr * value;
 };
 
 struct symbol * new_symbol(struct ctype * type, char * id,

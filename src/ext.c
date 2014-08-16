@@ -61,6 +61,7 @@ enum exno getex(const char * ext)
 	}
 	report(E_WARNING | E_HIDE_TOKEN | E_HIDE_LOCATION,
 		NULL, "extension not found: \"%s\"", ext);
+	return -1;
 }
 
 void enableext(const char * ext)

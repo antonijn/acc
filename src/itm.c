@@ -154,6 +154,7 @@ struct itm_block * new_itm_block(struct itm_block * before, struct list * previo
 	struct itm_block * res = malloc(sizeof(struct itm_block));
 	res->previous = previous;
 	res->lexnext = NULL;
+	res->lexprev = before;
 	if (before) {
 #ifndef NDEBUG
 		res->number = itm_instr_number(before->last) + 1;
@@ -215,8 +216,14 @@ static void free_dummy(struct itm_expr * e)
 }
 
 /* instruction initializers and instructions */
+enum opflags {
+	OF_NONE = 0x0,
+	OF_TERMINAL = 0x1,
+	OF_START = 0x2 /* only really used for alloca */
+};
+
 static struct itm_instr * impl_op(struct itm_block * b, struct ctype * type, void (*id)(void),
-	const char * operation, int isterminal)
+	const char * operation, enum opflags opflags)
 {
 	struct itm_instr * res = malloc(sizeof(struct itm_instr));
 
@@ -232,18 +239,45 @@ static struct itm_instr * impl_op(struct itm_block * b, struct ctype * type, voi
 
 	res->id = id;
 	res->operation = operation;
-	res->isterminal = isterminal;
+	res->isterminal = opflags & OF_TERMINAL;
 
 	res->operands = new_list(NULL, 0);
 	res->typeoperand = NULL;
 	res->labeloperands = NULL;
 	res->next = NULL;
-	res->previous = b->last;
-	if (b->last)
-		b->last->next = res;
-	if (!b->first)
-		b->first = res;
-	b->last = res;
+	if (opflags & OF_START) {
+		struct itm_instr * before = NULL;
+		struct itm_instr * after;
+		while (b->lexprev)
+			b = b->lexprev;
+		
+		/* find first non-id instruction */
+		after = b->first;
+		while (after && after->id == id) {
+			before = after;
+			after = after->next;
+		}
+		
+		if (after)
+			after->previous = res;
+		else
+			b->last = res;
+		
+		if (before)
+			before->next = res;
+		else
+			b->first = res;
+		
+		res->previous = before;
+		res->next = after;
+	} else {
+		res->previous = b->last;
+		if (b->last)
+			b->last->next = res;
+		if (!b->first)
+			b->first = res;
+		b->last = res;
+	}
 	res->block = b;
 	
 	return res;
@@ -252,7 +286,7 @@ static struct itm_instr * impl_op(struct itm_block * b, struct ctype * type, voi
 static struct itm_instr * impl_aop(struct itm_block * b, struct itm_expr * l, struct itm_expr * r,
 	void (*id)(void), const char * operation)
 {
-	struct itm_instr * res = impl_op(b, l->type, id, operation, 0);
+	struct itm_instr * res = impl_op(b, l->type, id, operation, OF_NONE);
 	
 	list_push_back(res->operands, l);
 	list_push_back(res->operands, r);
@@ -263,7 +297,7 @@ static struct itm_instr * impl_aop(struct itm_block * b, struct itm_expr * l, st
 static struct itm_instr * impl_cast(struct itm_block * b, struct itm_expr * l, struct ctype * type,
 	void (*id)(void), const char * operation)
 {
-	struct itm_instr * res = impl_op(b, type, id, operation, 0);
+	struct itm_instr * res = impl_op(b, type, id, operation, OF_NONE);
 	list_push_back(res->operands, l);
 	res->typeoperand = type;
 	return res;
@@ -440,7 +474,7 @@ struct itm_instr *itm_deepptr(struct itm_block * b, struct itm_expr * l, struct 
 		break;
 	}
 	deeptype = new_pointer(deeptype);
-	res = impl_op(b, deeptype, (void (*)(void))&itm_deepptr, "deepptr", 0);
+	res = impl_op(b, deeptype, (void (*)(void))&itm_deepptr, "deepptr", OF_NONE);
 	list_push_back(res->operands, l);
 	list_push_back(res->operands, r);
 	return res;
@@ -449,7 +483,7 @@ struct itm_instr *itm_deepptr(struct itm_block * b, struct itm_expr * l, struct 
 struct itm_instr *itm_alloca(struct itm_block * b, struct ctype * ty)
 {
 	struct itm_instr * res;
-	res = impl_op(b, new_pointer(ty), (void (*)(void))&itm_alloca, "alloca", 0);
+	res = impl_op(b, new_pointer(ty), (void (*)(void))&itm_alloca, "alloca", OF_START);
 	res->typeoperand = ty;
 	return res;
 }
@@ -459,7 +493,7 @@ struct itm_instr *itm_load(struct itm_block * b, struct itm_expr * l)
 	struct itm_instr * res;
 	assert(l->type->type == POINTER);
 	res = impl_op(b, ((struct cpointer *)l->type)->pointsto,
-		(void (*)(void))&itm_load, "load", 0);
+		(void (*)(void))&itm_load, "load", OF_NONE);
 
 	list_push_back(res->operands, l);
 
@@ -469,7 +503,7 @@ struct itm_instr *itm_load(struct itm_block * b, struct itm_expr * l)
 struct itm_instr *itm_store(struct itm_block * b, struct itm_expr * l, struct itm_expr * r)
 {
 	struct itm_instr * res;
-	res = impl_op(b, &cvoid, (void (*)(void))&itm_store, "store", 0);
+	res = impl_op(b, &cvoid, (void (*)(void))&itm_store, "store", OF_NONE);
 
 	list_push_back(res->operands, l);
 	list_push_back(res->operands, r);
@@ -480,7 +514,7 @@ struct itm_instr *itm_store(struct itm_block * b, struct itm_expr * l, struct it
 struct itm_instr *itm_jmp(struct itm_block * b, struct itm_label * to)
 {
 	struct itm_instr * res;
-	res = impl_op(b, &cvoid, (void (*)(void))&itm_jmp, "jmp", 1);
+	res = impl_op(b, &cvoid, (void (*)(void))&itm_jmp, "jmp", OF_TERMINAL);
 
 	res->labeloperands = new_list(NULL, 0);
 	list_push_back(res->labeloperands, to);
@@ -491,7 +525,7 @@ struct itm_instr *itm_jmp(struct itm_block * b, struct itm_label * to)
 struct itm_instr *itm_split(struct itm_block * b, struct itm_expr * c, struct itm_label * t, struct itm_label * e)
 {
 	struct itm_instr * res;
-	res = impl_op(b, &cvoid, (void (*)(void))&itm_split, "split", 1);
+	res = impl_op(b, &cvoid, (void (*)(void))&itm_split, "split", OF_TERMINAL);
 
 	list_push_back(res->operands, c);
 
@@ -505,7 +539,7 @@ struct itm_instr *itm_split(struct itm_block * b, struct itm_expr * c, struct it
 struct itm_instr *itm_ret(struct itm_block * b, struct itm_expr * l)
 {
 	struct itm_instr * res;
-	res = impl_op(b, &cvoid, (void (*)(void))&itm_ret, "ret", 1);
+	res = impl_op(b, &cvoid, (void (*)(void))&itm_ret, "ret", OF_TERMINAL);
 	list_push_back(res->operands, l);
 	return res;
 }
@@ -513,6 +547,6 @@ struct itm_instr *itm_ret(struct itm_block * b, struct itm_expr * l)
 struct itm_instr *itm_leave(struct itm_block * b)
 {
 	struct itm_instr * res;
-	res = impl_op(b, &cvoid, (void (*)(void))&itm_ret, "leave", 1);
+	res = impl_op(b, &cvoid, (void (*)(void))&itm_ret, "leave", OF_TERMINAL);
 	return res;
 }

@@ -84,7 +84,7 @@ void parsefile(FILE * f, struct list * syms)
 	struct list * declsyms;
 
 	while (!chktt(f, T_EOF) &&
-	      parsedecl(f, DF_GLOBAL, (declsyms = new_list(NULL, 0)))) {
+	      parsedecl(f, DF_GLOBAL, (declsyms = new_list(NULL, 0)), NULL)) {
 		processdecls(f, declsyms, syms);
 		delete_list(declsyms, NULL);
 	}

@@ -78,6 +78,7 @@ struct itm_block {
 	int number;
 #endif
 	struct itm_block * lexnext;
+	struct itm_block * lexprev;
 	struct list * previous;
 	struct list * next;
 	struct itm_instr * first;

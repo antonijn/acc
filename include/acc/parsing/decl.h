@@ -41,12 +41,13 @@ enum declflags {
 	DF_FINISH_PARENT = 0x800, /* doesn't remove ) from file stream */
 	DF_FINISH_BRACE = 0x1000, /* doesn't remove { from file stream */
 	DF_ARRAY_POINTER = 0x2000,
+	DF_ALLOCA = 0x4000,
 
 	DF_GLOBAL = DF_INIT | DF_FUNCTION | DF_MULTIPLE |
 		DF_EXTERN | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON |
 		DF_FINISH_BRACE,
 	DF_LOCAL = DF_INIT | DF_MULTIPLE | DF_REGISTER |
-		DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
+		DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON | DF_ALLOCA,
 	DF_FIELD = DF_BITFIELD | DF_MULTIPLE | DF_FINISH_SEMICOLON,
 	DF_TYPEDEF = DF_FUNCTION | DF_REGISTER_SYMBOL | DF_FINISH_SEMICOLON,
 	DF_CAST = DF_NO_ID | DF_FINISH_PARENT,
@@ -54,7 +55,7 @@ enum declflags {
 		DF_ARRAY_POINTER
 };
 
-int parsedecl(FILE * f, enum declflags flags, struct list * syms);
+int parsedecl(FILE * f, enum declflags flags, struct list * syms, struct itm_block * b);
 
 #endif
  

@@ -23,6 +23,7 @@
 #include <acc/parsing/stat.h>
 #include <acc/parsing/expr.h>
 #include <acc/parsing/tools.h>
+#include <acc/parsing/decl.h>
 #include <acc/list.h>
 #include <acc/token.h>
 #include <acc/ext.h>
@@ -99,6 +100,8 @@ static int parseif(FILE * f, enum statflags flags, struct itm_block ** block)
 		*block = new_itm_block(tblock, prev);
 		set_itm_label_block(elabel, *block);
 	}
+	
+	return 1;
 }
 
 static int parsedo(FILE * f, enum statflags flags, struct itm_block ** block)
@@ -199,6 +202,10 @@ int parseblock(FILE * f, enum statflags flags, struct itm_block ** block)
 	if (!chkt(f, "{"))
 		return 0;
 
+	while (parsedecl(f, DF_LOCAL, NULL, *block))
+		if (chkt(f, "}"))
+			return 1;
+	
 	while (!chkt(f, "}"))
 		parsestat(f, flags, block);
 
