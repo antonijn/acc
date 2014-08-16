@@ -263,7 +263,7 @@ int parseblock(FILE * f, enum statflags flags, struct itm_block ** block)
 	if (!chkt(f, "{"))
 		return 0;
 
-	while (parsedecl(f, DF_LOCAL, NULL, *block))
+	while (parsedecl(f, DF_LOCAL, NULL, block))
 		if (chkt(f, "}"))
 			return 1;
 	

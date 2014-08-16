@@ -22,6 +22,7 @@
 #include <assert.h>
 
 #include <acc/parsing/decl.h>
+#include <acc/parsing/expr.h>
 #include <acc/parsing/tools.h>
 #include <acc/error.h>
 #include <acc/ext.h>
@@ -67,7 +68,7 @@ static struct ctype * getprimitive(enum primmod mods);
 static struct ctype * parsestructure(FILE * f);
 static struct ctype * parsetypedef(FILE * f);
 
-int parsedecl(FILE * f, enum declflags flags, struct list * syms, struct itm_block * b)
+int parsedecl(FILE * f, enum declflags flags, struct list * syms, struct itm_block ** b)
 {
 	enum storageclass sc = SC_DEFAULT;
 	struct ctype * basety = parsebasety(f, flags, &sc);
@@ -86,12 +87,14 @@ int parsedecl(FILE * f, enum declflags flags, struct list * syms, struct itm_blo
 		if (flags & DF_ALLOCA) {
 			assert(b != NULL);
 			assert(sym != NULL);
-			sym->value = (struct itm_expr *)itm_alloca(b, sym->type);
+			sym->value = (struct itm_expr *)itm_alloca(*b, sym->type);
 		}
 		
 		if ((flags & DF_INIT) && chkt(f, "=") &&
 		    sc != SC_EXTERN && sc != SC_TYPEDEF) {
-			/* TODO: parse initial expression */
+			/* TODO: this only works for locals */
+			struct expr e = parseexpr(f, EF_INIT | EF_FINISH_SEMICOLON, b, sym->type);
+			itm_store(*b, e.itm, sym->value);
 		}
 		if ((flags & DF_BITFIELD) && chkt(f, ":")) {
 			/* TODO: parse bitfield */
