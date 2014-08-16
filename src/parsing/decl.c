@@ -71,6 +71,7 @@ int parsedecl(FILE * f, enum declflags flags, struct list * syms, struct itm_blo
 {
 	enum storageclass sc = SC_DEFAULT;
 	struct ctype * basety = parsebasety(f, flags, &sc);
+	int numsymsb4 = syms ? list_length(syms) : -1;
 	if (!basety)
 		return 0;
 
@@ -100,7 +101,8 @@ int parsedecl(FILE * f, enum declflags flags, struct list * syms, struct itm_blo
 			break;
 		if (((flags & DF_FINISH_PARENT) && (closep = chktp(f, ")"))) ||
 		    ((flags & DF_FINISH_BRACE) && sym->type->type == FUNCTION &&
-		     syms && list_length(syms) == 1 && (closep = chktp(f, "{")))) {
+		     syms && (list_length(syms) - numsymsb4) == 1 &&
+		    (closep = chktp(f, "{")))) {
 			ungettok(closep, f);
 			freetp(closep);
 			break;
