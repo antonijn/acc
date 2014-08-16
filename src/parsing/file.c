@@ -73,6 +73,10 @@ static void processdecls(FILE * f, struct list * decls, struct list * syms)
 		addparams(list_head(decls));
 		assert(parseblock(f, SF_NORMAL, &block));
 		leave_scope();
+
+		if (!block->last || !block->last->isterminal)
+			itm_leave(block);
+
 #ifndef NDEBUG
 		itm_block_to_string(stdout, bb);
 #endif
