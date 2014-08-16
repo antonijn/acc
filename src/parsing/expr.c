@@ -28,56 +28,60 @@
 #include <acc/ext.h>
 #include <acc/error.h>
 
-static struct itm_expr *pack(struct itm_block * b, struct itm_expr * e,
+static struct expr pack(struct itm_block * b, struct expr e,
 	enum exprflags flags);
 
-static struct itm_expr * parseexpro(FILE * f, enum exprflags flags,
+static struct expr parseexpro(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc);
-static struct itm_expr * parsefcall(FILE * f, enum exprflags flags,
+	struct expr acc);
+static struct expr parsefcall(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc);
-static struct itm_expr * parseid(FILE * f, enum exprflags flags,
+	struct expr acc);
+static struct expr parseid(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc);
-static struct itm_expr * parsebop(FILE * f, enum exprflags flags,
+	struct expr acc);
+static struct expr parsebop(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc);
-static struct itm_expr * performaop(struct operator * op, enum exprflags flags,
+	struct expr acc);
+static struct expr performaop(struct operator * op, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc, struct itm_expr * r);
-static struct itm_expr * parseuop(FILE * f, enum exprflags flags,
+	struct expr acc, struct expr r);
+static struct expr parseuop(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc);
-static struct itm_expr * parseparents(FILE * f, enum exprflags flags,
+	struct expr acc);
+static struct expr parseparents(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc);
-static struct itm_expr * parselit(FILE * f, enum exprflags flags,
+	struct expr acc);
+static struct expr parselit(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc);
-static struct itm_expr * parseintlit(FILE * f, enum exprflags flags,
+	struct expr acc);
+static struct expr parseintlit(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc);
-static struct itm_expr * parsefloatlit(FILE * f, enum exprflags flags,
+	struct expr acc);
+static struct expr parsefloatlit(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc);
+	struct expr acc);
 
-static struct itm_expr *pack(struct itm_block * b, struct itm_expr * e, enum exprflags flags)
+static struct expr pack(struct itm_block * b, struct expr e, enum exprflags flags)
 {
-	assert(e != NULL);
+	assert(e.itm != NULL);
 
-	if ((flags & EF_EXPECT_RVALUE) && e->islvalue)
-		return (struct itm_expr *)itm_load(b, e);
-	if ((flags & EF_EXPECT_LVALUE) && !e->islvalue)
+	if ((flags & EF_EXPECT_RVALUE) && e.islvalue) {
+		struct expr res;
+		res.islvalue = 0;
+		res.itm = (struct itm_expr *)itm_load(b, e.itm);
+		return res;
+	}
+	if ((flags & EF_EXPECT_LVALUE) && !e.islvalue)
 		report(E_ERROR | E_HIDE_TOKEN, NULL, "expected lvalue");
 	return e;
 }
 
-static struct itm_expr * parseexpro(FILE * f, enum exprflags flags,
+static struct expr parseexpro(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc)
+	struct expr acc)
 {
-	struct itm_expr * res;
+	struct expr res = { 0 };
 	struct token * tok;
 	
 	if (((flags & EF_FINISH_BRACKET) && (tok = chktp(f, ")"))) ||
@@ -89,51 +93,66 @@ static struct itm_expr * parseexpro(FILE * f, enum exprflags flags,
 		return pack(*block, acc, flags);
 	}
 	
-	if ((res = parselit(f, flags, block, initty, operators, acc)) ||
-	    (res = parseid(f, flags, block, initty, operators, acc)) ||
-	    (res = parsebop(f, flags, block, initty, operators, acc)) ||
-	    (res = parseuop(f, flags, block, initty, operators, acc)) ||
-	    (res = parseparents(f, flags, block, initty, operators, acc)) ||
-	    (res = parsefcall(f, flags, block, initty, operators, acc)))
+	if ((res = parselit(f, flags, block, initty, operators, acc), res.itm) ||
+	    (res = parseid(f, flags, block, initty, operators, acc), res.itm) ||
+	    (res = parsebop(f, flags, block, initty, operators, acc), res.itm) ||
+	    (res = parseuop(f, flags, block, initty, operators, acc), res.itm) ||
+	    (res = parseparents(f, flags, block, initty, operators, acc), res.itm) ||
+	    (res = parsefcall(f, flags, block, initty, operators, acc), res.itm))
 		return pack(*block, res, flags);
-	return NULL;
+	return res;
 }
 
-static struct itm_expr * parsefcall(FILE * f, enum exprflags flags,
+static struct expr parsefcall(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc)
+	struct expr acc)
 {
 	/* TODO: implement */
-	return NULL;
+	struct expr res = { 0 };
+	return res;
 }
 
-static struct itm_expr * parseid(FILE * f, enum exprflags flags,
+static struct expr parseid(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc)
+	struct expr acc)
 {
-	/* TODO: implement */
-	return NULL;
+	struct token * id;
+	struct symbol * sym;
+	struct expr nil = { 0 };
+	if (acc.itm)
+		return nil;
+	if (!(id = chkttp(f, T_IDENTIFIER)))
+		return nil;
+
+	sym = get_symbol(id->lexeme);
+	freetp(id);
+
+	acc.itm = sym->value;
+	acc.islvalue = 1;
+
+	return parseexpro(f, flags, block, initty, operators, acc);
 }
 
-static struct itm_expr * parsebop(FILE * f, enum exprflags flags,
+static struct expr parsebop(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc)
+	struct expr acc)
 {
 	struct operator * op;
 	struct token * tok;
-	struct itm_expr * e, * r;
+	struct expr e, r;
+	struct expr nil = { 0 };
 	
-	if (!acc)
-		return NULL;
+	if (!acc.itm)
+		return nil;
 	
 	if (!(tok = chkttp(f, T_OPERATOR)))
-		return NULL;
+		return nil;
 	
 	op = getbop(tok->lexeme);
 	if (!op) {
 		ungettok(tok, f);
 		freetp(tok);
-		return NULL;
+		return nil;
 	}
 	
 	if (op->rtol) {
@@ -148,10 +167,11 @@ static struct itm_expr * parsebop(FILE * f, enum exprflags flags,
 	
 	list_push_back(operators, op);
 	r = parseexpro(f, (flags & EF_CLEAR_MASK) | EF_EXPECT_RVALUE,
-		block, initty, operators, NULL);
+		block, initty, operators, nil);
 	list_pop_back(operators);
 	
-	if (e = performaop(op, flags, block, initty, operators, acc, r))
+	e = performaop(op, flags, block, initty, operators, acc, r);
+	if (e.itm)
 		goto ret;
 	
 ret:
@@ -164,68 +184,72 @@ opbreak:
 	return acc;
 }
 
-static struct itm_expr * performaop(struct operator * op, enum exprflags flags,
+static struct expr performaop(struct operator * op, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc, struct itm_expr * r)
+	struct expr acc, struct expr r)
 {
 	struct itm_instr * (*ifunc)(struct itm_block * b,
 		struct itm_expr * l, struct itm_expr * r);
-	struct ctype * lt = acc->type;
-	struct ctype * rt = r->type;
+	struct ctype * lt;
+	struct ctype * rt;
 	struct ctype * et;
+	struct expr nil = { 0 };
 
 	acc = pack(*block, acc, EF_EXPECT_RVALUE);
-	
+
+	lt = acc.itm->type;
+	rt = r.itm->type;
+
 	if (op == &binop_plus) {
-		if (hastc(acc->type, TC_ARITHMETIC))
+		if (hastc(lt, TC_ARITHMETIC))
 			ifunc = &itm_add;
-		else if (hastc(acc->type, TC_POINTER))
-			/* TODO */;
+		else if (hastc(lt, TC_POINTER))
+			/* TODO */ assert(0);
 		else
 			goto invalid;
 	} else if (op == &binop_min) {
-		if (hastc(acc->type, TC_ARITHMETIC))
+		if (hastc(lt, TC_ARITHMETIC))
 			ifunc = &itm_sub;
-		else if (hastc(acc->type, TC_POINTER))
-			/* TODO */;
+		else if (hastc(lt, TC_POINTER))
+			/* TODO */ assert(0);
 		else
 			goto invalid;
 	} else if (op == &binop_div) {
-		if (!hastc(acc->type, TC_ARITHMETIC))
+		if (!hastc(lt, TC_ARITHMETIC))
 			goto invalid;
 		ifunc = &itm_div;
 	} else if (op == &binop_mul) {
-		if (!hastc(acc->type, TC_ARITHMETIC))
+		if (!hastc(lt, TC_ARITHMETIC))
 			goto invalid;
 		ifunc = &itm_mul;
 	} else if (op == &binop_mod) {
-		if (!hastc(acc->type, TC_INTEGRAL))
+		if (!hastc(lt, TC_INTEGRAL))
 			goto invalid;
 		ifunc = &itm_rem;
 	} else if (op == &binop_shl) {
-		if (!hastc(acc->type, TC_INTEGRAL))
+		if (!hastc(lt, TC_INTEGRAL))
 			goto invalid;
-		if (hastc(acc->type, TC_SIGNED))
+		if (hastc(lt, TC_SIGNED))
 			ifunc = &itm_sal;
 		else
 			ifunc = &itm_shl;
 	} else if (op == &binop_shr) {
-		if (!hastc(acc->type, TC_INTEGRAL))
+		if (!hastc(lt, TC_INTEGRAL))
 			goto invalid;
-		if (hastc(acc->type, TC_SIGNED))
+		if (hastc(lt, TC_SIGNED))
 			ifunc = &itm_sar;
 		else
 			ifunc = &itm_shr;
 	} else if (op == &binop_or) {
-		if (!hastc(acc->type, TC_INTEGRAL))
+		if (!hastc(lt, TC_INTEGRAL))
 			goto invalid;
 		ifunc = &itm_or;
 	} else if (op == &binop_and) {
-		if (!hastc(acc->type, TC_INTEGRAL))
+		if (!hastc(lt, TC_INTEGRAL))
 			goto invalid;
 		ifunc = &itm_and;
 	} else if (op == &binop_xor) {
-		if (!hastc(acc->type, TC_INTEGRAL))
+		if (!hastc(lt, TC_INTEGRAL))
 			goto invalid;
 		ifunc = &itm_xor;
 	} else if (op == &binop_eq)
@@ -241,7 +265,7 @@ static struct itm_expr * performaop(struct operator * op, enum exprflags flags,
 	else if (op == &binop_lte)
 		ifunc = &itm_cmplte;
 	else
-		return NULL; /* this shouldn't happen. ever. */
+		return nil; /* this shouldn't happen. ever. */
 	
 	if (lt == &cdouble || rt == &cdouble)
 		et = &cdouble;
@@ -259,38 +283,42 @@ static struct itm_expr * performaop(struct operator * op, enum exprflags flags,
 	acc = cast(acc, et, *block);
 	r = cast(r, et, *block);
 	
-	return (struct itm_expr *)ifunc(*block, acc, r);
+	acc.itm = (struct itm_expr *)ifunc(*block, acc.itm, r.itm);
+	acc.islvalue = 0;
+	return acc;
 
 invalid:
 	report(E_ERROR | E_HIDE_TOKEN, NULL, "invalid type for left expression");
-	return NULL;
+	return nil;
 }
 
-static struct itm_expr * parseuop(FILE * f, enum exprflags flags,
+static struct expr parseuop(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc)
+	struct expr acc)
 {
 	/* TODO: implement */
-	return NULL;
+	struct expr nil = { 0 };
+	return nil;
 }
 
-static struct itm_expr * parseparents(FILE * f, enum exprflags flags,
+static struct expr parseparents(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc)
+	struct expr acc)
 {
 	struct token close;
 	struct list * noperators;
-	if (acc)
-		return NULL;
+	struct expr nil = { 0 };
+	if (acc.itm)
+		return nil;
 	
 	if (!chkt(f, "("))
-		return NULL;
+		return nil;
 	
 	/* TODO: check for type cast */
 	
 	noperators = new_list(NULL, 0);
 	acc = parseexpro(f, EF_NORMAL | EF_FINISH_BRACKET,
-		block, initty, noperators, NULL);
+		block, initty, noperators, nil);
 	delete_list(noperators, NULL);
 	
 	/* remove closing ) from the stream */
@@ -300,27 +328,30 @@ static struct itm_expr * parseparents(FILE * f, enum exprflags flags,
 	return parseexpro(f, flags, block, initty, operators, acc);
 }
 
-static struct itm_expr * parselit(FILE * f, enum exprflags flags,
+static struct expr parselit(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc)
+	struct expr acc)
 {
-	struct itm_expr * res;
-	if (res = parseintlit(f, flags, block, initty, operators, acc))
+	struct expr res = { 0 };
+	res = parseintlit(f, flags, block, initty, operators, acc);
+	if (res.itm)
 		return res;
-	if (res = parsefloatlit(f, flags, block, initty, operators, acc))
+	res = parsefloatlit(f, flags, block, initty, operators, acc);
+	if (res.itm)
 		return res;
-	return NULL;
+	return res;
 }
 
-static struct itm_expr * parseintlit(FILE * f, enum exprflags flags,
+static struct expr parseintlit(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc)
+	struct expr acc)
 {
 	unsigned long ul;	
 	struct token tok = gettok(f);
 	struct itm_literal * lit;
 	struct ctype * itypes[5] = { 0 };
 	struct ctype * type;
+	struct expr nil = { 0 };
 	int i;
 	
 	switch (tok.type) {
@@ -347,7 +378,7 @@ static struct itm_expr * parseintlit(FILE * f, enum exprflags flags,
 	default:
 		ungettok(&tok, f);
 		freetok(&tok);
-		return NULL;
+		return nil;
 	}
 	
 	freetok(&tok);
@@ -372,16 +403,18 @@ static struct itm_expr * parseintlit(FILE * f, enum exprflags flags,
 	lit = new_itm_literal(type);
 	lit->value.i = ul;
 
-	return parseexpro(f, flags, block, initty, operators,
-		(struct itm_expr *)lit);
+	acc.itm = (struct itm_expr *)lit;
+	acc.islvalue = 0;
+	return parseexpro(f, flags, block, initty, operators, acc);
 }
 
-static struct itm_expr * parsefloatlit(FILE * f, enum exprflags flags,
+static struct expr parsefloatlit(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct itm_expr * acc)
+	struct expr acc)
 {
 	struct token * tok;
 	struct itm_literal * lit;
+	struct expr nil = { 0 };
 	if (tok = chkttp(f, T_FLOAT)) {
 		float f;
 		sscanf(tok->lexeme, "%ff", &f);
@@ -393,53 +426,55 @@ static struct itm_expr * parsefloatlit(FILE * f, enum exprflags flags,
 		lit = new_itm_literal(&cdouble);
 		lit->value.d = d;
 	} else
-		return NULL;
+		return nil;
 	
 	freetp(tok);
 	
-	return parseexpro(f, flags, block, initty, operators,
-		(struct itm_expr *)lit);
+	acc.itm = (struct itm_expr *)lit;
+	acc.islvalue = 0;
+	return parseexpro(f, flags, block, initty, operators, acc);
 }
 
-struct itm_expr * parseexpr(FILE * f, enum exprflags flags,
+struct expr parseexpr(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty)
 {
 	struct list * operators = new_list(NULL, 0);
-	struct itm_expr * e;
+	struct expr e = { 0 };
 
 	assert(block != NULL);
 	assert(*block != NULL);
 
-	e = parseexpro(f, flags, block, initty, operators, NULL);
+	e = parseexpro(f, flags, block, initty, operators, e);
 	delete_list(operators, NULL);
 	return e;
 }
 
-struct itm_expr * cast(struct itm_expr * e, struct ctype * ty,
+struct expr cast(struct expr e, struct ctype * ty,
 	struct itm_block * b)
 {
-	assert(e != NULL);
-	assert(ty != NULL);
-	assert(e->type != NULL);
+	struct expr res = e;
 
-	if (e->type == ty)
+	assert(e.itm != NULL);
+	assert(ty != NULL);
+	assert(e.itm->type != NULL);
+
+	if (e.itm->type == ty)
 		return e;
 
-	if (hastc(e->type, TC_FLOATING) && hastc(ty, TC_INTEGRAL))
-		return (struct itm_expr *)itm_ftoi(b, e, ty);
-
-	if (hastc(e->type, TC_INTEGRAL) && hastc(ty, TC_FLOATING))
-		return (struct itm_expr *)itm_itof(b, e, ty);
-
-	if (hastc(e->type, TC_POINTER) && hastc(ty, TC_INTEGRAL)) {
-		if (e->type->size > ty->size)
-			return (struct itm_expr *)itm_trunc(b, e, ty);
-		if (e->type->size < ty->size)
-			return (struct itm_expr *)itm_zext(b, e, ty);
-		return (struct itm_expr *)itm_bitcast(b, e, ty);
+	if (hastc(e.itm->type, TC_FLOATING) && hastc(ty, TC_INTEGRAL))
+		res.itm = (struct itm_expr *)itm_ftoi(b, e.itm, ty);
+	else if (hastc(e.itm->type, TC_INTEGRAL) && hastc(ty, TC_FLOATING))
+		res.itm = (struct itm_expr *)itm_itof(b, e.itm, ty);
+	else if (hastc(e.itm->type, TC_POINTER) && hastc(ty, TC_INTEGRAL)) {
+		if (e.itm->type->size > ty->size)
+			res.itm = (struct itm_expr *)itm_trunc(b, e.itm, ty);
+		else if (e.itm->type->size < ty->size)
+			res.itm = (struct itm_expr *)itm_zext(b, e.itm, ty);
+		else
+			res.itm = (struct itm_expr *)itm_bitcast(b, e.itm, ty);
 	}
 
 	/* TODO: other casts */
 
-	return e;
+	return res;
 }

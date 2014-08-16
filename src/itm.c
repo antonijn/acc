@@ -139,7 +139,6 @@ struct itm_literal *new_itm_literal(struct ctype * ty)
 {
 	struct itm_literal * lit = malloc(sizeof(struct itm_literal));
 	assert(ty != NULL);
-	lit->base.islvalue = 0;
 	lit->base.etype = ITME_LITERAL;
 	lit->base.type = ty;
 	lit->base.free = (void (*)(struct itm_expr *))&free;
@@ -229,7 +228,6 @@ static struct itm_instr * impl_op(struct itm_block * b, struct ctype * type, voi
 
 	assert(type != NULL);
 
-	res->base.islvalue = 0;
 	res->base.etype = ITME_INSTRUCTION;
 	res->base.type = type;
 	res->base.free = &free_dummy;

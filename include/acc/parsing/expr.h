@@ -23,6 +23,12 @@
 #include <stdio.h>
 
 #include <acc/itm.h>
+#include <acc/ast.h>
+
+struct expr {
+	struct itm_expr * itm;
+	int islvalue;
+};
 
 enum exprflags {
 	EF_NORMAL = 0x00,
@@ -36,9 +42,9 @@ enum exprflags {
 	EF_CLEAR_MASK = ~(EF_EXPECT_LVALUE | EF_EXPECT_RVALUE)
 };
 
-struct itm_expr * parseexpr(FILE * f, enum exprflags flags,
+struct expr parseexpr(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty);
-struct itm_expr * cast(struct itm_expr * e, struct ctype * ty,
+struct expr cast(struct expr e, struct ctype * ty,
 	struct itm_block * block);
 
 #endif
