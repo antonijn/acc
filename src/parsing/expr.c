@@ -43,9 +43,12 @@ static struct expr parseid(FILE * f, enum exprflags flags,
 static struct expr parsebop(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
 	struct expr acc);
-static struct expr performaop(struct operator * op, enum exprflags flags,
+static struct expr performaop(FILE * f, struct operator * op, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct expr acc, struct expr r);
+	struct expr acc);
+static struct expr performasnop(FILE * f, struct operator * op, enum exprflags flags,
+	struct itm_block ** block, struct ctype * initty, struct list * operators,
+	struct expr acc);
 static struct expr parseuop(FILE * f, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
 	struct expr acc);
@@ -166,15 +169,17 @@ static struct expr parsebop(FILE * f, enum exprflags flags,
 	}
 	
 	list_push_back(operators, op);
-	r = parseexpro(f, (flags & EF_CLEAR_MASK) | EF_EXPECT_RVALUE,
-		block, initty, operators, nil);
-	list_pop_back(operators);
 	
-	e = performaop(op, flags, block, initty, operators, acc, r);
+	e = performasnop(f, op, flags, block, initty, operators, acc);
+	if (e.itm)
+		goto ret;
+	e = performaop(f, op, flags, block, initty, operators, acc);
 	if (e.itm)
 		goto ret;
 	
 ret:
+	list_pop_back(operators);
+
 	freetp(tok);
 	return parseexpro(f, flags, block, initty, operators, e);
 	
@@ -184,9 +189,28 @@ opbreak:
 	return acc;
 }
 
-static struct expr performaop(struct operator * op, enum exprflags flags,
+static struct expr performasnop(FILE * f, struct operator * op, enum exprflags flags,
 	struct itm_block ** block, struct ctype * initty, struct list * operators,
-	struct expr acc, struct expr r)
+	struct expr acc)
+{
+	struct expr nil = { 0 };
+	struct expr r;
+	if (op != &binop_assign)
+		return nil;
+
+	acc = pack(*block, acc, EF_EXPECT_LVALUE);
+
+	r = parseexpro(f, (flags & EF_CLEAR_MASK) | EF_EXPECT_RVALUE,
+		block, initty, operators, nil);
+	r = cast(r, ((struct cpointer *)acc.itm->type)->pointsto, *block);
+
+	itm_store(*block, r.itm, acc.itm);
+	return r;
+}
+
+static struct expr performaop(FILE * f, struct operator * op, enum exprflags flags,
+	struct itm_block ** block, struct ctype * initty, struct list * operators,
+	struct expr acc)
 {
 	struct itm_instr * (*ifunc)(struct itm_block * b,
 		struct itm_expr * l, struct itm_expr * r);
@@ -194,8 +218,12 @@ static struct expr performaop(struct operator * op, enum exprflags flags,
 	struct ctype * rt;
 	struct ctype * et;
 	struct expr nil = { 0 };
+	struct expr r;
 
 	acc = pack(*block, acc, EF_EXPECT_RVALUE);
+
+	r = parseexpro(f, (flags & EF_CLEAR_MASK) | EF_EXPECT_RVALUE,
+		block, initty, operators, nil);
 
 	lt = acc.itm->type;
 	rt = r.itm->type;
@@ -461,7 +489,22 @@ struct expr cast(struct expr e, struct ctype * ty,
 	if (e.itm->type == ty)
 		return e;
 
-	if (hastc(e.itm->type, TC_FLOATING) && hastc(ty, TC_INTEGRAL))
+	if (ty == &cbool) {
+		struct itm_literal * lit;
+		if (hastc(e.itm->type, TC_INTEGRAL) || hastc(e.itm->type, TC_POINTER)) {
+			lit = new_itm_literal(e.itm->type);
+			lit->value.i = 0ul;
+		} else if (e.itm->type == &cfloat) {
+			lit = new_itm_literal(&cfloat);
+			lit->value.f = 0.0f;
+		} else if (e.itm->type == &cdouble) {
+			lit = new_itm_literal(&cdouble);
+			lit->value.d = 0.0;
+		} else
+			report(E_ERROR | E_HIDE_TOKEN, NULL, "cannot convert to boolean value");
+
+		res.itm = (struct itm_expr *)itm_cmpneq(b, e.itm, (struct itm_expr *)lit);
+	} else if (hastc(e.itm->type, TC_FLOATING) && hastc(ty, TC_INTEGRAL))
 		res.itm = (struct itm_expr *)itm_ftoi(b, e.itm, ty);
 	else if (hastc(e.itm->type, TC_INTEGRAL) && hastc(ty, TC_FLOATING))
 		res.itm = (struct itm_expr *)itm_itof(b, e.itm, ty);
@@ -472,6 +515,15 @@ struct expr cast(struct expr e, struct ctype * ty,
 			res.itm = (struct itm_expr *)itm_zext(b, e.itm, ty);
 		else
 			res.itm = (struct itm_expr *)itm_bitcast(b, e.itm, ty);
+	} else if (hastc(e.itm->type, TC_INTEGRAL) && hastc(ty, TC_INTEGRAL)) {
+		if (e.itm->type->size > ty->size)
+			res.itm = (struct itm_expr *)itm_trunc(b, e.itm, ty);
+		else if (e.itm->type->size < ty->size) {
+			if (hastc(e.itm->type, TC_UNSIGNED))
+				res.itm = (struct itm_expr *)itm_zext(b, e.itm, ty);
+			else
+				res.itm = (struct itm_expr *)itm_sext(b, e.itm, ty);
+		}
 	}
 
 	/* TODO: other casts */
