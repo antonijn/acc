@@ -139,10 +139,12 @@ struct symbol {
 	char * id;
 	int implemented;
 	enum storageclass storage;
+	struct itm_block * block;
 };
 
 struct symbol * new_symbol(struct ctype * type, char * id,
 	enum storageclass sc, int reg);
+void registersym(struct symbol * sym);
 
 struct enumerator {
 	struct ctype * type;

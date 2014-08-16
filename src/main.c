@@ -26,18 +26,13 @@
 #include <acc/options.h>
 #include <acc/token.h>
 #include <acc/error.h>
-#include <acc/parsing/expr.h>
-#include <acc/parsing/stat.h>
+#include <acc/parsing/file.h>
 
 static void compilefile(FILE * f)
 {
-	struct itm_block * b = new_itm_block(NULL, NULL);
-	struct itm_block * bb = b;
-	parsestat(f, SF_NORMAL, &b);
-#ifndef NDEBUG
-	itm_block_to_string(stdout, bb);
-#endif
-	delete_itm_block(bb);
+	struct list * syms = new_list(NULL, 0);
+	parsefile(f, syms);
+	delete_list(syms, NULL);
 }
 
 int main(int argc, char *argv[])

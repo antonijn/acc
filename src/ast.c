@@ -393,16 +393,22 @@ struct symbol * new_symbol(struct ctype * type, char * id,
 	enum storageclass sc, int reg)
 {
 	struct symbol * sym = malloc(sizeof(struct symbol));
+	sym->block = NULL;
 	sym->type = type;
 	sym->id = calloc(sizeof(char), strlen(id));
 	sprintf(sym->id, "%s", id);
 	sym->storage = sc;
 	if (reg) {
-		struct list * topscope = list_last(symscopes);
-		list_push_back(topscope, sym);
-		list_push_back(allsyms, sym);
+		registersym(sym);
 	}
+	list_push_back(allsyms, sym);
 	return sym;
+}
+
+void registersym(struct symbol * sym)
+{
+	struct list * syms = list_last(symscopes);
+	list_push_back(syms, sym);
 }
 
 struct ctype * get_typedef(char * id)

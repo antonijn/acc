@@ -26,25 +26,66 @@
  */
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 #include <acc/parsing/file.h>
 #include <acc/parsing/decl.h>
+#include <acc/parsing/stat.h>
+#include <acc/parsing/tools.h>
 #include <acc/ast.h>
 #include <acc/ext.h>
 #include <acc/error.h>
 #include <acc/token.h>
 
-void parsefile(FILE * f, struct list * syms)
+static void addparams(void * fsym)
+{
+	struct symbol * sym = fsym;
+	struct cfunction * fun = (struct cfunction *)sym->type;
+	void * it;
+
+	it = list_iterator(fun->parameters);
+	while (iterator_next(&it, (void **)&sym))
+		registersym(sym);
+}
+
+static void processdecls(FILE * f, struct list * decls, struct list * syms)
 {
 	void * it;
 	struct symbol * sym;
-	parsedecl(f, DF_GLOBAL, syms);
-	parsedecl(f, DF_GLOBAL, syms);
+	struct token * tok;
 
-	it = list_iterator(syms);
-	while (iterator_next(&it, (void **)&sym)) {
-		sym->type->to_string(stdout, sym->type);
-		printf(" %s\n", sym->id);
+	it = list_iterator(decls);
+	while (iterator_next(&it, (void **)&sym))
+		list_push_back(syms, sym);
+	
+	if (list_length(decls) == 1 &&
+	   ((struct symbol *)list_head(decls))->type->type == FUNCTION &&
+	   (tok = chktp(f, "{"))) {
+		struct itm_block * block = new_itm_block(NULL, NULL);
+		struct itm_block * bb = block;
+
+		ungettok(tok, f);
+		freetp(tok);
+
+		enter_scope();
+		addparams(list_head(decls));
+		assert(parseblock(f, SF_NORMAL, &block));
+		leave_scope();
+#ifndef NDEBUG
+		itm_block_to_string(stdout, bb);
+#endif
+	}
+}
+
+void parsefile(FILE * f, struct list * syms)
+{
+	struct list * declsyms;
+
+	while (!chktt(f, T_EOF) &&
+	      parsedecl(f, DF_GLOBAL, (declsyms = new_list(NULL, 0)))) {
+		processdecls(f, declsyms, syms);
+		delete_list(declsyms, NULL);
 	}
 }
