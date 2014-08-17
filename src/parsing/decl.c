@@ -93,7 +93,8 @@ int parsedecl(FILE * f, enum declflags flags, struct list * syms, struct itm_blo
 		if ((flags & DF_INIT) && chkt(f, "=") &&
 		    sc != SC_EXTERN && sc != SC_TYPEDEF) {
 			/* TODO: this only works for locals */
-			struct expr e = parseexpr(f, EF_INIT | EF_FINISH_SEMICOLON, b, sym->type);
+			struct expr e = parseexpr(f, EF_INIT | EF_FINISH_SEMICOLON |
+				EF_EXPECT_RVALUE, b, sym->type);
 			itm_store(*b, e.itm, sym->value);
 		}
 		if ((flags & DF_BITFIELD) && chkt(f, ":")) {
