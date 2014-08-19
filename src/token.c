@@ -559,34 +559,40 @@ static int chkstr(FILE * f, SFILE * t, enum tokenty * tt)
 	return 0;
 }
 
-const char eof[] = { EOF, '\0' };
-
 struct token gettok(FILE * f)
 {
 	struct token res;
 	SFILE * t;
+	int nxt;
 
 	skipf(f);
 
 	t = ssopen();
 
-	if (chkop(f, t, &res.type))
-		;
-	else if (chkid(f, t, &res.type))
-		;
-	else if (chknum(f, t, &res.type))
-		;
-	else if (chkstr(f, t, &res.type))
-		;
-	else if (chkppdir(f, t, &res.type))
-		;
-	else if (chkc(f, t, eof)) {
+	nxt = fgetc(f);
+	if (nxt == EOF) {
 		res.type = T_EOF;
 		line = 1;
 		column = 0;
-	} else
-		report(E_TOKENIZER, NULL, "character out of place: '%c'", fgetc(f));
+		goto ret;
+	} else {
+		ungetc(nxt, f);
+	}
 
+	if (chkop(f, t, &res.type))
+		goto ret;
+	if (chkid(f, t, &res.type))
+		goto ret;
+	if (chknum(f, t, &res.type))
+		goto ret;
+	if (chkstr(f, t, &res.type))
+		goto ret;
+	if (chkppdir(f, t, &res.type))
+		goto ret;
+
+	report(E_TOKENIZER, NULL, "character out of place: '%c'", fgetc(f));
+
+ret:
 	res.lexeme = ssclose(t);
 	return res;
 }
