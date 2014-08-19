@@ -22,31 +22,36 @@
 
 #include <acc/ast.h>
 
-typedef const int os;
-typedef const int abi;
-typedef const int arch;
-typedef const int platform;
-
-struct target {
-	os *os;
-	abi *abi;
-	arch *arch;
-	platform *platform;
+struct os {
+	const char * name;
 };
 
-extern struct target target;
+struct arch {
+	const char * name;
+	const struct cpu ** cpus;
+};
 
-extern os oslinux;
-extern os oswindows;
-extern os osx;
+struct cpu {
+	const char * name;
+	const struct arch * arch;
+	int bits;
+};
 
-extern abi abignu;
-extern abi abivc;
+extern const struct os oslinux, oswindows, osx;
+extern const struct arch archx86;
+extern const struct cpu cpu8086, cpui386, cpui686, cpuamd64;
 
-extern arch archx86;
-extern arch archx86_64;
+const struct os * osbyname(const char * name);
+const struct arch * archbyname(const char * name);
+const struct cpu * cpubyname(const char * name);
 
-extern platform pc;
+const struct os * getos(void);
+const struct arch * getarch(void);
+const struct cpu * getcpu(void);
+
+void setos(const struct os * o);
+void setarch(const struct arch * a);
+void setcpu(const struct cpu * c);
 
 int gettypesize(struct ctype * ty);
 int getfalign(struct ctype * ty);

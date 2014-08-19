@@ -70,7 +70,7 @@ static void initprimitive(struct ctype * p, const char * name)
 {
 	p->free = &primitive_free;
 	p->type = PRIMITIVE;
-	p->size = gettypesize((struct ctype *)p);
+	p->size = gettypesize(p);
 	p->name = name;
 	p->to_string = &primitive_to_string;
 	p->compare = &primitive_compare;
