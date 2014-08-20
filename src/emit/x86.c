@@ -28,9 +28,16 @@
 #include <acc/options.h>
 #include <acc/target.h>
 
+enum x86section {
+	SECTION_TEXT,
+	SECTION_DATA,
+	SECTION_RODATA,
+	SECTION_BSS
+};
+
 enum x86etype {
 	XREGISTER,
-	XEFFECTIVE_ADDRESS,
+	XEA,
 	XIMMEDIATE
 };
 
@@ -53,6 +60,14 @@ struct x86imm {
 	const char * op;
 	char * label;
 	unsigned long value;
+};
+
+struct x86ea {
+	struct x86e base;
+	const struct x86reg * basereg;
+	struct x86imm * displacement;
+	const struct x86reg * offset;
+	int mult;
 };
 
 static const struct x86reg ah, bh, ch, dh;
@@ -180,13 +195,27 @@ static void new_x86_cop(struct x86imm * res, const char * op,
 	struct x86imm * l, struct x86imm * r);
 static void delete_x86_imm(struct x86imm * imm);
 
+static void new_x86_ea(struct x86ea * res, int size,
+	const struct x86reg * base,
+	struct x86imm * displacement,
+	const struct x86reg * offset,
+	int mult);
+static void delete_x86_ea(struct x86ea * ea);
+
 static void x86l(FILE * f, struct x86imm * imm);
 static void x86i(FILE * f, const char * instr, int numops, ...);
 static void x86sdi(FILE * f, const char * instr,
 	struct x86e * dest, struct x86e * src);
 static void x86global(FILE * f, struct x86imm * imm);
 static void x86extern(FILE * f, struct x86imm * imm);
+static void x86sect(FILE * f, enum x86section sec);
+static void x86byte(FILE * f, char value);
+static void x86short(FILE * f, short value);
+static void x86long(FILE * f, int value);
+static void x86quad(FILE * f, long value);
 static void x86etostr(FILE * f, struct x86e * e);
+static void x86eatostr(FILE * f, struct x86ea * ea);
+static void x86immtostr(FILE * f, struct x86imm * imm, int attprefix);
 
 static void x86_emit_symbol(FILE * f, struct symbol * sym);
 
@@ -205,6 +234,9 @@ static void new_x86_imm(struct x86imm * res, int size, long value)
 
 static void new_x86_label(struct x86imm * res, char * value)
 {
+	/* I don't know if ISO true values are necessarily 1... */
+	int uscorepfix = ((getos() == &oswindows) && value[0] != '.') ? 1 : 0;
+	
 	assert(res != NULL);
 	assert(value != NULL);
 	
@@ -212,8 +244,11 @@ static void new_x86_label(struct x86imm * res, char * value)
 	res->base.size = getcpu()->bits / 8;
 	res->l = res->r = NULL;
 	res->op = NULL;
-	res->label = malloc(sizeof(char) * (strlen(value) + 1));
-	sprintf(res->label, "%s", value);
+	res->label = malloc(sizeof(char) * (strlen(value) + 1 + uscorepfix));
+	if (uscorepfix)
+		sprintf(res->label, "_%s", value);
+	else
+		sprintf(res->label, "%s", value);
 	res->value = -1;
 }
 
@@ -239,6 +274,28 @@ static void delete_x86_imm(struct x86imm * imm)
 {
 	if (imm->label)
 		free(imm->label);
+}
+
+static void new_x86_ea(struct x86ea * res, int size,
+	const struct x86reg * base,
+	struct x86imm * displacement,
+	const struct x86reg * offset,
+	int mult)
+{
+	assert(res != NULL);
+	assert(getcpu()->offset >= cpui386.offset || mult == 1);
+	
+	res->base.type = XEA;
+	res->base.size = size;
+	res->basereg = base;
+	res->displacement = displacement;
+	res->offset = offset;
+	res->mult = mult;
+}
+
+static void delete_x86_ea(struct x86ea * ea)
+{
+	/* stub for future compatibility */
 }
 
 
@@ -284,7 +341,9 @@ static void x86i(FILE * f, const char * instr, int numops, ...)
 			break;
 		}
 	}
-	fprintf(f, "\t");
+
+	if (numops)
+		fprintf(f, "\t");
 	
 	for (i = 0; i < numops; ++i) {
 		x86etostr(f, ops[i]);
@@ -309,7 +368,6 @@ static void x86sdi(FILE * f, const char * instr,
 static void x86etostr(FILE * f, struct x86e * e)
 {	
 	struct x86reg * reg;
-	struct x86imm * imm;
 	
 	switch (e->type) {
 	case XREGISTER:
@@ -319,25 +377,85 @@ static void x86etostr(FILE * f, struct x86e * e)
 		fprintf(f, "%s", reg->name);
 		break;
 	case XIMMEDIATE:
-		imm = (struct x86imm *)e;
-		if (imm->op) {
-			fprintf(f, "(");
-			x86etostr(f, (struct x86e *)imm->l);
-			fprintf(f, " %s ", imm->op);
-			x86etostr(f, (struct x86e *)imm->r);
-			fprintf(f, ")");
-		} else if (imm->label) {
-			fprintf(f, "%s", imm->label);
-		} else if (option_asmflavor() == AF_ATT) {
-			fprintf(f, "$%ld", imm->value);
-		} else {
-			fprintf(f, "%ld", imm->value);
-		}
+		x86immtostr(f, (struct x86imm *)e, 1);
 		break;
-	default:
-		fprintf(f, "\?\?\?");
+	case XEA:
+		x86eatostr(f, (struct x86ea *)e);
 		break;
 	}
+}
+
+static void x86immtostr(FILE * f, struct x86imm * imm, int attprefix)
+{
+	if (imm->op) {
+		fprintf(f, "(");
+		x86immtostr(f, imm->l, attprefix);
+		fprintf(f, " %s ", imm->op);
+		x86immtostr(f, imm->r, attprefix);
+		fprintf(f, ")");
+	} else if (imm->label) {
+		fprintf(f, "%s", imm->label);
+	} else if (attprefix && option_asmflavor() == AF_ATT) {
+		fprintf(f, "$%ld", imm->value);
+	} else {
+		fprintf(f, "%ld", imm->value);
+	}
+}
+
+static void x86eatostr(FILE * f, struct x86ea * ea)
+{
+	if (option_asmflavor() == AF_ATT) {
+		if (ea->displacement && (ea->basereg || ea->offset))
+			x86immtostr(f, ea->displacement, 0);
+		fprintf(f, "(");
+		if (ea->displacement && !(ea->basereg || ea->offset))
+			x86immtostr(f, ea->displacement, 0);
+		if (ea->basereg)
+			x86etostr(f, (struct x86e *)ea->basereg);
+		if (ea->offset) {
+			fprintf(f, ", ");
+			x86etostr(f, (struct x86e *)ea->offset);
+		}
+		if (ea->mult > 1)
+			fprintf(f, ", %d", ea->mult);
+		fprintf(f, ")");
+		return;
+	}
+	
+	switch (ea->base.size) {
+	case 1:
+		fprintf(f, "byte");
+		break;
+	case 2:
+		fprintf(f, "word");
+		break;
+	case 4:
+		fprintf(f, "dword");
+		break;
+	case 8:
+		fprintf(f, "qword");
+		break;
+	case 10:
+		/* TODO: ? */
+		break;
+	}
+	fprintf(f, " [");
+	if (ea->basereg) {
+		x86etostr(f, (struct x86e *)ea->basereg);
+		if (ea->displacement || ea->offset)
+			fprintf(f, " + ");
+	}
+	if (ea->displacement) {
+		x86etostr(f, (struct x86e *)ea->displacement);
+		if (ea->offset)
+			fprintf(f, " + ");
+	}
+	if (ea->offset) {
+		x86etostr(f, (struct x86e *)ea->offset);
+		if (ea->mult > 1)
+			fprintf(f, " * %d", ea->mult);
+	}
+	fprintf(f, "]");
 }
 
 static void x86global(FILE * f, struct x86imm * imm)
@@ -360,6 +478,62 @@ static void x86extern(FILE * f, struct x86imm * imm)
 		return;
 	
 	fprintf(f, "extern\t%s\n", imm->label);
+}
+
+static void x86sect(FILE * f, enum x86section sec)
+{
+	if (option_asmflavor() == AF_ATT)
+		fprintf(f, "\t");
+	else
+		fprintf(f, "section\t");
+
+	switch (sec) {
+	case SECTION_TEXT:
+		fprintf(f, ".text");
+		break;
+	case SECTION_DATA:
+		fprintf(f, ".data");
+		break;
+	case SECTION_RODATA:
+		fprintf(f, ".rodata");
+		break;
+	case SECTION_BSS:
+		fprintf(f, ".bss");
+		break;
+	}
+	fprintf(f, "\n");
+}
+
+static void x86byte(FILE * f, char value)
+{
+	if (option_asmflavor() == AF_ATT)
+		fprintf(f, "\t.byte\t%d\n", (int)value);
+	else
+		fprintf(f, "\tdb\t%d\n", (int)value);
+}
+
+static void x86short(FILE * f, short value)
+{
+	if (option_asmflavor() == AF_ATT)
+		fprintf(f, "\t.value\t%d\n", (int)value);
+	else
+		fprintf(f, "\tdw\t%d\n", (int)value);
+}
+
+static void x86long(FILE * f, int value)
+{
+	if (option_asmflavor() == AF_ATT)
+		fprintf(f, "\t.long\t%d\n", (int)value);
+	else
+		fprintf(f, "\tdd\t%d\n", (int)value);
+}
+
+static void x86quad(FILE * f, long value)
+{
+	if (option_asmflavor() == AF_ATT)
+		fprintf(f, "\t.quad\t%ld\n", value);
+	else
+		fprintf(f, "\tdq\t%ld\n", value);
 }
 
 void x86_emit(FILE * f, struct list * blocks)
