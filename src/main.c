@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 
 		file = fopen(filename, "rb");
 		if (!file)
-			report(E_OPTIONS, NULL, strerror(errno));
+			report(E_OPTIONS, NULL, "file not found: \"%s\"", filename);
 
 		compilefile(file);
 	}
