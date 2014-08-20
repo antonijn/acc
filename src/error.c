@@ -35,7 +35,7 @@ void report(enum errorty ty, struct token * tok, const char * frmt, ...)
 
 	if ((ty & E_HIDE_LOCATION) == 0)
 		fprintf(stderr, "%s:%d:%d: ", currentfile ?
-			currentfile : "???", get_line(), get_column());
+			currentfile : "\?\?\?", get_line(), get_column());
 
 	if (ty & E_FATAL)
 		fprintf(stderr, "FATAL: ");

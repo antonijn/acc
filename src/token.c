@@ -193,7 +193,7 @@ static struct lchar fgetlc(FILE * f)
 		res.len = 3;
 		return res;
 	}
-	report(E_TOKENIZER, NULL, "invalid trigraph sequence: \"??%c\"", res.chars[2]);
+	report(E_TOKENIZER, NULL, "invalid trigraph sequence: \"\?\?%c\"", res.chars[2]);
 	ungetc(res.chars[2], f);
 	ungetc(res.chars[1], f);
 	column -= 2;
