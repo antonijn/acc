@@ -343,12 +343,12 @@ static void x86i(FILE * f, const char * instr, int numops, ...)
 	}
 
 	if (numops)
-		fprintf(f, "\t");
+		fprintf(f, " ");
 	
 	for (i = 0; i < numops; ++i) {
 		x86etostr(f, ops[i]);
 		if (i != numops - 1)
-			fprintf(f, ",\t");
+			fprintf(f, ", ");
 	}
 	
 	fprintf(f, "\n");
