@@ -354,6 +354,7 @@ static void x86i(FILE * f, const char * instr, int numops, ...)
 	fprintf(f, "\n");
 	
 	va_end(ap);
+	free(ops);
 }
 
 static void x86sdi(FILE * f, const char * instr,
