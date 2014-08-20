@@ -35,6 +35,7 @@ struct cpu {
 	const char * name;
 	const struct arch * arch;
 	int bits;
+	int offset;
 };
 
 extern const struct os oslinux, oswindows, osx;

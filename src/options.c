@@ -23,10 +23,18 @@
 #include <acc/error.h>
 
 static char * outfile = "a.out";
-static enum arch arch = ARCH_INVALID;
 static struct list * input;
 static int optimize = 0;
 static int warnings = 1;
+static enum asmflavor flavor =
+#if defined(BUILDFOR_LINUX) || defined(BUILDFOR_OSX)
+	AF_ATT;
+#elif defined(BUILDFOR_WINDOWS)
+	AF_MASM;
+#else
+#error No target defined
+	-1;
+#endif
 
 void options_init(int argc, char * argv[])
 {
@@ -49,36 +57,16 @@ void options_init(int argc, char * argv[])
 			optimize = 2;
 		else if (!strcmp(arg, "-O3"))
 			optimize = 3;
-		else if (!strcmp(arg, "-march=i386"))
-			arch = ARCH_I386;
-		else if (!strcmp(arg, "-march=i686"))
-			arch = ARCH_I686;
-		else if (!strcmp(arg, "-march=8086"))
-			arch = ARCH_8086;
-		else if (!strcmp(arg, "-march=amd64"))
-			arch = ARCH_AMD64;
+		else if (!strcmp(arg, "-masm=att") || !strcmp(arg, "-masm=gas"))
+			flavor = AF_ATT;
+		else if (!strcmp(arg, "-masm=nasm"))
+			flavor = AF_NASM;
+		else if (!strcmp(arg, "-masm=intel") || !strcmp(arg, "-masm=masm"))
+			flavor = AF_MASM;
 		else if (arg[0] == '-' && arg[1] == 'f')
 			enableext(&arg[2]);
 		else
 			list_push_back(input, arg);
-	}
-
-	if (arch != ARCH_INVALID)
-		return;
-
-	switch (sizeof(void *)) {
-	case 2:
-		arch = ARCH_8086;
-		break;
-	case 4:
-		arch = ARCH_I386;
-		break;
-	case 8:
-		arch = ARCH_AMD64;
-		break;
-	default:
-		arch = ARCH_I386;
-		break;
 	}
 }
 
@@ -102,9 +90,9 @@ struct list * option_input(void)
 	return input;
 }
 
-enum arch option_arch(void)
+enum asmflavor option_asmflavor(void)
 {
-	return arch;
+	return flavor;
 }
 
 int option_warnings(void)

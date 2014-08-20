@@ -80,10 +80,6 @@ static void processdecls(FILE * f, struct list * decls, struct list * syms)
 
 	if (!block->last || !block->last->isterminal)
 		itm_leave(block);
-
-#ifndef NDEBUG
-	itm_block_to_string(stdout, bb);
-#endif
 }
 
 void parsefile(FILE * f, struct list * syms)

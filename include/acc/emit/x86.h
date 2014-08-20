@@ -1,5 +1,5 @@
 /*
- * File parsing and generation of intermediate representation
+ * x86 code emission
  * Copyright (C) 2014  Antonie Blom
  * 
  * This program is free software; you can redistribute it and/or modify
@@ -17,13 +17,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef PARSING_FILE_H
-#define PARSING_FILE_H
+#ifndef EMIT_X86_H
+#define EMIT_X86_H
 
 #include <stdio.h>
 
 #include <acc/ast.h>
 
-void parsefile(FILE * f, struct list * syms);
+void x86_emit(FILE * f, struct list * symbols);
 
 #endif

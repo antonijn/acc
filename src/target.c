@@ -47,14 +47,25 @@ static const struct cpu * x86cpus[] = {
 
 const struct arch archx86 = { "x86", &x86cpus[0] };
 
-const struct cpu cpu8086 = { "8086", &archx86, 16 };
-const struct cpu cpui386 = { "i386", &archx86, 32 };
-const struct cpu cpui686 = { "i686", &archx86, 32 };
-const struct cpu cpuamd64 = { "amd64", &archx86, 64 };
+const struct cpu cpu8086 = { "8086", &archx86, 16, 0 };
+const struct cpu cpui386 = { "i386", &archx86, 32, 1 };
+const struct cpu cpui686 = { "i686", &archx86, 32, 2 };
+const struct cpu cpuamd64 = { "amd64", &archx86, 64, 3 };
 
-static const struct os * os = &oslinux;
+static const struct os * os =
+#if defined(BUILDFOR_LINUX)
+	&oslinux;
+#elif defined(BUILDFOR_WINDOWS)
+	&oswindows;
+#elif defined(BUILDFOR_OSX)
+	&osx;
+#else
+#error No target defined
+	NULL;
+#endif
+
 static const struct arch * arch = &archx86;
-static const struct cpu * cpu = &cpui686;
+static const struct cpu * cpu = &cpui386;
 
 const struct os * osbyname(const char * name)
 {

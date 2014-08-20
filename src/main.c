@@ -27,11 +27,13 @@
 #include <acc/token.h>
 #include <acc/error.h>
 #include <acc/parsing/file.h>
+#include <acc/emit/x86.h>
 
 static void compilefile(FILE * f)
 {
 	struct list * syms = new_list(NULL, 0);
 	parsefile(f, syms);
+	x86_emit(stdout, syms);
 	delete_list(syms, NULL);
 }
 

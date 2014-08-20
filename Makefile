@@ -18,7 +18,7 @@
 #
 
 CC = gcc
-CFLAGS = -c -Iinclude -std=c89 -pedantic-errors
+CFLAGS = -c -Iinclude -std=c89 -pedantic-errors -DBUILDFOR_LINUX
 LD = $(CC)
 
 TARGET = acc
