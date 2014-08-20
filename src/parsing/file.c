@@ -15,14 +15,6 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- *
- * Let's establish some rules, shall we?
- *
- * When a parser function is entered, the token at which it shall begin to
- * parse will have yet to be retrieved from the file stream.
- * When a parser function returns, it shall leave the next logical token
- * unread.
  */
 
 #include <stdlib.h>
@@ -57,6 +49,7 @@ static void processdecls(FILE * f, struct list * decls, struct list * syms)
 	struct token * tok;
 	struct itm_block * block;
 	struct itm_block * bb;
+	int success;
 
 	it = list_iterator(decls);
 	while (iterator_next(&it, (void **)&sym))
@@ -75,7 +68,8 @@ static void processdecls(FILE * f, struct list * decls, struct list * syms)
 
 	enter_scope();
 	addparams(list_head(decls));
-	assert(parseblock(f, SF_NORMAL, &block));
+	success = parseblock(f, SF_NORMAL, &block);
+	assert(success);
 	leave_scope();
 
 	if (!block->last || !block->last->isterminal)

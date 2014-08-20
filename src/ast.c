@@ -210,7 +210,7 @@ struct ctype * new_struct(char * id)
 	ty->base.type = STRUCTURE;
 	ty->base.size = gettypesize((struct ctype *)ty);
 	if (id) {
-		ty->base.name = calloc(sizeof(char), strlen(id) + 1);
+		ty->base.name = calloc(strlen(id) + 1, sizeof(char));
 		sprintf((char *)ty->base.name, "%s", id);
 	} else
 		ty->base.name = NULL;
@@ -226,7 +226,7 @@ void struct_add_field(struct ctype * type, struct ctype * ty, char * id)
 	struct cstruct * cs = (struct cstruct *)type;
 	size_t strl = strlen(id) + 1;
 	struct field * fi = malloc(sizeof(struct field));
-	fi->id = calloc(sizeof(char), strl);
+	fi->id = calloc(strl, sizeof(char));
 	sprintf(fi->id, "%s", id);
 	fi->type = ty;
 	list_push_back(cs->fields, fi);
@@ -395,7 +395,7 @@ struct symbol * new_symbol(struct ctype * type, char * id,
 	struct symbol * sym = malloc(sizeof(struct symbol));
 	sym->block = NULL;
 	sym->type = type;
-	sym->id = calloc(sizeof(char), strlen(id));
+	sym->id = calloc(strlen(id) + 1, sizeof(char));
 	sprintf(sym->id, "%s", id);
 	sym->storage = sc;
 	if (reg) {

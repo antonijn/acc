@@ -244,7 +244,7 @@ static void new_x86_label(struct x86imm * res, char * value)
 	res->base.size = getcpu()->bits / 8;
 	res->l = res->r = NULL;
 	res->op = NULL;
-	res->label = malloc(sizeof(char) * (strlen(value) + 1 + uscorepfix));
+	res->label = calloc(strlen(value) + 1 + uscorepfix, sizeof(char));
 	if (uscorepfix)
 		sprintf(res->label, "_%s", value);
 	else
@@ -272,6 +272,7 @@ static void new_x86_cop(struct x86imm * res, const char * op,
 
 static void delete_x86_imm(struct x86imm * imm)
 {
+	assert(imm != NULL);
 	if (imm->label)
 		free(imm->label);
 }
@@ -301,6 +302,7 @@ static void delete_x86_ea(struct x86ea * ea)
 
 static void x86l(FILE * f, struct x86imm * imm)
 {
+	assert(imm != NULL);
 	assert(imm->label != NULL);
 	
 	fprintf(f, "%s:\n", imm->label);

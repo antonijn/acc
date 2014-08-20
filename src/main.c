@@ -20,7 +20,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <errno.h>
 #include <locale.h>
 
 #include <acc/options.h>
@@ -32,9 +31,11 @@
 static void compilefile(FILE * f)
 {
 	struct list * syms = new_list(NULL, 0);
+	ast_init();
 	parsefile(f, syms);
 	x86_emit(stdout, syms);
 	delete_list(syms, NULL);
+	ast_destroy();
 }
 
 int main(int argc, char *argv[])
@@ -44,7 +45,6 @@ int main(int argc, char *argv[])
 
 	setlocale(LC_ALL, "C");
 	options_init(argc, argv);
-	ast_init();
 
 	li = list_iterator(option_input());
 	while (iterator_next(&li, (void **)&filename)) {
@@ -62,7 +62,6 @@ int main(int argc, char *argv[])
 		compilefile(file);
 	}
 
-	ast_destroy();
 	options_destroy();
 	return EXIT_SUCCESS;
 }
