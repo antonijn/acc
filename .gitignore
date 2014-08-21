@@ -3,3 +3,4 @@ acc
 *.exe
 *.obj
 !acc/
+build
