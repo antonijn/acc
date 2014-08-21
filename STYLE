@@ -364,3 +364,33 @@ jump out of a function on errors.
 	5.5. The comma operator
 
 It exists. Just wanted to remind you of that.
+
+
+	5.6. typedef
+
+As a general rule: don't use it.
+
+Some people like declaring types like this:
+
+	typedef union {
+		struct alpha a;
+		struct beta b;
+	} someunion_t;
+	
+	someunion_t instance;
+
+I don't. Don't be too lazy to prefix your type tag with the type class. Be a 
+man. Or a woman. Or both. Or neither. Just don't be a typedef maniac.
+
+	union someunion {
+		struct alpha a;
+		struct beta b;
+	};
+	
+	union someunion instance;
+
+Now, some people think function pointer syntax is confusing. They have yet to 
+reach C-nirvana. For the sake of the enlightened among us, don't typedef 
+function pointers.
+
+	void (*fptr_instance)(int param, int other);
