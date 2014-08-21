@@ -309,6 +309,50 @@ Use the static storage class excessively for global symbols, to avoid global
 name collisions, and allow better, more thorough optimisation.
 
 
+	4.6. goto
+
+The goto keyword is dangerous. Use it sparsely but wisely. Its usage is not 
+forbidden, but please don't use it to a headache-inducing level.
+
+Use it to prepare a return value and clean up a function, for example, or to 
+jump out of a function on errors.
+
+
+	4.7. The comma operator
+
+It exists. Just wanted to remind you of that.
+
+
+	4.8. typedef
+
+As a general rule: don't use it.
+
+Some people like declaring types like this:
+
+	typedef union {
+		struct alpha a;
+		struct beta b;
+	} someunion_t;
+	
+	someunion_t instance;
+
+I don't. Don't be too lazy to prefix your type tag with the type class. Be a 
+man. Or a woman. Or both. Or neither. Just don't be a typedef maniac.
+
+	union someunion {
+		struct alpha a;
+		struct beta b;
+	};
+	
+	union someunion instance;
+
+Now, some people think function pointer syntax is confusing. They have yet to 
+reach C-nirvana. For the sake of the enlightened among us, don't typedef 
+function pointers.
+
+	void (*fptr_instance)(int param, int other);
+
+
 	5. Portability
 	5.1. Use of C
 
@@ -317,7 +361,7 @@ without any GNU or C99 extensions. This means no single-line comments, and
 declarations at the start of blocks.
 
 Be careful with question marks, they are used for trigraphs. Escape the 
-question mark in string literals when necessary,
+question mark in string literals when necessary.
 
 
 	5.2. Libraries
@@ -350,47 +394,3 @@ one byte in size. This is important in malloc/calloc calls:
 	/* bad!!! */
 	/* char *str = calloc(len, 1);
 	 * int *ints = malloc(intcount * 4); */
-
-
-	5.4. goto
-
-The goto keyword is dangerous. Use it sparsely but wisely. Its usage is not 
-forbidden, but please don't use it to a headache-inducing level.
-
-Use it to prepare a return value and clean up a function, for example, or to 
-jump out of a function on errors.
-
-
-	5.5. The comma operator
-
-It exists. Just wanted to remind you of that.
-
-
-	5.6. typedef
-
-As a general rule: don't use it.
-
-Some people like declaring types like this:
-
-	typedef union {
-		struct alpha a;
-		struct beta b;
-	} someunion_t;
-	
-	someunion_t instance;
-
-I don't. Don't be too lazy to prefix your type tag with the type class. Be a 
-man. Or a woman. Or both. Or neither. Just don't be a typedef maniac.
-
-	union someunion {
-		struct alpha a;
-		struct beta b;
-	};
-	
-	union someunion instance;
-
-Now, some people think function pointer syntax is confusing. They have yet to 
-reach C-nirvana. For the sake of the enlightened among us, don't typedef 
-function pointers.
-
-	void (*fptr_instance)(int param, int other);
