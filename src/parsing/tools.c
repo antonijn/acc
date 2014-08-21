@@ -22,27 +22,27 @@
 
 #include <acc/parsing/tools.h>
 
-int chkt(FILE * f, const char * t)
+int chkt(FILE *f, const char *t)
 {
-	struct token * tok = chktp(f, t);
+	struct token *tok = chktp(f, t);
 	if (!tok)
 		return 0;
 	freetp(tok);
 	return 1;
 }
 
-int chktt(FILE * f, enum tokenty tt)
+int chktt(FILE *f, enum tokenty tt)
 {
-	struct token * t = chkttp(f, tt);
+	struct token *t = chkttp(f, tt);
 	if (!t)
 		return 0;
 	freetp(t);
 	return 1;
 }
 
-struct token * chktp(FILE * f, const char * t)
+struct token *chktp(FILE *f, const char *t)
 {
-	struct token * nxt = malloc(sizeof(struct token));
+	struct token *nxt = malloc(sizeof(struct token));
 	*nxt = gettok(f);
 	if (!strcmp(t, nxt->lexeme))
 		return nxt;
@@ -51,9 +51,9 @@ struct token * chktp(FILE * f, const char * t)
 	return NULL;
 }
 
-struct token * chkttp(FILE * f, enum tokenty tt)
+struct token *chkttp(FILE *f, enum tokenty tt)
 {
-	struct token * nxt = malloc(sizeof(struct token));
+	struct token *nxt = malloc(sizeof(struct token));
 	*nxt = gettok(f);
 	if (nxt->type == tt)
 		return nxt;
@@ -62,7 +62,7 @@ struct token * chkttp(FILE * f, enum tokenty tt)
 	return NULL;
 }
 
-void freetp(struct token * t)
+void freetp(struct token *t)
 {
 	freetok(t);
 	free(t);

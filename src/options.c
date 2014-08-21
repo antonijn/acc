@@ -22,8 +22,8 @@
 #include <acc/options.h>
 #include <acc/error.h>
 
-static char * outfile = "a.out";
-static struct list * input;
+static char *outfile = "a.out";
+static struct list *input;
 static int optimize = 0;
 static int warnings = 1;
 static enum asmflavor flavor =
@@ -36,37 +36,38 @@ static enum asmflavor flavor =
 	-1;
 #endif
 
-void options_init(int argc, char * argv[])
+void options_init(int argc, char *argv[])
 {
 	int i;
 	input = new_list(NULL, 0);
 
 	for (i = 1; i < argc; ++i) {
-		char * arg = argv[i];
+		char *arg = argv[i];
 		if (!strcmp(arg, "-o")) {
 			if (++i >= argc)
 				report(E_OPTIONS, NULL, "expected output file name");
 			outfile = argv[++i];
-		} else if (!strcmp(arg, "-w"))
+		} else if (!strcmp(arg, "-w")) {
 			warnings = 0;
-		else if (!strcmp(arg, "-O0"))
+		} else if (!strcmp(arg, "-O0")) {
 			optimize = 0;
-		else if (!strcmp(arg, "-O1"))
+		} else if (!strcmp(arg, "-O1")) {
 			optimize = 1;
-		else if (!strcmp(arg, "-O2"))
+		} else if (!strcmp(arg, "-O2")) {
 			optimize = 2;
-		else if (!strcmp(arg, "-O3"))
+		} else if (!strcmp(arg, "-O3")) {
 			optimize = 3;
-		else if (!strcmp(arg, "-masm=att") || !strcmp(arg, "-masm=gas"))
+		} else if (!strcmp(arg, "-masm=att") || !strcmp(arg, "-masm=gas")) {
 			flavor = AF_ATT;
-		else if (!strcmp(arg, "-masm=nasm"))
+		} else if (!strcmp(arg, "-masm=nasm")) {
 			flavor = AF_NASM;
-		else if (!strcmp(arg, "-masm=intel") || !strcmp(arg, "-masm=masm"))
+		} else if (!strcmp(arg, "-masm=intel") || !strcmp(arg, "-masm=masm")) {
 			flavor = AF_MASM;
-		else if (arg[0] == '-' && arg[1] == 'f')
+		} else if (arg[0] == '-' && arg[1] == 'f') {
 			enableext(&arg[2]);
-		else
+		} else {
 			list_push_back(input, arg);
+		}
 	}
 }
 
@@ -75,7 +76,7 @@ void options_destroy(void)
 	delete_list(input, NULL);
 }
 
-char * option_outfile(void)
+char *option_outfile(void)
 {
 	return outfile;
 }
@@ -85,7 +86,7 @@ int option_optimize(void)
 	return optimize;
 }
 
-struct list * option_input(void)
+struct list *option_input(void)
 {
 	return input;
 }

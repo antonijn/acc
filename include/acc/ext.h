@@ -42,9 +42,9 @@ enum exno {
 	EX_BINARY_LITERALS = 0x40000
 };
 
-enum exno getex(const char * ext);
-void enableext(const char * ext);
-void disableext(const char * ext);
+enum exno getex(const char *ext);
+void enableext(const char *ext);
+void disableext(const char *ext);
 int isext(enum exno ext);
 
 #endif

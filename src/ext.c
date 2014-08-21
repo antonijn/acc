@@ -23,7 +23,7 @@
 #include <acc/error.h>
 
 struct extension {
-	const char * str;
+	const char *str;
 	enum exno no;
 };
 
@@ -51,7 +51,7 @@ static struct extension extensions[] = {
 
 static enum exno enabled = 0;
 
-enum exno getex(const char * ext)
+enum exno getex(const char *ext)
 {
 	int i;
 	for (i = 0; i < sizeof(extensions) / sizeof(struct extension); ++i) {
@@ -64,7 +64,7 @@ enum exno getex(const char * ext)
 	return -1;
 }
 
-void enableext(const char * ext)
+void enableext(const char *ext)
 {
 	if (!strncmp(ext, "no-", 3))
 		enabled &= ~getex(&ext[3]);
@@ -72,7 +72,7 @@ void enableext(const char * ext)
 		enabled |= getex(ext);
 }
 
-void disableext(const char * ext)
+void disableext(const char *ext)
 {
 	if (!strncmp(ext, "no-", 3))
 		enabled |= getex(&ext[3]);

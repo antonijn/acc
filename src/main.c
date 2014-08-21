@@ -28,9 +28,9 @@
 #include <acc/parsing/file.h>
 #include <acc/emit/x86.h>
 
-static void compilefile(FILE * f)
+static void compilefile(FILE *f)
 {
-	struct list * syms = new_list(NULL, 0);
+	struct list *syms = new_list(NULL, 0);
 	ast_init();
 	parsefile(f, syms);
 	x86_emit(stdout, syms);
@@ -40,15 +40,15 @@ static void compilefile(FILE * f)
 
 int main(int argc, char *argv[])
 {
-	char * filename;
-	void * li;
+	char *filename;
+	void *li;
 
 	setlocale(LC_ALL, "C");
 	options_init(argc, argv);
 
 	li = list_iterator(option_input());
 	while (iterator_next(&li, (void **)&filename)) {
-		FILE * file;
+		FILE *file;
 
 		if (!strcmp(filename, "-")) {
 			compilefile(stdin);

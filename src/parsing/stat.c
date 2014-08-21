@@ -29,20 +29,20 @@
 #include <acc/ext.h>
 #include <acc/error.h>
 
-static int parseif(FILE * f, enum statflags flags, struct itm_block ** block);
-static int parsedo(FILE * f, enum statflags flags, struct itm_block ** block);
-static int parsefor(FILE * f, enum statflags flags, struct itm_block ** block);
-static int parsewhile(FILE * f, enum statflags flags,
-	struct itm_block ** block);
-static int parseestat(FILE * f, enum statflags flags,
-	struct itm_block ** block);
+static int parseif(FILE *f, enum statflags flags, struct itm_block **block);
+static int parsedo(FILE *f, enum statflags flags, struct itm_block **block);
+static int parsefor(FILE *f, enum statflags flags, struct itm_block **block);
+static int parsewhile(FILE *f, enum statflags flags,
+	struct itm_block **block);
+static int parseestat(FILE *f, enum statflags flags,
+	struct itm_block **block);
 
-static int parseif(FILE * f, enum statflags flags, struct itm_block ** block)
+static int parseif(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	struct expr cond = { 0 };
-	struct itm_block * tblock;
-	struct itm_label * tlabel, * elabel;
-	struct list * prev;
+	struct itm_block *tblock;
+	struct itm_label *tlabel, *elabel;
+	struct list *prev;
 	struct token tok;
 	
 	if (!chkt(f, "if"))
@@ -74,7 +74,7 @@ static int parseif(FILE * f, enum statflags flags, struct itm_block ** block)
 	parsestat(f, SF_NORMAL, &tblock);
 
 	if (chkt(f, "else")) {
-		struct itm_label * common = new_itm_label();
+		struct itm_label *common = new_itm_label();
 
 		itm_jmp(tblock, common);
 
@@ -104,17 +104,17 @@ static int parseif(FILE * f, enum statflags flags, struct itm_block ** block)
 	return 1;
 }
 
-static int parsedo(FILE * f, enum statflags flags, struct itm_block ** block)
+static int parsedo(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	/* TODO: implement */
 	return 0;
 }
 
-static int parsefor(FILE * f, enum statflags flags, struct itm_block ** block)
+static int parsefor(FILE *f, enum statflags flags, struct itm_block **block)
 {
-	struct itm_block * condb, * bodyb, * quitb;
-	struct itm_label * condl, * bodyl, * quitl;
-	struct list * prev;
+	struct itm_block *condb, *bodyb, *quitb;
+	struct itm_label *condl, *bodyl, *quitl;
+	struct list *prev;
 	struct expr cond;
 	struct token tok;
 
@@ -175,12 +175,12 @@ static int parsefor(FILE * f, enum statflags flags, struct itm_block ** block)
 	return 1;
 }
 
-static int parsewhile(FILE * f, enum statflags flags,
-	struct itm_block ** block)
+static int parsewhile(FILE *f, enum statflags flags,
+	struct itm_block **block)
 {
-	struct itm_block * condb, * bodyb, * quitb;
-	struct itm_label * condl, * bodyl, * quitl;
-	struct list * prev;
+	struct itm_block *condb, *bodyb, *quitb;
+	struct itm_label *condl, *bodyl, *quitl;
+	struct list *prev;
 	struct expr cond;
 	struct token tok;
 
@@ -234,8 +234,8 @@ static int parsewhile(FILE * f, enum statflags flags,
 	return 1;
 }
 
-static int parseestat(FILE * f, enum statflags flags,
-	struct itm_block ** block)
+static int parseestat(FILE *f, enum statflags flags,
+	struct itm_block **block)
 {
 	struct token tok;
 	struct expr e;
@@ -248,7 +248,7 @@ static int parseestat(FILE * f, enum statflags flags,
 	return 1;
 }
 
-int parsestat(FILE * f, enum statflags flags, struct itm_block ** block)
+int parsestat(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	return parseif(f, flags, block) ||
 	       parsedo(f, flags, block) ||
@@ -258,7 +258,7 @@ int parsestat(FILE * f, enum statflags flags, struct itm_block ** block)
 	       parseestat(f, flags, block);
 }
 
-int parseblock(FILE * f, enum statflags flags, struct itm_block ** block)
+int parseblock(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	if (!chkt(f, "{"))
 		return 0;

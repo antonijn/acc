@@ -24,6 +24,6 @@
 
 #include <acc/ast.h>
 
-void parsefile(FILE * f, struct list * syms);
+void parsefile(FILE *f, struct list *syms);
 
 #endif

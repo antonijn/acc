@@ -31,24 +31,24 @@
 #include <acc/error.h>
 #include <acc/token.h>
 
-static void addparams(void * fsym)
+static void addparams(void *fsym)
 {
-	struct symbol * sym = fsym;
-	struct cfunction * fun = (struct cfunction *)sym->type;
-	void * it;
+	struct symbol *sym = fsym;
+	struct cfunction *fun = (struct cfunction *)sym->type;
+	void *it;
 
 	it = list_iterator(fun->parameters);
 	while (iterator_next(&it, (void **)&sym))
 		registersym(sym);
 }
 
-static void processdecls(FILE * f, struct list * decls, struct list * syms)
+static void processdecls(FILE *f, struct list *decls, struct list *syms)
 {
-	void * it;
-	struct symbol * sym;
-	struct token * tok;
-	struct itm_block * block;
-	struct itm_block * bb;
+	void *it;
+	struct symbol *sym;
+	struct token *tok;
+	struct itm_block *block;
+	struct itm_block *bb;
 	int success;
 
 	it = list_iterator(decls);
@@ -76,7 +76,7 @@ static void processdecls(FILE * f, struct list * decls, struct list * syms)
 		itm_leave(block);
 }
 
-void parsefile(FILE * f, struct list * syms)
+void parsefile(FILE *f, struct list *syms)
 {
 	struct list * declsyms;
 

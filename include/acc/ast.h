@@ -57,12 +57,12 @@ enum qualifier {
 };
 
 struct ctype {
-	void (*free)(struct ctype * t);
+	void (*free)(struct ctype *t);
 	enum ctypeid type;
 	size_t size;
 	const char * name;
-	void (*to_string)(FILE * f, struct ctype * t);
-	enum typecomp (*compare)(struct ctype * t, struct ctype * r);
+	void (*to_string)(FILE *f, struct ctype *t);
+	enum typecomp (*compare)(struct ctype *t, struct ctype *r);
 };
 
 extern struct ctype cbool;
@@ -79,47 +79,47 @@ extern struct ctype cdouble;
 extern struct ctype cvoid;
 
 struct field {
-	struct ctype * type;
-	char * id;
+	struct ctype *type;
+	char *id;
 };
 
 struct cstruct {
 	struct ctype base;
-	struct list * fields;
-	int (*field_offset)(struct field * f);
+	struct list *fields;
+	int (*field_offset)(struct field *f);
 };
 
 struct cpointer {
 	struct ctype base;
-	struct ctype * pointsto;
+	struct ctype *pointsto;
 };
 
 struct carray {
 	struct ctype base;
 	int length;
-	struct ctype * elementtype;
+	struct ctype *elementtype;
 };
 
 struct cqualified {
 	struct ctype base;
-	struct ctype * type;
+	struct ctype *type;
 	enum qualifier qualifiers;
 };
 
 struct cfunction {
 	struct ctype base;
-	struct ctype * ret;
-	struct list * parameters; /* symbol list */
+	struct ctype *ret;
+	struct list *parameters; /* symbol list */
 };
 
-struct ctype * new_pointer(struct ctype * base);
-struct ctype * new_struct(char * id);
-void struct_add_field(struct ctype * type, struct ctype * ty, char * id);
-struct field * struct_get_field(struct ctype * type, char * name);
-struct ctype * new_union(char * name);
-struct ctype * new_array(struct ctype * etype, int length);
-struct ctype * new_qualified(struct ctype * base, enum qualifier q);
-struct ctype * new_function(struct ctype * ret, struct list * params);
+struct ctype *new_pointer(struct ctype *base);
+struct ctype *new_struct(char *id);
+void struct_add_field(struct ctype *type, struct ctype *ty, char *id);
+struct field *struct_get_field(struct ctype *type, char *name);
+struct ctype *new_union(char *name);
+struct ctype *new_array(struct ctype *etype, int length);
+struct ctype *new_qualified(struct ctype *base, enum qualifier q);
+struct ctype *new_function(struct ctype *ret, struct list *params);
 
 enum typeclass {
 	TC_ARITHMETIC = 0x1,
@@ -131,32 +131,32 @@ enum typeclass {
 	TC_UNSIGNED = 0x40
 };
 
-int hastc(struct ctype * ty, enum typeclass tc);
-enum typeclass gettc(struct ctype * ty);
+int hastc(struct ctype *ty, enum typeclass tc);
+enum typeclass gettc(struct ctype *ty);
 
 struct symbol {
-	struct ctype * type;
-	char * id;
+	struct ctype *type;
+	char *id;
 	int implemented;
 	enum storageclass storage;
-	struct itm_block * block;
-	struct itm_expr * value;
+	struct itm_block *block;
+	struct itm_expr *value;
 };
 
-struct symbol * new_symbol(struct ctype * type, char * id,
+struct symbol *new_symbol(struct ctype *type, char *id,
 	enum storageclass sc, int reg);
-void registersym(struct symbol * sym);
+void registersym(struct symbol *sym);
 
 struct enumerator {
-	struct ctype * type;
-	char * id;
+	struct ctype *type;
+	char *id;
 	long i;
 };
 
 struct operator {
 	int prec;
 	int rtol;
-	const char * rep;
+	const char *rep;
 };
 
 void ast_init(void);
@@ -165,14 +165,14 @@ void ast_destroy(void);
 void enter_scope(void);
 void leave_scope(void);
 
-struct symbol * get_symbol(char * id);
-struct enumerator * get_enumerator(char * id);
-struct cstruct * get_struct(char * name);
-struct cunion * get_union(char * name);
-struct ctype * get_typedef(char * id);
+struct symbol *get_symbol(char *id);
+struct enumerator *get_enumerator(char *id);
+struct cstruct *get_struct(char *name);
+struct cunion *get_union(char *name);
+struct ctype *get_typedef(char *id);
 
-struct operator * getbop(const char * opname);
-struct operator * getuop(const char * opname);
+struct operator *getbop(const char *opname);
+struct operator *getuop(const char *opname);
 
 extern struct operator binop_plus;
 extern struct operator binop_min;

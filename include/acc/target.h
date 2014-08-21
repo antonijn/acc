@@ -23,17 +23,17 @@
 #include <acc/ast.h>
 
 struct os {
-	const char * name;
+	const char *name;
 };
 
 struct arch {
-	const char * name;
-	const struct cpu ** cpus;
+	const char *name;
+	const struct cpu **cpus;
 };
 
 struct cpu {
-	const char * name;
-	const struct arch * arch;
+	const char *name;
+	const struct arch *arch;
 	int bits;
 	int offset;
 };
@@ -42,19 +42,19 @@ extern const struct os oslinux, oswindows, osx;
 extern const struct arch archx86;
 extern const struct cpu cpu8086, cpui386, cpui686, cpuamd64;
 
-const struct os * osbyname(const char * name);
-const struct arch * archbyname(const char * name);
-const struct cpu * cpubyname(const char * name);
+const struct os *osbyname(const char *name);
+const struct arch *archbyname(const char *name);
+const struct cpu *cpubyname(const char *name);
 
-const struct os * getos(void);
-const struct arch * getarch(void);
-const struct cpu * getcpu(void);
+const struct os *getos(void);
+const struct arch *getarch(void);
+const struct cpu *getcpu(void);
 
-void setos(const struct os * o);
-void setarch(const struct arch * a);
-void setcpu(const struct cpu * c);
+void setos(const struct os *o);
+void setarch(const struct arch *a);
+void setcpu(const struct cpu *c);
 
-int gettypesize(struct ctype * ty);
-int getfalign(struct ctype * ty);
+int gettypesize(struct ctype *ty);
+int getfalign(struct ctype *ty);
 
 #endif

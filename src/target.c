@@ -21,15 +21,15 @@
 
 #include <acc/target.h>
 
-static const struct os * oses[] = {
+static const struct os *oses[] = {
 	&oslinux, &oswindows, &osx
 };
 
-static const struct arch * arches[] = {
+static const struct arch *arches[] = {
 	&archx86
 };
 
-static const struct cpu * cpus[] = {
+static const struct cpu *cpus[] = {
 	&cpu8086, &cpui386, &cpui686, &cpuamd64
 };
 
@@ -37,7 +37,7 @@ const struct os oslinux = { "linux" };
 const struct os oswindows = { "windows" };
 const struct os osx = { "osx" };
 
-static const struct cpu * x86cpus[] = {
+static const struct cpu *x86cpus[] = {
 	&cpu8086,
 	&cpui386,
 	&cpui686,
@@ -64,10 +64,10 @@ static const struct os * os =
 	NULL;
 #endif
 
-static const struct arch * arch = &archx86;
-static const struct cpu * cpu = &cpui386;
+static const struct arch *arch = &archx86;
+static const struct cpu *cpu = &cpui386;
 
-const struct os * osbyname(const char * name)
+const struct os *osbyname(const char * name)
 {
 	int i;
 	for (i = 0; i < sizeof(oses) / sizeof(struct os); ++i)
@@ -77,7 +77,7 @@ const struct os * osbyname(const char * name)
 	return NULL;
 }
 
-const struct arch * archbyname(const char * name)
+const struct arch *archbyname(const char * name)
 {
 	int i;
 	for (i = 0; i < sizeof(arches) / sizeof(struct arch); ++i)
@@ -87,7 +87,7 @@ const struct arch * archbyname(const char * name)
 	return NULL;
 }
 
-const struct cpu * cpubyname(const char * name)
+const struct cpu *cpubyname(const char * name)
 {
 	int i;
 	for (i = 0; i < sizeof(cpus) / sizeof(struct cpu); ++i)
@@ -98,28 +98,28 @@ const struct cpu * cpubyname(const char * name)
 }
 
 
-const struct os * getos(void)
+const struct os *getos(void)
 {
 	return os;
 }
 
-const struct arch * getarch(void)
+const struct arch *getarch(void)
 {
 	return arch;
 }
 
-const struct cpu * getcpu(void)
+const struct cpu *getcpu(void)
 {
 	return cpu;
 }
 
 
-void setos(const struct os * o)
+void setos(const struct os *o)
 {
 	os = o;
 }
 
-void setarch(const struct arch * a)
+void setarch(const struct arch *a)
 {
 	if (arch == a)
 		return;
@@ -128,14 +128,14 @@ void setarch(const struct arch * a)
 	cpu = a->cpus[0];
 }
 
-void setcpu(const struct cpu * c)
+void setcpu(const struct cpu *c)
 {
 	arch = c->arch;
 	cpu = c;
 }
 
 
-int gettypesize(struct ctype * ty)
+int gettypesize(struct ctype *ty)
 {
 	if (ty == &cbool)
 		return 1;
@@ -176,7 +176,7 @@ int gettypesize(struct ctype * ty)
 	return -1;
 }
 
-int getfalign(struct ctype * ty)
+int getfalign(struct ctype *ty)
 {
 	if (arch == &archx86 && os == &oslinux && ty == &cdouble)
 		return 4;

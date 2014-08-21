@@ -30,12 +30,12 @@ enum asmflavor {
 	AF_MASM
 };
 
-void options_init(int argc, char * argv[]);
+void options_init(int argc, char *argv[]);
 void options_destroy(void);
 
-char * option_outfile(void);
+char *option_outfile(void);
 int option_optimize(void);
-struct list * option_input(void);
+struct list *option_input(void);
 int option_warnings(void);
 enum asmflavor option_asmflavor(void);
 

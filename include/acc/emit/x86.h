@@ -24,6 +24,6 @@
 
 #include <acc/ast.h>
 
-void x86_emit(FILE * f, struct list * symbols);
+void x86_emit(FILE *f, struct list *symbols);
 
 #endif

@@ -24,10 +24,10 @@
 
 #include <acc/token.h>
 
-int chkt(FILE * f, const char * t);
-int chktt(FILE * f, enum tokenty tt);
-struct token * chktp(FILE * f, const char * t);
-struct token * chkttp(FILE * f, enum tokenty tt);
-void freetp(struct token * t);
+int chkt(FILE *f, const char *t);
+int chktt(FILE *f, enum tokenty tt);
+struct token *chktp(FILE * f, const char *t);
+struct token *chkttp(FILE * f, enum tokenty tt);
+void freetp(struct token *t);
 
 #endif

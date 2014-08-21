@@ -55,7 +55,7 @@ enum declflags {
 		DF_ARRAY_POINTER
 };
 
-int parsedecl(FILE * f, enum declflags flags, struct list * syms, struct itm_block ** b);
+int parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_block **b);
 
 #endif
  

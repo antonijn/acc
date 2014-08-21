@@ -48,25 +48,25 @@ struct x86e {
 
 struct x86reg {
 	struct x86e base;
-	const char * name;
-	const struct x86reg * parent;
-	const struct x86reg * child1;
-	const struct x86reg * child2;
+	const char *name;
+	const struct x86reg *parent;
+	const struct x86reg *child1;
+	const struct x86reg *child2;
 };
 
 struct x86imm {
 	struct x86e base;
-	struct x86imm * l, * r;
-	const char * op;
-	char * label;
-	unsigned long value;
+	struct x86imm *l, *r;
+	const char *op;
+	char *label;
+	long value;
 };
 
 struct x86ea {
 	struct x86e base;
-	const struct x86reg * basereg;
-	struct x86imm * displacement;
-	const struct x86reg * offset;
+	const struct x86reg *basereg;
+	struct x86imm *displacement;
+	const struct x86reg *offset;
 	int mult;
 };
 
@@ -153,27 +153,27 @@ static const struct x86reg r14 = { { XREGISTER, 8 }, "r14", NULL, &r14d, NULL };
 static const struct x86reg r15 = { { XREGISTER, 8 }, "r15", NULL, &r15d, NULL };
 
 /* list of available registers per platform */
-static const struct x86reg * regav8086[] = {
+static const struct x86reg *regav8086[] = {
 	&ah, &al, &bh, &bl, &ch, &cl, &dh, &dl,
 	&spl, &bpl, &sil, &dil,
 	&ax, &bx, &cx, &dx, &sp, &bp, &si, &di, NULL
 };
 
-static const struct x86reg * regavi386[] = {
+static const struct x86reg *regavi386[] = {
 	&ah, &al, &bh, &bl, &ch, &cl, &dh, &dl,
 	&spl, &bpl, &sil, &dil,
 	&ax, &bx, &cx, &dx, &sp, &bp, &si, &di,
 	&eax, &ebx, &edx, &ecx, &esp, &ebp, &esi, &edi, NULL
 };
 
-static const struct x86reg * regavi686[] = {
+static const struct x86reg *regavi686[] = {
 	&ah, &al, &bh, &bl, &ch, &cl, &dh, &dl,
 	&spl, &bpl, &sil, &dil,
 	&ax, &bx, &cx, &dx, &sp, &bp, &si, &di,
 	&eax, &ebx, &edx, &ecx, &esp, &ebp, &esi, &edi, NULL
 };
 
-static const struct x86reg * regavamd64[] = {
+static const struct x86reg *regavamd64[] = {
 	&ah, &al, &bh, &bl, &ch, &cl, &dh, &dl,
 	&spl, &bpl, &sil, &dil,
 	&ax, &bx, &cx, &dx, &sp, &bp, &si, &di,
@@ -185,42 +185,42 @@ static const struct x86reg * regavamd64[] = {
 	&r8, &r9, &r10, &r11, &r12, &r14, &r15, NULL
 };
 
-static const struct x86reg ** regav[] = {
+static const struct x86reg **regav[] = {
 	&regav8086[0], &regavi386[0], &regavi686[0], &regavamd64[0]
 };
 
-static void new_x86_imm(struct x86imm * res, int size, long value);
-static void new_x86_label(struct x86imm * res, char * value);
-static void new_x86_cop(struct x86imm * res, const char * op,
-	struct x86imm * l, struct x86imm * r);
-static void delete_x86_imm(struct x86imm * imm);
+static void new_x86_imm(struct x86imm *res, int size, long value);
+static void new_x86_label(struct x86imm *res, char *value);
+static void new_x86_cop(struct x86imm *res, const char *op,
+	struct x86imm *l, struct x86imm *r);
+static void delete_x86_imm(struct x86imm *imm);
 
-static void new_x86_ea(struct x86ea * res, int size,
-	const struct x86reg * base,
-	struct x86imm * displacement,
-	const struct x86reg * offset,
+static void new_x86_ea(struct x86ea *res, int size,
+	const struct x86reg *base,
+	struct x86imm *displacement,
+	const struct x86reg *offset,
 	int mult);
-static void delete_x86_ea(struct x86ea * ea);
+static void delete_x86_ea(struct x86ea *ea);
 
-static void x86l(FILE * f, struct x86imm * imm);
-static void x86i(FILE * f, const char * instr, int numops, ...);
-static void x86sdi(FILE * f, const char * instr,
-	struct x86e * dest, struct x86e * src);
-static void x86global(FILE * f, struct x86imm * imm);
-static void x86extern(FILE * f, struct x86imm * imm);
-static void x86sect(FILE * f, enum x86section sec);
-static void x86byte(FILE * f, char value);
-static void x86short(FILE * f, short value);
-static void x86long(FILE * f, int value);
-static void x86quad(FILE * f, long value);
-static void x86etostr(FILE * f, struct x86e * e);
-static void x86eatostr(FILE * f, struct x86ea * ea);
-static void x86immtostr(FILE * f, struct x86imm * imm, int attprefix);
+static void x86l(FILE *f, struct x86imm *imm);
+static void x86i(FILE *f, const char *instr, int numops, ...);
+static void x86sdi(FILE *f, const char *instr,
+	struct x86e *dest, struct x86e *src);
+static void x86global(FILE *f, struct x86imm *imm);
+static void x86extern(FILE *f, struct x86imm *imm);
+static void x86sect(FILE *f, enum x86section sec);
+static void x86byte(FILE *f, char value);
+static void x86short(FILE *f, short value);
+static void x86long(FILE *f, int value);
+static void x86quad(FILE *f, long value);
+static void x86etostr(FILE *f, struct x86e *e);
+static void x86eatostr(FILE *f, struct x86ea *ea);
+static void x86immtostr(FILE *f, struct x86imm *imm, int attprefix);
 
-static void x86_emit_symbol(FILE * f, struct symbol * sym);
+static void x86_emit_symbol(FILE *f, struct symbol *sym);
 
 
-static void new_x86_imm(struct x86imm * res, int size, long value)
+static void new_x86_imm(struct x86imm *res, int size, long value)
 {
 	assert(res != NULL);
 	
@@ -232,7 +232,7 @@ static void new_x86_imm(struct x86imm * res, int size, long value)
 	res->value = value;
 }
 
-static void new_x86_label(struct x86imm * res, char * value)
+static void new_x86_label(struct x86imm *res, char *value)
 {
 	/* I don't know if ISO true values are necessarily 1... */
 	int uscorepfix = ((getos() == &oswindows) && value[0] != '.') ? 1 : 0;
@@ -252,8 +252,8 @@ static void new_x86_label(struct x86imm * res, char * value)
 	res->value = -1;
 }
 
-static void new_x86_cop(struct x86imm * res, const char * op,
-	struct x86imm * l, struct x86imm * r)
+static void new_x86_cop(struct x86imm *res, const char *op,
+	struct x86imm *l, struct x86imm *r)
 {
 	assert(res != NULL);
 	assert(op != NULL);
@@ -270,17 +270,17 @@ static void new_x86_cop(struct x86imm * res, const char * op,
 	res->value = -1;
 }
 
-static void delete_x86_imm(struct x86imm * imm)
+static void delete_x86_imm(struct x86imm *imm)
 {
 	assert(imm != NULL);
 	if (imm->label)
 		free(imm->label);
 }
 
-static void new_x86_ea(struct x86ea * res, int size,
-	const struct x86reg * base,
-	struct x86imm * displacement,
-	const struct x86reg * offset,
+static void new_x86_ea(struct x86ea *res, int size,
+	const struct x86reg *base,
+	struct x86imm *displacement,
+	const struct x86reg *offset,
 	int mult)
 {
 	assert(res != NULL);
@@ -294,13 +294,13 @@ static void new_x86_ea(struct x86ea * res, int size,
 	res->mult = mult;
 }
 
-static void delete_x86_ea(struct x86ea * ea)
+static void delete_x86_ea(struct x86ea *ea)
 {
 	/* stub for future compatibility */
 }
 
 
-static void x86l(FILE * f, struct x86imm * imm)
+static void x86l(FILE *f, struct x86imm *imm)
 {
 	assert(imm != NULL);
 	assert(imm->label != NULL);
@@ -308,16 +308,16 @@ static void x86l(FILE * f, struct x86imm * imm)
 	fprintf(f, "%s:\n", imm->label);
 }
 
-static void x86i(FILE * f, const char * instr, int numops, ...)
+static void x86i(FILE *f, const char *instr, int numops, ...)
 {
 	va_list ap;
 	int i;
 	int reqsuf = 0;
-	struct x86e ** ops = malloc(sizeof(struct x86e *) * numops);
+	struct x86e **ops = malloc(sizeof(struct x86e *) * numops);
 	
 	va_start(ap, numops);
 	for (i = 0; i < numops; ++i) {
-		struct x86e * e = va_arg(ap, struct x86e *);
+		struct x86e *e = va_arg(ap, struct x86e *);
 		assert(e != NULL);
 		ops[i] = e;
 		reqsuf |= (e->type != XIMMEDIATE);
@@ -359,8 +359,8 @@ static void x86i(FILE * f, const char * instr, int numops, ...)
 	free(ops);
 }
 
-static void x86sdi(FILE * f, const char * instr,
-	struct x86e * dest, struct x86e * src)
+static void x86sdi(FILE *f, const char *instr,
+	struct x86e *dest, struct x86e *src)
 {
 	if (option_asmflavor() == AF_ATT)
 		x86i(f, instr, 2, src, dest);
@@ -368,9 +368,9 @@ static void x86sdi(FILE * f, const char * instr,
 		x86i(f, instr, 2, dest, src);
 }
 
-static void x86etostr(FILE * f, struct x86e * e)
+static void x86etostr(FILE *f, struct x86e *e)
 {	
-	struct x86reg * reg;
+	struct x86reg *reg;
 	
 	switch (e->type) {
 	case XREGISTER:
@@ -388,7 +388,7 @@ static void x86etostr(FILE * f, struct x86e * e)
 	}
 }
 
-static void x86immtostr(FILE * f, struct x86imm * imm, int attprefix)
+static void x86immtostr(FILE *f, struct x86imm *imm, int attprefix)
 {
 	if (imm->op) {
 		fprintf(f, "(");
@@ -405,7 +405,7 @@ static void x86immtostr(FILE * f, struct x86imm * imm, int attprefix)
 	}
 }
 
-static void x86eatostr(FILE * f, struct x86ea * ea)
+static void x86eatostr(FILE *f, struct x86ea *ea)
 {
 	if (option_asmflavor() == AF_ATT) {
 		if (ea->displacement && (ea->basereg || ea->offset))
@@ -461,7 +461,7 @@ static void x86eatostr(FILE * f, struct x86ea * ea)
 	fprintf(f, "]");
 }
 
-static void x86global(FILE * f, struct x86imm * imm)
+static void x86global(FILE *f, struct x86imm *imm)
 {
 	assert(imm != NULL);
 	assert(imm->label != NULL);
@@ -472,7 +472,7 @@ static void x86global(FILE * f, struct x86imm * imm)
 		fprintf(f, "global\t%s\n", imm->label);
 }
 
-static void x86extern(FILE * f, struct x86imm * imm)
+static void x86extern(FILE *f, struct x86imm *imm)
 {
 	assert(imm != NULL);
 	assert(imm->label != NULL);
@@ -483,7 +483,7 @@ static void x86extern(FILE * f, struct x86imm * imm)
 	fprintf(f, "extern\t%s\n", imm->label);
 }
 
-static void x86sect(FILE * f, enum x86section sec)
+static void x86sect(FILE *f, enum x86section sec)
 {
 	if (option_asmflavor() == AF_ATT)
 		fprintf(f, "\t");
@@ -507,7 +507,7 @@ static void x86sect(FILE * f, enum x86section sec)
 	fprintf(f, "\n");
 }
 
-static void x86byte(FILE * f, char value)
+static void x86byte(FILE *f, char value)
 {
 	if (option_asmflavor() == AF_ATT)
 		fprintf(f, "\t.byte\t%d\n", (int)value);
@@ -515,7 +515,7 @@ static void x86byte(FILE * f, char value)
 		fprintf(f, "\tdb\t%d\n", (int)value);
 }
 
-static void x86short(FILE * f, short value)
+static void x86short(FILE *f, short value)
 {
 	if (option_asmflavor() == AF_ATT)
 		fprintf(f, "\t.value\t%d\n", (int)value);
@@ -523,7 +523,7 @@ static void x86short(FILE * f, short value)
 		fprintf(f, "\tdw\t%d\n", (int)value);
 }
 
-static void x86long(FILE * f, int value)
+static void x86long(FILE *f, int value)
 {
 	if (option_asmflavor() == AF_ATT)
 		fprintf(f, "\t.long\t%d\n", (int)value);
@@ -531,7 +531,7 @@ static void x86long(FILE * f, int value)
 		fprintf(f, "\tdd\t%d\n", (int)value);
 }
 
-static void x86quad(FILE * f, long value)
+static void x86quad(FILE *f, long value)
 {
 	if (option_asmflavor() == AF_ATT)
 		fprintf(f, "\t.quad\t%ld\n", value);
@@ -539,15 +539,15 @@ static void x86quad(FILE * f, long value)
 		fprintf(f, "\tdq\t%ld\n", value);
 }
 
-void x86_emit(FILE * f, struct list * blocks)
+void x86_emit(FILE *f, struct list *blocks)
 {
-	void * it, * sym;
+	void *it, *sym;
 	it = list_iterator(blocks);
 	while (iterator_next(&it, &sym))
 		x86_emit_symbol(f, sym);
 }
 
-static void x86_emit_symbol(FILE * f, struct symbol * sym)
+static void x86_emit_symbol(FILE *f, struct symbol *sym)
 {
 	/* TODO: implement */
 }

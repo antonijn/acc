@@ -32,14 +32,14 @@ typedef struct {
 	int count;
 } SFILE;
 
-static SFILE * ssopen(void);
-static char * ssclose(SFILE * ss);
-static char * ssgets(SFILE * ss);
-static void ssputc(SFILE * ss, char ch);
-static void ssunputc(SFILE * ss);
+static SFILE *ssopen(void);
+static char *ssclose(SFILE *ss);
+static char *ssgets(SFILE *ss);
+static void ssputc(SFILE *ss, char ch);
+static void ssunputc(SFILE *ss);
 
 /* local functions */
-static void skipf(FILE * f);
+static void skipf(FILE *f);
 
 struct lchar {
 	int ch;
@@ -47,21 +47,21 @@ struct lchar {
 	size_t len;
 };
 
-static struct lchar fgetlc(FILE * f);
-static void ungetlc(struct lchar * lc, FILE * f);
+static struct lchar fgetlc(FILE *f);
+static void ungetlc(struct lchar *lc, FILE *f);
 
-static int chkc(FILE * f, SFILE * t, const char * chs);
-static int chks(FILE * f, SFILE * t, const char * s);
+static int chkc(FILE *f, SFILE *t, const char *chs);
+static int chks(FILE *f, SFILE *t, const char *s);
 
-static int chkid(FILE * f, SFILE * t, enum tokenty * tt);
-static int chknum(FILE * f, SFILE * t, enum tokenty * tt);
-static int chkstr(FILE * f, SFILE * t, enum tokenty * tt);
-static int chkop(FILE * f, SFILE * t, enum tokenty * tt);
-static int chkppdir(FILE * f, SFILE * t, enum tokenty * tt);
+static int chkid(FILE *f, SFILE *t, enum tokenty *tt);
+static int chknum(FILE *f, SFILE *t, enum tokenty *tt);
+static int chkstr(FILE *f, SFILE *t, enum tokenty *tt);
+static int chkop(FILE *f, SFILE *t, enum tokenty *tt);
+static int chkppdir(FILE *f, SFILE *t, enum tokenty *tt);
 
-static int readnum(FILE * f, SFILE * t, const char * allowed,
-	enum tokenty * tt);
-static int readch(FILE * f, SFILE * t, char terminator);
+static int readnum(FILE *f, SFILE *t, const char *allowed,
+	enum tokenty *tt);
+static int readch(FILE *f, SFILE *t, char terminator);
 
 static int line = 1;
 static int column = 0;
@@ -79,9 +79,9 @@ int get_column(void)
 /*
  * Open string stream
  */
-static SFILE * ssopen(void)
+static SFILE *ssopen(void)
 {
-	SFILE * res = malloc(sizeof(SFILE));
+	SFILE *res = malloc(sizeof(SFILE));
 	res->count = 0;
 	res->av = 16;
 	res->buf = calloc(res->av + 1, sizeof(char));
@@ -91,9 +91,9 @@ static SFILE * ssopen(void)
  /*
   * Close string stream
   */
-static char * ssclose(SFILE * ss)
+static char *ssclose(SFILE *ss)
 {
-	char * buf = ss->buf;
+	char *buf = ss->buf;
 	free(ss);
 	return buf;
 }
@@ -101,7 +101,7 @@ static char * ssclose(SFILE * ss)
 /*
  * Get stored string
  */
-static char * ssgets(SFILE * ss)
+static char *ssgets(SFILE *ss)
 {
 	return ss->buf;
 }
@@ -109,7 +109,7 @@ static char * ssgets(SFILE * ss)
 /*
  * Write character to a string stream
  */
-static void ssputc(SFILE * ss, char ch)
+static void ssputc(SFILE *ss, char ch)
 {
 	int i;
 	if (ss->av == 0) {
@@ -125,7 +125,7 @@ static void ssputc(SFILE * ss, char ch)
 /*
  * Remove last character from string stream
  */
-static void ssunputc(SFILE * ss)
+static void ssunputc(SFILE *ss)
 {
 	ss->buf[--ss->count] = '\0';
 }
@@ -134,7 +134,7 @@ static void ssunputc(SFILE * ss)
  * Get logical C character
  * Filters out trigraphs.
  */
-static struct lchar fgetlc(FILE * f)
+static struct lchar fgetlc(FILE *f)
 {
 	struct lchar res;
 	res.chars[0] = res.ch = fgetc(f);
@@ -201,7 +201,7 @@ static struct lchar fgetlc(FILE * f)
 	return res;
 }
 
-static void ungetlc(struct lchar * lc, FILE * f)
+static void ungetlc(struct lchar *lc, FILE *f)
 {
 	int i;
 	for (i = lc->len - 1; i >= 0; --i) {
@@ -219,7 +219,7 @@ static void ungetlc(struct lchar * lc, FILE * f)
  * If next char is in chs, returns 1 and advances stream
  * If not, returns 0
  */
-static int chkc(FILE * f, SFILE * t, const char * chs)
+static int chkc(FILE *f, SFILE *t, const char *chs)
 {
 	char ch;
 	struct lchar act = fgetlc(f);
@@ -253,7 +253,7 @@ static int chkc(FILE * f, SFILE * t, const char * chs)
  * Check for string
  * Like chkc but checks for an entire sequence.
  */
-static int chks(FILE * f, SFILE * t, const char * s)
+static int chks(FILE *f, SFILE *t, const char *s)
 {
 	size_t len = strlen(s);
 	struct lchar *lcs = malloc(sizeof(struct lchar) * len);
@@ -282,7 +282,7 @@ cleanup:
 /*
  * Skip formatting characters
  */
-static void skipf(FILE * f)
+static void skipf(FILE *f)
 {
 	while (chkc(f, NULL, " \n\t\v\r\f"))
 		;
@@ -299,7 +299,7 @@ static void skipf(FILE * f)
  * Check for preprocessor directive
  * Returns 1 if a preprocessor directive was read
  */
-static int chkppdir(FILE * f, SFILE * t, enum tokenty * tt)
+static int chkppdir(FILE *f, SFILE *t, enum tokenty *tt)
 {
 	if (chkc(f, t, "#")) {
 		while (!(!chkc(f, NULL, "\\") && chkc(f, NULL, "\n")))
@@ -314,7 +314,7 @@ static int chkppdir(FILE * f, SFILE * t, enum tokenty * tt)
  * Check for operator
  * Returns 1 if an operator was read
  */
-static int chkop(FILE * f, SFILE * t, enum tokenty * tt)
+static int chkop(FILE *f, SFILE *t, enum tokenty *tt)
 {
 	if (chkc(f, t, "*/%^!=~")) {
 		chkc(f, t, "=");
@@ -364,7 +364,7 @@ ret:
 /*
  * Returns 1 if str is a reserved word
  */
-static int isreserved(char * str)
+static int isreserved(char *str)
 {
 	if (str[0] == '_' && isupper(str[1]))
 		return 1;
@@ -418,7 +418,7 @@ static const char alphanum[] =
  * Check for identifier
  * Returns 1 if an identifier was read
  */
-static int chkid(FILE * f, SFILE * t, enum tokenty * tt)
+static int chkid(FILE *f, SFILE *t, enum tokenty *tt)
 {
 	if (chkc(f, t, alpha)) {
 		while (chkc(f, t, alphanum))
@@ -437,13 +437,13 @@ const char octchars[] = "01234567";
 /*
  * Read a number composed of the characters in allowed
  */
-static int readnum(FILE * f, SFILE * t, const char * allowed,
-	enum tokenty * tt)
+static int readnum(FILE *f, SFILE *t, const char *allowed,
+	enum tokenty *tt)
 {
 	int i = 0;
 	while (chkc(f, t, allowed))
 		++i;
-	if (((i == 1 && allowed == decchars) || allowed == octchars) &&
+	if ((allowed == decchars || allowed == octchars) &&
 		chkc(f, t, ".")) {
 		++i;
 		*tt = T_DOUBLE;
@@ -464,7 +464,7 @@ static int readnum(FILE * f, SFILE * t, const char * allowed,
  * Check for number
  * Returns 1 if a number is read
  */
-static int chknum(FILE * f, SFILE * t, enum tokenty * tt)
+static int chknum(FILE *f, SFILE *t, enum tokenty *tt)
 {
 	if (chkc(f, t, "0")) {
 		/* octal, hex or zero */
@@ -489,7 +489,7 @@ static int chknum(FILE * f, SFILE * t, enum tokenty * tt)
 /*
  * Returns 1 if a non-terminator character is read
  */
-static int readch(FILE * f, SFILE * t, char terminator)
+static int readch(FILE *f, SFILE *t, char terminator)
 {
 	int i;
 	char termstr[2];
@@ -537,7 +537,7 @@ static int readch(FILE * f, SFILE * t, char terminator)
  * Check for string
  * Returns 1 if a string or character literal is read
  */
-static int chkstr(FILE * f, SFILE * t, enum tokenty * tt)
+static int chkstr(FILE *f, SFILE *t, enum tokenty *tt)
 {
 	if (chkc(f, t, "\"")) {
 		while (readch(f, t, '"'))
@@ -559,10 +559,10 @@ static int chkstr(FILE * f, SFILE * t, enum tokenty * tt)
 	return 0;
 }
 
-struct token gettok(FILE * f)
+struct token gettok(FILE *f)
 {
 	struct token res;
-	SFILE * t;
+	SFILE *t;
 	int nxt;
 
 	skipf(f);
@@ -597,7 +597,7 @@ ret:
 	return res;
 }
 
-void ungettok(struct token * t, FILE * f)
+void ungettok(struct token *t, FILE *f)
 {
 	size_t len = strlen(t->lexeme);
 	int i;
@@ -607,7 +607,7 @@ void ungettok(struct token * t, FILE * f)
 	}
 }
 
-void freetok(struct token * t)
+void freetok(struct token *t)
 {
 	free(t->lexeme);
 }

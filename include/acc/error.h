@@ -35,8 +35,8 @@ enum errorty {
 	E_PARSER = E_ERROR
 };
 
-void report(enum errorty ty, struct token * tok, const char * frmt, ...);
+void report(enum errorty ty, struct token *tok, const char *frmt, ...);
 
-extern const char * currentfile;
+extern const char *currentfile;
 
 #endif

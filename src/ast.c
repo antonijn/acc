@@ -38,35 +38,35 @@ struct ctype cfloat;
 struct ctype cdouble;
 struct ctype cvoid;
 
-static struct list * alltypes;
-static struct list * typescopes;
-static struct list * allsyms;
-static struct list * symscopes;
+static struct list *alltypes;
+static struct list *typescopes;
+static struct list *allsyms;
+static struct list *symscopes;
 
-static void registerty(struct ctype * t)
+static void registerty(struct ctype *t)
 {
-	struct list * topscope;
+	struct list *topscope;
 	list_push_back(alltypes, t);
 	topscope = list_last(typescopes);
 	list_push_back(topscope, t);
 }
 
-static void primitive_free(struct ctype * p)
+static void primitive_free(struct ctype *p)
 {
 }
 
-static void primitive_to_string(FILE * f, struct ctype * p)
+static void primitive_to_string(FILE *f, struct ctype *p)
 {
 	fprintf(f, "%s", p->name);
 }
 
-static enum typecomp primitive_compare(struct ctype * l, struct ctype * r)
+static enum typecomp primitive_compare(struct ctype *l, struct ctype *r)
 {
 	/* TODO: proper implementation */
 	return EXPLICIT;
 }
 
-static void initprimitive(struct ctype * p, const char * name)
+static void initprimitive(struct ctype *p, const char *name)
 {
 	p->free = &primitive_free;
 	p->type = PRIMITIVE;
@@ -78,12 +78,12 @@ static void initprimitive(struct ctype * p, const char * name)
 		registerty(p);
 }
 
-int hastc(struct ctype * ty, enum typeclass tc)
+int hastc(struct ctype *ty, enum typeclass tc)
 {
 	return gettc(ty) & tc;
 }
 
-enum typeclass gettc(struct ctype * ty)
+enum typeclass gettc(struct ctype *ty)
 {
 	if (ty == &cfloat ||
 	    ty == &cdouble)
@@ -125,7 +125,7 @@ void ast_init(void)
 
 static void destroy_type(void * ty)
 {
-	struct ctype * cty = ty;
+	struct ctype *cty = ty;
 	cty->free(cty);
 }
 
@@ -156,23 +156,23 @@ void leave_scope(void)
 }
 
 
-static void pointer_to_string(FILE * f, struct ctype * p)
+static void pointer_to_string(FILE *f, struct ctype *p)
 {
-	struct cpointer * ptr = (struct cpointer *)p;
+	struct cpointer *ptr = (struct cpointer *)p;
 	fprintf(f, "(ptr ");
 	ptr->pointsto->to_string(f, ptr->pointsto);
 	fprintf(f, ")");
 }
 
-static enum typecomp pointer_compare(struct ctype * l, struct ctype * r)
+static enum typecomp pointer_compare(struct ctype *l, struct ctype *r)
 {
 	/* TODO: proper implementation */
 	return IMPLICIT;
 }
 
-struct ctype * new_pointer(struct ctype * base)
+struct ctype *new_pointer(struct ctype *base)
 {
-	struct cpointer * ty = malloc(sizeof(struct cpointer));
+	struct cpointer *ty = malloc(sizeof(struct cpointer));
 	ty->base.free = (void (*)(struct ctype *))&free;
 	ty->base.type = POINTER;
 	ty->base.size = gettypesize((struct ctype *)ty);
@@ -184,28 +184,28 @@ struct ctype * new_pointer(struct ctype * base)
 	return (struct ctype *)ty;
 }
 
-static void struct_to_string(FILE * f, struct ctype * p)
+static void struct_to_string(FILE *f, struct ctype *p)
 {
-	struct cstruct * cs = (struct cstruct *)p;
+	struct cstruct *cs = (struct cstruct *)p;
 	fprintf(f, "(struct %s)", cs->base.name ? cs->base.name : "{ ... }");
 }
 
-static enum typecomp struct_compare(struct ctype * l, struct ctype * r)
+static enum typecomp struct_compare(struct ctype *l, struct ctype *r)
 {
 	return INCOMPATIBLE;
 }
 
-static void free_struct(struct ctype * t)
+static void free_struct(struct ctype *t)
 {
-	struct cstruct * cs = (struct cstruct *)t;
+	struct cstruct *cs = (struct cstruct *)t;
 	free((void *)t->name);
 	delete_list(cs->fields, NULL);
 	free(t);
 }
 
-struct ctype * new_struct(char * id)
+struct ctype *new_struct(char *id)
 {
-	struct cstruct * ty = malloc(sizeof(struct cpointer));
+	struct cstruct *ty = malloc(sizeof(struct cpointer));
 	ty->base.free = &free_struct;
 	ty->base.type = STRUCTURE;
 	ty->base.size = gettypesize((struct ctype *)ty);
@@ -221,9 +221,9 @@ struct ctype * new_struct(char * id)
 	return (struct ctype *)ty;
 }
 
-void struct_add_field(struct ctype * type, struct ctype * ty, char * id)
+void struct_add_field(struct ctype *type, struct ctype *ty, char *id)
 {
-	struct cstruct * cs = (struct cstruct *)type;
+	struct cstruct *cs = (struct cstruct *)type;
 	size_t strl = strlen(id) + 1;
 	struct field * fi = malloc(sizeof(struct field));
 	fi->id = calloc(strl, sizeof(char));
@@ -232,11 +232,11 @@ void struct_add_field(struct ctype * type, struct ctype * ty, char * id)
 	list_push_back(cs->fields, fi);
 }
 
-struct field * struct_get_field(struct ctype * type, char * name)
+struct field *struct_get_field(struct ctype *type, char *name)
 {
-	struct cstruct * cs = (struct cstruct *)type;
-	void * it;
-	struct field * fi;
+	struct cstruct *cs = (struct cstruct *)type;
+	void *it;
+	struct field *fi;
 	it = list_iterator(cs->fields);
 	while (iterator_next(&it, (void **)&fi))
 		if (!strcmp(name, fi->id))
@@ -245,20 +245,20 @@ struct field * struct_get_field(struct ctype * type, char * name)
 	return NULL;
 }
 
-struct ctype * new_union(char * name)
+struct ctype *new_union(char *name)
 {
 	return new_struct(name);
 }
 
-struct ctype * new_array(struct ctype * etype, int length)
+struct ctype *new_array(struct ctype *etype, int length)
 {
 	/* TODO: implement */
 	return NULL;
 }
 
-static void qualified_to_string(FILE * f, struct ctype * ty)
+static void qualified_to_string(FILE *f, struct ctype *ty)
 {
-	struct cqualified * cq = (struct cqualified *)ty;
+	struct cqualified *cq = (struct cqualified *)ty;
 	fprintf(f, "(");
 	if (cq->qualifiers & Q_CONST)
 		fprintf(f, "const ");
@@ -268,15 +268,15 @@ static void qualified_to_string(FILE * f, struct ctype * ty)
 	fprintf(f, ")");
 }
 
-static enum typecomp qualified_compare(struct ctype * l, struct ctype * r)
+static enum typecomp qualified_compare(struct ctype *l, struct ctype *r)
 {
 	/* TODO: proper implementation */
 	return EXPLICIT;
 }
 
-struct ctype * new_qualified(struct ctype * base, enum qualifier q)
+struct ctype * new_qualified(struct ctype *base, enum qualifier q)
 {
-	struct cqualified * ty = malloc(sizeof(struct cqualified));
+	struct cqualified *ty = malloc(sizeof(struct cqualified));
 	ty->base.free = (void (*)(struct ctype *))&free;
 	ty->base.type = QUALIFIED;
 	ty->base.size = base->size;
@@ -289,19 +289,19 @@ struct ctype * new_qualified(struct ctype * base, enum qualifier q)
 	return (struct ctype *)ty;
 }
 
-static void free_function(struct ctype * ty)
+static void free_function(struct ctype *ty)
 {
-	struct cfunction * f = (struct cfunction *)ty;
+	struct cfunction *f = (struct cfunction *)ty;
 	delete_list(f->parameters, NULL);
 	free(f);
 }
 
-static void function_to_string(FILE * f, struct ctype * ty)
+static void function_to_string(FILE *f, struct ctype *ty)
 {
 	int i;
-	void * it;
-	struct symbol * sym;
-	struct cfunction * cf = (struct cfunction *)ty;
+	void *it;
+	struct symbol *sym;
+	struct cfunction *cf = (struct cfunction *)ty;
 	fprintf(f, "(function ");
 	cf->ret->to_string(f, cf->ret);
 	fprintf(f, " (taking ");
@@ -317,15 +317,15 @@ static void function_to_string(FILE * f, struct ctype * ty)
 	fprintf(f, "))");
 }
 
-static enum typecomp function_compare(struct ctype * l, struct ctype * r)
+static enum typecomp function_compare(struct ctype *l, struct ctype *r)
 {
 	/* TODO: proper implementation */
 	return INCOMPATIBLE;
 }
 
-struct ctype * new_function(struct ctype * ret, struct list * params)
+struct ctype *new_function(struct ctype *ret, struct list *params)
 {
-	struct cfunction * ty = malloc(sizeof(struct cfunction));
+	struct cfunction *ty = malloc(sizeof(struct cfunction));
 	ty->base.free = &free_function;
 	ty->base.type = FUNCTION;
 	ty->base.size = -1;
@@ -338,13 +338,13 @@ struct ctype * new_function(struct ctype * ret, struct list * params)
 	return (struct ctype *)ty;
 }
 
-struct symbol * get_symbol(char * id)
+struct symbol *get_symbol(char *id)
 {
 	int i;
 	for (i = list_length(symscopes) - 1; i >= 0; --i) {
-		struct list * l = get_list_item(symscopes, i);
-		void * it;
-		struct symbol * sym;
+		struct list *l = get_list_item(symscopes, i);
+		void *it;
+		struct symbol *sym;
 		it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym))
 			if (!strcmp(sym->id, id) && sym->storage != SC_TYPEDEF)
@@ -353,19 +353,19 @@ struct symbol * get_symbol(char * id)
 	return NULL;
 }
 
-struct enumerator * get_enumerator(char * id)
+struct enumerator *get_enumerator(char *id)
 {
 	/* TODO: implement */
 	return NULL;
 }
 
-struct cstruct * get_struct(char * name)
+struct cstruct *get_struct(char *name)
 {
 	int i;
 	for (i = list_length(typescopes) - 1; i >= 0; --i) {
-		struct list * l = get_list_item(typescopes, i);
-		void * it;
-		struct ctype * sym;
+		struct list *l = get_list_item(typescopes, i);
+		void *it;
+		struct ctype *sym;
 		it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym))
 			if (sym->type == STRUCTURE && !strcmp(sym->name, name))
@@ -374,13 +374,13 @@ struct cstruct * get_struct(char * name)
 	return NULL;
 }
 
-struct cunion * get_union(char * name)
+struct cunion *get_union(char *name)
 {
 	int i;
 	for (i = list_length(typescopes) - 1; i >= 0; --i) {
-		struct list * l = get_list_item(typescopes, i);
-		void * it;
-		struct ctype * sym;
+		struct list *l = get_list_item(typescopes, i);
+		void *it;
+		struct ctype *sym;
 		it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym))
 			if (sym->type == UNION && !strcmp(sym->name, name))
@@ -389,35 +389,34 @@ struct cunion * get_union(char * name)
 	return NULL;
 }
 
-struct symbol * new_symbol(struct ctype * type, char * id,
+struct symbol *new_symbol(struct ctype *type, char *id,
 	enum storageclass sc, int reg)
 {
-	struct symbol * sym = malloc(sizeof(struct symbol));
+	struct symbol *sym = malloc(sizeof(struct symbol));
 	sym->block = NULL;
 	sym->type = type;
 	sym->id = calloc(strlen(id) + 1, sizeof(char));
 	sprintf(sym->id, "%s", id);
 	sym->storage = sc;
-	if (reg) {
+	if (reg)
 		registersym(sym);
-	}
 	list_push_back(allsyms, sym);
 	return sym;
 }
 
-void registersym(struct symbol * sym)
+void registersym(struct symbol *sym)
 {
-	struct list * syms = list_last(symscopes);
+	struct list *syms = list_last(symscopes);
 	list_push_back(syms, sym);
 }
 
-struct ctype * get_typedef(char * id)
+struct ctype *get_typedef(char *id)
 {
 	int i;
 	for (i = list_length(symscopes) - 1; i >= 0; --i) {
-		struct list * l = get_list_item(symscopes, i);
-		void * it;
-		struct symbol * sym;
+		struct list *l = get_list_item(symscopes, i);
+		void *it;
+		struct symbol *sym;
 		it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym))
 			if (!strcmp(sym->id, id) && sym->storage == SC_TYPEDEF)
@@ -426,7 +425,7 @@ struct ctype * get_typedef(char * id)
 	return NULL;
 }
 
-struct operator * binoperators[] = {
+struct operator *binoperators[] = {
 	&binop_plus, &binop_min,
 	&binop_div, &binop_mul,
 	&binop_mod, &binop_shl,
@@ -444,7 +443,7 @@ struct operator * binoperators[] = {
 	&binop_assign_or
 };
 
-struct operator * unoperators[] = {
+struct operator *unoperators[] = {
 	&unop_suffinc, &unop_suffdef,
 	&unop_preinc, &unop_predec,
 	&unop_plus, &unop_min,
@@ -452,7 +451,7 @@ struct operator * unoperators[] = {
 	&unop_sizeof
 };
 
-struct operator * getbop(const char * opname)
+struct operator *getbop(const char *opname)
 {
 	int i;
 	for (i = 0; i < sizeof(binoperators) / sizeof(struct operator *); ++i)
@@ -462,7 +461,7 @@ struct operator * getbop(const char * opname)
 	return NULL;
 }
 
-struct operator * getuop(const char * opname)
+struct operator *getuop(const char *opname)
 {
 	int i;
 	for (i = 0; i < sizeof(unoperators) / sizeof(struct operator *); ++i)

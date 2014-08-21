@@ -22,21 +22,21 @@
 #include <acc/list.h>
 
 struct node {
-	struct node * previous;
-	struct node * next;
-	void * data;
+	struct node *previous;
+	struct node *next;
+	void *data;
 };
 
 struct list {
-	struct node * head;
-	struct node * last;
+	struct node *head;
+	struct node *last;
 	size_t length;
 };
 
-struct list * new_list(void * init[], int count)
+struct list *new_list(void *init[], int count)
 {
-	struct list * result;
-	struct node * prev, * head;
+	struct list *result;
+	struct node *prev, *head;
 	int i;
 
 	result = malloc(sizeof(struct list));
@@ -51,17 +51,15 @@ struct list * new_list(void * init[], int count)
 	prev = NULL;
 	head = NULL;
 	for (i = 0; i < count; ++i) {
-		struct node * n;
+		struct node *n;
 		n = malloc(sizeof(struct node));
 		n->data = init[i];
 		n->next = NULL;
 		n->previous = prev;
-		if (prev) {
+		if (prev)
 			prev->next = n;
-		}
-		if (!head) {
+		if (!head)
 			head = n;
-		}
 		prev = n;
 	}
 
@@ -71,28 +69,26 @@ struct list * new_list(void * init[], int count)
 	return result;
 }
 
-struct list * clone_list(struct list * l)
+struct list *clone_list(struct list *l)
 {
-	struct list * result;
-	struct node * prev, * head;
-	void * item, * it;
+	struct list *result;
+	struct node *prev, *head;
+	void *item, *it;
 
 	result = new_list(NULL, 0);
 	prev = NULL;
 	head = NULL;
 	it = list_iterator(l);
 	while (iterator_next(&it, &item)) {
-		struct node * n;
+		struct node *n;
 		n = malloc(sizeof(struct node));
 		n->data = item;
 		n->next = NULL;
 		n->previous = prev;
-		if (prev) {
+		if (prev)
 			prev->next = n;
-		}
-		if (!head) {
+		if (!head)
 			head = n;
-		}
 		prev = n;
 	}
 
@@ -102,76 +98,69 @@ struct list * clone_list(struct list * l)
 	return result;
 }
 
-void delete_list(struct list * l, void (*destr)(void *))
+void delete_list(struct list *l, void (*destr)(void *))
 {
-	struct node * n, * next;
+	struct node *n, *next;
 	next = l->head;
 	while (next) {
 		n = next;
-		if (destr) {
+		if (destr)
 			destr(n->data);
-		}
 		next = n->next;
 		free(n);
 	}
 	free(l);
 }
 
-void * list_iterator(struct list * l)
+void *list_iterator(struct list *l)
 {
 	return l->head;
 }
 
-int iterator_next(void ** it, void ** item)
+int iterator_next(void **it, void **item)
 {
-	struct node * n = *it;
-	if (!n) {
+	struct node *n = *it;
+	if (!n)
 		return 0;
-	}
 	*item = n->data;
 	*it = n->next;
 	return 1;
 }
 
-void * list_rev_iterator(struct list * l)
+void *list_rev_iterator(struct list *l)
 {
 	return l->last;
 }
 
-int rev_iterator_next(void ** it, void ** item)
+int rev_iterator_next(void **it, void **item)
 {
-	struct node * n = *it;
-	if (!n) {
+	struct node *n = *it;
+	if (!n)
 		return 0;
-	}
 	*item = n->data;
 	*it = n->previous;
 	return 1;
 }
 
-void * get_list_item(struct list * l, int idx)
+void *get_list_item(struct list *l, int idx)
 {
-	struct node * n;
-	n = l->head;
-	while (idx-- > 0) {
+	struct node *n = l->head;
+	while (idx-- > 0)
 		n = n->next;
-	}
 	return n->data;
 }
 
-void set_list_item(struct list * l, int idx, void * data)
+void set_list_item(struct list *l, int idx, void *data)
 {
-	struct node * n;
-	n = l->head;
-	while (idx-- > 0) {
+	struct node *n = l->head;
+	while (idx-- > 0)
 		n = n->next;
-	}
 	n->data = data;
 }
 
-void list_push_back(struct list * l, void * data)
+void list_push_back(struct list *l, void *data)
 {
-	struct node * n;
+	struct node *n;
 	n = malloc(sizeof(struct node));
 	n->next = NULL;
 	n->previous = l->last;
@@ -184,10 +173,10 @@ void list_push_back(struct list * l, void * data)
 	++l->length;
 }
 
-void * list_pop_back(struct list * l)
+void *list_pop_back(struct list *l)
 {
-	void * data;
-	struct node * nl;
+	void *data;
+	struct node *nl;
 	data = l->last->data;
 
 	--l->length;
@@ -203,9 +192,9 @@ void * list_pop_back(struct list * l)
 	return data;
 }
 
-void list_push_front(struct list * l, void * data)
+void list_push_front(struct list *l, void *data)
 {
-	struct node * n;
+	struct node *n;
 	n = malloc(sizeof(struct node));
 	n->previous = NULL;
 	n->next = l->head;
@@ -214,10 +203,10 @@ void list_push_front(struct list * l, void * data)
 	++l->length;
 }
 
-void * list_pop_front(struct list * l)
+void *list_pop_front(struct list *l)
 {
-	void * data;
-	struct node * nh;
+	void *data;
+	struct node *nh;
 	data = l->head->data;
 
 	--l->length;
@@ -233,10 +222,10 @@ void * list_pop_front(struct list * l)
 	return data;
 }
 
-int list_contains(struct list * l, void * data)
+int list_contains(struct list *l, void *data)
 {
-	void * it;
-	void * dat;
+	void *it;
+	void *dat;
 	it = list_iterator(l);
 	while (iterator_next(&it, &dat))
 		if (dat == data)
@@ -245,17 +234,17 @@ int list_contains(struct list * l, void * data)
 	return 0;
 }
 
-void * list_head(struct list * l)
+void *list_head(struct list *l)
 {
 	return l->head->data;
 }
 
-void * list_last(struct list * l)
+void *list_last(struct list *l)
 {
 	return l->last->data;
 }
 
-size_t list_length(struct list * l)
+size_t list_length(struct list *l)
 {
 	return l->length;
 }

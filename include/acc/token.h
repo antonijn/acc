@@ -39,14 +39,14 @@ enum tokenty {
 
 struct token {
 	enum tokenty type;
-	char * lexeme;
+	char *lexeme;
 	int column;
 	int line;
 };
 
-struct token gettok(FILE * f);
-void ungettok(struct token * t, FILE * f);
-void freetok(struct token * t);
+struct token gettok(FILE *f);
+void ungettok(struct token *t, FILE *f);
+void freetok(struct token *t);
 
 int get_line(void);
 int get_column(void);

@@ -25,9 +25,9 @@
 #include <acc/token.h>
 #include <acc/options.h>
 
-const char * currentfile = NULL;
+const char *currentfile = NULL;
 
-void report(enum errorty ty, struct token * tok, const char * frmt, ...)
+void report(enum errorty ty, struct token *tok, const char *frmt, ...)
 {
 	va_list ap;
 	if (!option_warnings() && (ty & E_WARNING))

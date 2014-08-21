@@ -45,41 +45,41 @@ enum primmod {
 	PM_VOID = 0x400
 };
 
-static int parsemod(FILE * f, enum declflags flags, enum qualifier * quals,
-	enum primmod * pm, enum storageclass * sc);
-static struct ctype * parsebasety(FILE * f, enum declflags flags,
-	enum storageclass * sc);
-static struct symbol * parsedeclarator(FILE * f, enum declflags flags,
-	struct ctype * ty, enum storageclass sc);
-static struct symbol * parseddeclarator(FILE * f, enum declflags flags,
-	struct ctype * ty, enum storageclass sc);
-static struct ctype * parseddend(FILE * f, struct ctype * ty);
-static struct ctype * parseparamlist(FILE * f, struct ctype * ty);
-static struct ctype * parsearray(FILE * f, struct ctype * ty);
+static int parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
+	enum primmod *pm, enum storageclass *sc);
+static struct ctype *parsebasety(FILE *f, enum declflags flags,
+	enum storageclass *sc);
+static struct symbol *parsedeclarator(FILE *f, enum declflags flags,
+	struct ctype *ty, enum storageclass sc);
+static struct symbol *parseddeclarator(FILE *f, enum declflags flags,
+	struct ctype *ty, enum storageclass sc);
+static struct ctype *parseddend(FILE *f, struct ctype *ty);
+static struct ctype *parseparamlist(FILE *f, struct ctype *ty);
+static struct ctype *parsearray(FILE *f, struct ctype *ty);
 
-static struct ctype * getfullty(struct ctype * incomp, struct ctype * ty);
+static struct ctype *getfullty(struct ctype *incomp, struct ctype *ty);
 
 static int aremods(enum primmod new, enum primmod prev,
 	enum primmod l, enum primmod r);
-static void checkmods(struct token * tok, enum primmod new, enum primmod prev);
+static void checkmods(struct token *tok, enum primmod new, enum primmod prev);
 
-static struct ctype * getprimitive(enum primmod mods);
+static struct ctype *getprimitive(enum primmod mods);
 
-static struct ctype * parsestructure(FILE * f);
-static struct ctype * parsetypedef(FILE * f);
+static struct ctype *parsestructure(FILE *f);
+static struct ctype *parsetypedef(FILE *f);
 
-int parsedecl(FILE * f, enum declflags flags, struct list * syms, struct itm_block ** b)
+int parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_block **b)
 {
 	enum storageclass sc = SC_DEFAULT;
-	struct ctype * basety = parsebasety(f, flags, &sc);
+	struct ctype *basety = parsebasety(f, flags, &sc);
 	int numsymsb4 = syms ? list_length(syms) : -1;
 	if (!basety)
 		return 0;
 
 	while (1) {
-		struct token * closep;
+		struct token *closep;
 		struct token tok;
-		struct symbol * sym;
+		struct symbol *sym;
 
 		sym = parsedeclarator(f, flags, basety, sc);
 		if (syms)
@@ -122,10 +122,10 @@ int parsedecl(FILE * f, enum declflags flags, struct list * syms, struct itm_blo
 	return 1;
 }
 
-static int parsestorage(FILE * f, enum storageclass * sc,
-	const char * mod, enum storageclass set)
+static int parsestorage(FILE *f, enum storageclass *sc,
+	const char *mod, enum storageclass set)
 {
-	struct token * nxt;
+	struct token *nxt;
 	if (nxt = chktp(f, mod)) {
 		if (*sc == set)
 			report(E_PARSER, nxt, "duplicate \"%s\" modifier", mod);
@@ -145,7 +145,7 @@ static int aremods(enum primmod new, enum primmod prev,
 	       ((new & l) == l && (prev & r) == r);
 }
 
-static void checkmods(struct token * tok, enum primmod new, enum primmod prev)
+static void checkmods(struct token *tok, enum primmod new, enum primmod prev)
 {
 	if (prev == PM_NONE)
 		return;
@@ -172,10 +172,10 @@ static void checkmods(struct token * tok, enum primmod new, enum primmod prev)
 		report(E_PARSER, tok, "\"void\" and \"double\" are mutually exclusive");
 }
 
-static int parsemod(FILE * f, enum declflags flags, enum qualifier * quals,
-	enum primmod * pm, enum storageclass * sc)
+static int parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
+	enum primmod *pm, enum storageclass *sc)
 {
-	struct token * nxt;
+	struct token *nxt;
 	if (nxt = chktp(f, "const")) {
 		if (*quals & Q_CONST)
 			report(E_PARSER, nxt, "duplicate \"const\" modifier");
@@ -248,10 +248,10 @@ static int parsemod(FILE * f, enum declflags flags, enum qualifier * quals,
 	return 0;
 }
 
-static struct ctype * parsebasety(FILE * f, enum declflags flags,
-	enum storageclass * sc)
+static struct ctype *parsebasety(FILE *f, enum declflags flags,
+	enum storageclass *sc)
 {
-	struct ctype * res;
+	struct ctype *res;
 	enum primmod pm = PM_NONE;
 	enum qualifier quals = Q_NONE;
 
@@ -283,8 +283,8 @@ ret:
 	return res;
 }
 
-static struct symbol * parsedeclarator(FILE * f, enum declflags flags,
-	struct ctype * ty, enum storageclass sc)
+static struct symbol *parsedeclarator(FILE *f, enum declflags flags,
+	struct ctype *ty, enum storageclass sc)
 {
 	while (chkt(f, "*")) {
 		enum qualifier quals = Q_NONE;
@@ -299,11 +299,11 @@ static struct symbol * parsedeclarator(FILE * f, enum declflags flags,
 	return parseddeclarator(f, flags, ty, sc);
 }
 
-static struct symbol * parseddeclarator(FILE * f, enum declflags flags,
-	struct ctype * ty, enum storageclass sc)
+static struct symbol *parseddeclarator(FILE *f, enum declflags flags,
+	struct ctype *ty, enum storageclass sc)
 {
-	struct symbol * res;
-	struct token * tok;
+	struct symbol *res;
+	struct token *tok;
 	struct token t;
 	if (tok = chkttp(f, T_IDENTIFIER)) {
 		res = new_symbol(parseddend(f, ty), tok->lexeme, sc,
@@ -324,9 +324,9 @@ static struct symbol * parseddeclarator(FILE * f, enum declflags flags,
 	return res;
 }
 
-static struct ctype * parseddend(FILE * f, struct ctype * ty)
+static struct ctype *parseddend(FILE *f, struct ctype *ty)
 {
-	struct ctype * backup = ty;
+	struct ctype *backup = ty;
 	ty = parseparamlist(f, ty);
 	ty = parsearray(f, ty);
 	if (backup != ty)
@@ -334,10 +334,10 @@ static struct ctype * parseddend(FILE * f, struct ctype * ty)
 	return ty;
 }
 
-static struct ctype * parseparamlist(FILE * f, struct ctype * ty)
+static struct ctype *parseparamlist(FILE *f, struct ctype *ty)
 {
-	struct token * tok1, * tok2;
-	struct list * paramlist;
+	struct token *tok1, *tok2;
+	struct list *paramlist;
 	if (!chkt(f, "("))
 		return ty;
 
@@ -363,16 +363,16 @@ ret:
 	return ty;
 }
 
-static struct ctype * parsearray(FILE * f, struct ctype * ty)
+static struct ctype *parsearray(FILE *f, struct ctype *ty)
 {
 	/* TODO: placeholder implementation */
 	return ty;
 }
 
-static struct ctype * getfullty(struct ctype * incomp, struct ctype * ty)
+static struct ctype *getfullty(struct ctype *incomp, struct ctype *ty)
 {
-	struct cpointer * cp;
-	struct cfunction * cf;
+	struct cpointer *cp;
+	struct cfunction *cf;
 	if (!incomp)
 		return ty;
 
@@ -390,7 +390,7 @@ static struct ctype * getfullty(struct ctype * incomp, struct ctype * ty)
 	return incomp;
 }
 
-static struct ctype * getprimitive(enum primmod mods)
+static struct ctype *getprimitive(enum primmod mods)
 {
 	if ((mods & PM_LONG) == PM_LONG) {
 		if ((mods & PM_UNSIGNED) == PM_UNSIGNED)
@@ -421,17 +421,17 @@ static struct ctype * getprimitive(enum primmod mods)
 	return NULL;
 }
 
-static struct ctype * parsestructure(FILE * f)
+static struct ctype *parsestructure(FILE *f)
 {
-	struct token * idtok = NULL, * tok = NULL;
-	struct cstruct * str;
+	struct token *idtok = NULL, *tok = NULL;
+	struct cstruct *str;
 	if (!chkt(f, "struct"))
 		return NULL;
 
 	idtok = chkttp(f, T_IDENTIFIER);
 
 	if (!(tok = chktp(f, "{"))) {
-		struct cstruct * str;
+		struct cstruct *str;
 		if (!idtok) {
 			report(E_PARSER, tok, "expected '{' or ';'");
 		} else if (str = get_struct(idtok->lexeme)) {
@@ -452,10 +452,11 @@ static struct ctype * parsestructure(FILE * f)
 	str = (struct cstruct *)new_struct(idtok ? idtok->lexeme : NULL);
 	if (idtok)
 		freetp(idtok);
+	
 	while (!chkt(f, "}")) {
-		struct list * syms = new_list(NULL, 0);
-		struct symbol * sym;
-		void * it;
+		struct list *syms = new_list(NULL, 0);
+		struct symbol *sym;
+		void *it;
 		parsedecl(f, DF_FIELD, syms, NULL);
 
 		it = list_iterator(syms);
@@ -467,10 +468,10 @@ static struct ctype * parsestructure(FILE * f)
 	return (struct ctype *)str;
 }
 
-static struct ctype * parsetypedef(FILE * f)
+static struct ctype *parsetypedef(FILE *f)
 {
-	struct token * tok;
-	struct ctype * ty;
+	struct token *tok;
+	struct ctype *ty;
 	if (!(tok = chkttp(f, T_IDENTIFIER))) {
 		return NULL;
 	}
