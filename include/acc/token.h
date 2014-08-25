@@ -45,8 +45,10 @@ struct token {
 };
 
 struct token gettok(FILE *f);
+int chkeof(FILE *f);
 void ungettok(struct token *t, FILE *f);
 void freetok(struct token *t);
+void resettok(void);
 
 int get_line(void);
 int get_column(void);

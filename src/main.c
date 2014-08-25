@@ -31,6 +31,7 @@
 static void compilefile(FILE *f)
 {
 	struct list *syms = new_list(NULL, 0);
+	resettok();
 	ast_init();
 	parsefile(f, syms);
 	x86_emit(stdout, syms);
@@ -40,24 +41,24 @@ static void compilefile(FILE *f)
 
 int main(int argc, char *argv[])
 {
-	char *filename;
 	void *li;
 
 	setlocale(LC_ALL, "C");
 	options_init(argc, argv);
 
 	li = list_iterator(option_input());
-	while (iterator_next(&li, (void **)&filename)) {
+	while (iterator_next(&li, (void **)&currentfile)) {
 		FILE *file;
 
-		if (!strcmp(filename, "-")) {
+		if (!strcmp(currentfile, "-")) {
+			currentfile = NULL;
 			compilefile(stdin);
 			continue;
 		}
 
-		file = fopen(filename, "rb");
+		file = fopen(currentfile, "rb");
 		if (!file)
-			report(E_OPTIONS, NULL, "file not found: \"%s\"", filename);
+			report(E_OPTIONS, NULL, "file not found: \"%s\"", currentfile);
 
 		compilefile(file);
 	}

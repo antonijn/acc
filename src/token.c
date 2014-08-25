@@ -64,7 +64,7 @@ static int readnum(FILE *f, SFILE *t, const char *allowed,
 static int readch(FILE *f, SFILE *t, char terminator);
 
 static int line = 1;
-static int column = 0;
+static int column = 1;
 
 int get_line(void)
 {
@@ -142,7 +142,7 @@ static struct lchar fgetlc(FILE *f)
 	if (res.chars[0] != '?') {
 		if (res.chars[0] == '\n') {
 			++line;
-			column = 0;
+			column = 1;
 		}
 		res.len = 1;
 		return res;
@@ -206,10 +206,12 @@ static void ungetlc(struct lchar *lc, FILE *f)
 	int i;
 	for (i = lc->len - 1; i >= 0; --i) {
 		int c = lc->chars[i];
-		if (c == '\n')
+		if (c == '\n') {
 			--line;
-		else
+			column = 1;
+		} else {
 			--column;
+		}
 		ungetc(c, f);
 	}
 }
@@ -566,18 +568,16 @@ struct token gettok(FILE *f)
 	int nxt;
 
 	skipf(f);
+	res.line = line;
+	res.column = column;
 
 	t = ssopen();
 
 	nxt = fgetc(f);
-	if (nxt == EOF) {
-		res.type = T_EOF;
-		line = 1;
-		column = 0;
-		goto ret;
-	} else {
+	if (nxt == EOF)
+		report(E_TOKENIZER | E_FATAL, NULL, "unexpected end-of-file");
+	else
 		ungetc(nxt, f);
-	}
 
 	if (chkop(f, t, &res.type))
 		goto ret;
@@ -597,17 +597,35 @@ ret:
 	return res;
 }
 
+int chkeof(FILE *f)
+{
+	int nxt;
+	skipf(f);
+	if ((nxt = fgetc(f)) == EOF)
+		return 1;
+
+	ungetc(nxt, f);
+	return 0;
+}
+
 void ungettok(struct token *t, FILE *f)
 {
 	size_t len = strlen(t->lexeme);
 	int i;
-	for (i = len - 1; i >= 0; --i) {
+	for (i = len - 1; i >= 0; --i)
 		ungetc(t->lexeme[i], f);
-		--column;
-	}
+	
+	column = t->column;
+	line = t->line;
 }
 
 void freetok(struct token *t)
 {
 	free(t->lexeme);
+}
+
+void resettok(void)
+{
+	line = 1;
+	column = 1;
 }
