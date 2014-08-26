@@ -29,6 +29,7 @@
 #include <acc/target.h>
 
 enum x86section {
+	SECTION_INVALID,
 	SECTION_TEXT,
 	SECTION_DATA,
 	SECTION_RODATA,
@@ -209,10 +210,12 @@ static void x86sdi(FILE *f, const char *instr,
 static void x86global(FILE *f, struct x86imm *imm);
 static void x86extern(FILE *f, struct x86imm *imm);
 static void x86sect(FILE *f, enum x86section sec);
-static void x86byte(FILE *f, char value);
-static void x86short(FILE *f, short value);
-static void x86long(FILE *f, int value);
-static void x86quad(FILE *f, long value);
+static void x86reslike(FILE *f, const char *dir, size_t cnt, va_list ap);
+static void x86byte(FILE *f, size_t cnt, ...);
+static void x86short(FILE *f, size_t cnt, ...);
+static void x86long(FILE *f, size_t cnt, ...);
+static void x86quad(FILE *f, size_t cnt, ...);
+static void x86asciiz(FILE *f, const char *str);
 static void x86etostr(FILE *f, struct x86e *e);
 static void x86eatostr(FILE *f, struct x86ea *ea);
 static void x86immtostr(FILE *f, struct x86imm *imm, int attprefix);
@@ -485,9 +488,20 @@ static void x86extern(FILE *f, struct x86imm *imm)
 
 static void x86sect(FILE *f, enum x86section sec)
 {
-	if (option_asmflavor() == AF_ATT)
+	static enum x86section cursect = SECTION_INVALID;
+	
+	assert(sec != SECTION_INVALID);
+	if (sec == cursect)
+		return;
+	cursect = sec;
+	
+	if (option_asmflavor() == AF_ATT) {
 		fprintf(f, "\t");
-	else
+		if (sec == SECTION_RODATA)
+			fprintf(f, ".");
+	}
+	
+	if (option_asmflavor() != AF_ATT || sec == SECTION_RODATA)
 		fprintf(f, "section\t");
 
 	switch (sec) {
@@ -507,36 +521,88 @@ static void x86sect(FILE *f, enum x86section sec)
 	fprintf(f, "\n");
 }
 
-static void x86byte(FILE *f, char value)
+static void x86reslike(FILE *f, const char *dir, size_t cnt, va_list ap)
 {
-	if (option_asmflavor() == AF_ATT)
-		fprintf(f, "\t.byte\t%d\n", (int)value);
-	else
-		fprintf(f, "\tdb\t%d\n", (int)value);
+	int i;
+	
+	fprintf(f, "\t%s\t");
+	for (i = 0; i < cnt; ++i) {
+		fprintf(f, "%s", va_arg(ap, char *));
+		if (i != cnt - 1)
+			fprintf(f, ", ");
+	}
+	fprintf(f, "\n");
 }
 
-static void x86short(FILE *f, short value)
+static void x86byte(FILE *f, size_t cnt, ...)
 {
+	va_list ap;
+	va_start(ap, cnt);
 	if (option_asmflavor() == AF_ATT)
-		fprintf(f, "\t.value\t%d\n", (int)value);
+		x86reslike(f, ".byte", cnt, ap);
 	else
-		fprintf(f, "\tdw\t%d\n", (int)value);
+		x86reslike(f, "db", cnt, ap);
+	va_end(ap);
 }
 
-static void x86long(FILE *f, int value)
+static void x86short(FILE *f, size_t cnt, ...)
 {
+	va_list ap;
+	va_start(ap, cnt);
 	if (option_asmflavor() == AF_ATT)
-		fprintf(f, "\t.long\t%d\n", (int)value);
+		x86reslike(f, ".short", cnt, ap);
 	else
-		fprintf(f, "\tdd\t%d\n", (int)value);
+		x86reslike(f, "dw", cnt, ap);
+	va_end(ap);
 }
 
-static void x86quad(FILE *f, long value)
+static void x86long(FILE *f, size_t cnt, ...)
 {
+	va_list ap;
+	va_start(ap, cnt);
 	if (option_asmflavor() == AF_ATT)
-		fprintf(f, "\t.quad\t%ld\n", value);
+		x86reslike(f, ".long", cnt, ap);
 	else
-		fprintf(f, "\tdq\t%ld\n", value);
+		x86reslike(f, "dd", cnt, ap);
+	va_end(ap);
+}
+
+static void x86quad(FILE *f, size_t cnt, ...)
+{
+	va_list ap;
+	va_start(ap, cnt);
+	if (option_asmflavor() == AF_ATT)
+		x86reslike(f, ".quad", cnt, ap);
+	else
+		x86reslike(f, "dq", cnt, ap);
+	va_end(ap);
+}
+
+static void x86asciizchar(FILE *f, char ch)
+{
+	if (isprint(ch) && ch != '"')
+		fprintf(f, "%c", ch);
+	else
+		fprintf(f, "\\x%02x", (int)ch);
+}
+
+static void x86asciiz(FILE *f, const char *str)
+{
+	int len, i;
+	int instring = 0;
+	if (option_asmflavor() == AF_ATT)
+		fprintf(f, "\t.asciz\t\"");
+	else
+		fprintf(f, "\tdb\t\"");
+	
+	len = strlen(str);
+	for (i = 0; i < len; ++i) {
+		x86asciizchar(f, str[i]);
+	}
+	
+	if (option_asmflavor() != AF_ATT)
+		fprintf(f, "\\0");
+	fprintf(f, "\"\n");
 }
 
 void x86_emit(FILE *f, struct list *blocks)

@@ -25,8 +25,8 @@
 #include <acc/options.h>
 #include <acc/token.h>
 #include <acc/error.h>
+#include <acc/target.h>
 #include <acc/parsing/file.h>
-#include <acc/emit/x86.h>
 
 static void compilefile(FILE *f)
 {
@@ -34,7 +34,7 @@ static void compilefile(FILE *f)
 	resettok();
 	ast_init();
 	parsefile(f, syms);
-	x86_emit(stdout, syms);
+	getarch()->emitter(stdout, syms);
 	delete_list(syms, NULL);
 	ast_destroy();
 }

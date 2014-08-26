@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include <acc/target.h>
+#include <acc/emit/x86.h>
 
 static const struct os *oses[] = {
 	&oslinux, &oswindows, &osx
@@ -45,7 +46,7 @@ static const struct cpu *x86cpus[] = {
 	NULL
 };
 
-const struct arch archx86 = { "x86", &x86cpus[0] };
+const struct arch archx86 = { "x86", &x86_emit, &x86cpus[0] };
 
 const struct cpu cpu8086 = { "8086", &archx86, 16, 0 };
 const struct cpu cpui386 = { "i386", &archx86, 32, 1 };

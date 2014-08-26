@@ -28,6 +28,7 @@ struct os {
 
 struct arch {
 	const char *name;
+	void (*emitter)(FILE *f, struct list *symbols);
 	const struct cpu **cpus;
 };
 
