@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
 			report(E_OPTIONS, NULL, "file not found: \"%s\"", currentfile);
 
 		compilefile(file);
+		fclose(file);
 	}
 
 	options_destroy();
