@@ -205,8 +205,8 @@ extern struct operator binop_assign_and;
 extern struct operator binop_assign_xor;
 extern struct operator binop_assign_or;
 
-extern struct operator unop_suffinc;
-extern struct operator unop_suffdef;
+extern struct operator unop_postinc;
+extern struct operator unop_postdec;
 extern struct operator unop_preinc;
 extern struct operator unop_predec;
 extern struct operator unop_plus;

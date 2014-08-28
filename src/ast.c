@@ -435,8 +435,8 @@ struct operator *binoperators[] = {
 };
 
 struct operator *unoperators[] = {
-	&unop_suffinc, &unop_suffdef,
 	&unop_preinc, &unop_predec,
+	&unop_postinc, &unop_postdec, // order is important
 	&unop_plus, &unop_min,
 	&unop_deref, &unop_ref,
 	&unop_sizeof
@@ -490,8 +490,8 @@ struct operator binop_assign_and = { 16, true, "&=" };
 struct operator binop_assign_xor = { 16, true, "^=" };
 struct operator binop_assign_or = { 16, true, "|=" };
 
-struct operator unop_suffinc = { 2, false, "++" };
-struct operator unop_suffdef = { 2, false, "--" };
+struct operator unop_postinc = { 2, false, "++" };
+struct operator unop_postdec = { 2, false, "--" };
 struct operator unop_preinc = { 3, true, "++" };
 struct operator unop_predec = { 3, true, "--" };
 struct operator unop_plus = { 3, true, "+" };
