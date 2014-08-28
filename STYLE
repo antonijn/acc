@@ -35,26 +35,26 @@ or || at the end of the line. Align with spaces.
 
 	if (some_crazy_long_condition &&
 	    some_other_crazy_long_condition)
-		/* ... */
+		// ...
 
 Indentation can also be decreased substantially sometimes by using early 
 returns:
 
 	
-	/* preferred */
+	// preferred
 	void foo(void)
 	{
 		if (!cond)
 			return;
 		
-		/* main body has only one level of indentation */
+		// main body has only one level of indentation
 	}
 	
-	/* undesirable */
+	// undesirable
 	void foo(void)
 	{
 		if (cond) {
-			/* main body has two levels of indentation */
+			// main body has two levels of indentation
 		}
 	}
 
@@ -65,25 +65,25 @@ Indentation is done according to K&R rules: indent inside a function like so:
 
 	void foo(void)
 	{
-		/* ... */
+		// ...
 	}
 
 Inside if, else, while, do-while and for statements, also indent:
 
 	if (foo) {
-		/* ... */
+		// ...
 	} else {
-		/* ... */
+		// ...
 	}
 
 Also indent standalone compound statements, but obviously don't indent them if 
 they're already part of an if, else, while, do-while or for statement.
 
-	/* ... */
+	// ...
 	{
-		/* ... */
+		// ...
 	}
-	/* ... */
+	// ...
 
 
 	1.2. Brace placement
@@ -91,40 +91,40 @@ they're already part of an if, else, while, do-while or for statement.
 Braces are placed as placed by K&R: the opening brace is put on the same line 
 as the introductory statement, and put the closing brace on a new line.
 
-	/* ... */
+	// ...
 	for (i = 0; str[i]; ++i) {
-		/* ... */
+		// ...
 	}
-	/* ... */
+	// ...
 
 If there is no previous statement, or the previous statement isn't a 
 control-flow statement, the brace is put on a new line.
 
 	void foo(void)
 	{
-		/* ... */
+		// ...
 		bar();
 		{
-			/* ... */
+			// ...
 		}
-		/* ... */
+		// ...
 	}
 
 In case of an else block, the closing brace of the previous if statement is put 
 on the same line as the else block. Similarly, the while keyword is also put on 
 the closing brace of the do block.
 
-	/* ... */
+	// ...
 	if (foo) {
-		/* ... */
+		// ...
 	} else {
-		/* ... */
+		// ...
 	}
-	/* ... */
+	// ...
 	do {
-		/* ... */
+		// ...
 	} while (bar);
-	/* ... */
+	// ...
 
 Don't make use of compound statements if a single statement suffices. Put the 
 statement on a new line. For example:
@@ -133,19 +133,6 @@ statement on a new line. For example:
 		bar();
 	else
 		qux();
-
-The semicolon for an empty statement is also put on a newline, so behaviour 
-doesn't get obscured.
-
-	if (foo)
-		;
-
-If this happens in do-while loops, the while keyword is put on a new line like 
-so:
-
-	do
-		foo();
-	while (bar);
 
 Not:
 
@@ -164,20 +151,32 @@ However, be consistent throughout if-else chains.
 		quux();
 	}
 
+If this happens in do-while loops, the while keyword is put on a new line like
+so:
+
+	do
+		foo();
+	while (bar);
+
+The semicolon for an empty statement is also put on a newline, so behaviour 
+doesn't get obscured.
+
+	if (foo)
+		;
+
 
 	1.3. Spaces
 	
-Don't use spaces after function calls:
+Don't use spaces after function calls or declarations:
 
 	foo(boop, bap, beep);
 
 Don't use spaces inside of parentheses:
 
-	/* good! */
+	// good!
 	foo(bar);
-	/* bad!!!
-	 * foo( bar );
-	 */
+	// bad:
+	// foo( bar );
 
 Use a space after:
 
@@ -237,13 +236,13 @@ everyone knows how include guards work.
 
 	3. Comments
 
-Use comments with multi-line syntax exclusively:
+Prefer single-line comments, but use multi-line syntax for elaborate comments.
 
-	/* good! */
-	// bad (see 5.1)
+	// good!
+	/* bad */
 
 If your comments span multiple lines, make a line of asterisks underneath the 
-first. Leave the first line empty.
+first asterisk. Leave the first line empty.
 
 	/*
 	 * Lorem ipsum dolor sit amet, consectetur adipisicing elit,
@@ -257,9 +256,9 @@ the declaration. Don't hesitate to do so.
 
 Also use "TODO" comments to declare unimplemented features or possible bugs:
 
-	/* TODO: is this behaviour well-defined? */
+	// TODO: is this behavior well-defined?
 	
-	/* TODO: implement function */
+	// TODO: implement function
 
 
 	4. General practices
@@ -274,6 +273,15 @@ functions if you can, and use declared constants rather than defined ones.
 Use the assert function excessively, with the "better safe than sorry" idea. 
 Use them to ensure important parameters aren't NULL at the start of functions, 
 and some used fields. Anything to check function input is valid.
+
+For easy debugging, make the assertions verbose. To check if a parameter is not
+NULL, use the following:
+
+	assert(param != NULL);
+
+Rather than:
+
+	assert(param);
 
 
 	4.3. Integral and pointer types as conditions
@@ -306,7 +314,7 @@ blank line, followed by project headers:
 	4.5. Storage class specifiers
 
 Use the static storage class excessively for global symbols, to avoid global 
-name collisions, and allow better, more thorough optimisation.
+name collisions and allow better, more thorough optimisation.
 
 
 	4.6. goto
@@ -356,9 +364,8 @@ function pointers.
 	5. Portability
 	5.1. Use of C
 
-To ensure best portability, this software is written in ISO C90, 
-without any GNU or C99 extensions. This means no single-line comments, and 
-declarations at the start of blocks.
+To ensure best portability, this software is written in ISO C99,
+without any GNU or C11 extensions.
 
 Be careful with question marks, they are used for trigraphs. Escape the 
 question mark in string literals when necessary.
@@ -366,7 +373,7 @@ question mark in string literals when necessary.
 
 	5.2. Libraries
 
-Only use the functions defined by the ISO C90 standard library, unless any 
+Only use the functions defined by the ISO C99 standard library, unless any
 other platform-independent libraries are linked explicitly. Don't use any glibc 
 extensions (i.e. fmemopen) or extensions to the standard library (i.e. snprintf 
 and alloca), unless this functionality can be checked for, and an 
@@ -381,16 +388,19 @@ these extensions aren't available.
 
 	5.3. Assumptions
 
-Any behaviour deemed undefined by ISO C90 is forbidden. No assumptions can be 
+Any behaviour deemed undefined by ISO C99 is forbidden. No assumptions can be
 made with the "it works on my machine" rationale.
 
 Don't assume the size of types for variables. You cannot assume that a char is 
 one byte in size. This is important in malloc/calloc calls:
 
-	/* good! */
+	// good!
 	char *str = calloc(len, sizeof(char));
 	int *ints = malloc(intcount * sizeof(int));
 
-	/* bad!!! */
-	/* char *str = calloc(len, 1);
-	 * int *ints = malloc(intcount * 4); */
+	// bad!!!
+	// char *str = calloc(len, 1);
+	// int *ints = malloc(intcount * 4);
+
+Make use of <stdint.h> if you need to use fixed-width integers. Print/scan them
+using the format specifiers specified in <inttypes.h>.
