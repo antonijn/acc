@@ -41,12 +41,10 @@ static void compilefile(FILE *f)
 
 int main(int argc, char *argv[])
 {
-	void *li;
-
 	setlocale(LC_ALL, "C");
 	options_init(argc, argv);
 
-	li = list_iterator(option_input());
+	void *li = list_iterator(option_input());
 	while (iterator_next(&li, (void **)&currentfile)) {
 		FILE *file;
 

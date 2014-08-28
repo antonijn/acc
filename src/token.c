@@ -111,11 +111,10 @@ static char *ssgets(SFILE *ss)
  */
 static void ssputc(SFILE *ss, char ch)
 {
-	int i;
 	if (ss->av == 0) {
 		ss->av = ss->count;
 		ss->buf = realloc(ss->buf, ss->count * 2 + 1);
-		for (i = ss->count; i < ss->count * 2 + 1; ++i)
+		for (int i = ss->count; i < ss->count * 2 + 1; ++i)
 			ss->buf[i] = '\0';
 	}
 	ss->buf[ss->count++] = ch;
@@ -203,8 +202,7 @@ static struct lchar fgetlc(FILE *f)
 
 static void ungetlc(struct lchar *lc, FILE *f)
 {
-	int i;
-	for (i = lc->len - 1; i >= 0; --i) {
+	for (int i = lc->len - 1; i >= 0; --i) {
 		int c = lc->chars[i];
 		if (c == '\n') {
 			--line;
@@ -223,7 +221,6 @@ static void ungetlc(struct lchar *lc, FILE *f)
  */
 static bool chkc(FILE *f, SFILE *t, const char *chs)
 {
-	char ch;
 	struct lchar act = fgetlc(f);
 
 	if (act.ch == '\\') {
@@ -240,7 +237,7 @@ static bool chkc(FILE *f, SFILE *t, const char *chs)
 		return true;
 	}
 
-	for (; ch = *chs; ++chs) {
+	for (char ch; ch = *chs; ++chs) {
 		if (ch != act.ch)
 			continue;
 		if (t)
@@ -257,9 +254,9 @@ static bool chkc(FILE *f, SFILE *t, const char *chs)
  */
 static bool chks(FILE *f, SFILE *t, const char *s)
 {
+	int i;
 	size_t len = strlen(s);
 	struct lchar *lcs = malloc(sizeof(struct lchar) * len);
-	int i;
 	for (i = 0; s[i]; ++i) {
 		lcs[i] = fgetlc(f);
 		if (lcs[i].ch != s[i])
@@ -611,8 +608,7 @@ bool chkeof(FILE *f)
 void ungettok(struct token *t, FILE *f)
 {
 	size_t len = strlen(t->lexeme);
-	int i;
-	for (i = len - 1; i >= 0; --i)
+	for (int i = len - 1; i >= 0; --i)
 		ungetc(t->lexeme[i], f);
 	
 	column = t->column;

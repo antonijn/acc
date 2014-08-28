@@ -316,12 +316,11 @@ static void x86l(FILE *f, struct x86imm *imm)
 static void x86i(FILE *f, const char *instr, int numops, ...)
 {
 	va_list ap;
-	int i;
-	int reqsuf = 0;
+	bool reqsuf = 0;
 	struct x86e **ops = malloc(sizeof(struct x86e *) * numops);
 	
 	va_start(ap, numops);
-	for (i = 0; i < numops; ++i) {
+	for (int i = 0; i < numops; ++i) {
 		struct x86e *e = va_arg(ap, struct x86e *);
 		assert(e != NULL);
 		ops[i] = e;
@@ -352,7 +351,7 @@ static void x86i(FILE *f, const char *instr, int numops, ...)
 	if (numops)
 		fprintf(f, " ");
 	
-	for (i = 0; i < numops; ++i) {
+	for (int i = 0; i < numops; ++i) {
 		x86etostr(f, ops[i]);
 		if (i != numops - 1)
 			fprintf(f, ", ");
@@ -374,9 +373,8 @@ static void x86sdi(FILE *f, const char *instr,
 }
 
 static void x86etostr(FILE *f, struct x86e *e)
-{	
+{
 	struct x86reg *reg;
-	
 	switch (e->type) {
 	case XREGISTER:
 		reg = (struct x86reg *)e;
@@ -525,10 +523,8 @@ static void x86sect(FILE *f, enum x86section sec)
 
 static void x86reslike(FILE *f, const char *dir, size_t cnt, va_list ap)
 {
-	int i;
-	
 	fprintf(f, "\t%s\t");
-	for (i = 0; i < cnt; ++i) {
+	for (int i = 0; i < cnt; ++i) {
 		fprintf(f, "%s", va_arg(ap, char *));
 		if (i != cnt - 1)
 			fprintf(f, ", ");
@@ -590,15 +586,13 @@ static void x86asciizchar(FILE *f, char ch)
 
 static void x86asciiz(FILE *f, const char *str)
 {
-	int len, i;
-	int instring = 0;
 	if (option_asmflavor() == AF_ATT)
 		fprintf(f, "\t.asciz\t\"");
 	else
 		fprintf(f, "\tdb\t\"");
 	
-	len = strlen(str);
-	for (i = 0; i < len; ++i) {
+	size_t len = strlen(str);
+	for (int i = 0; i < len; ++i) {
 		x86asciizchar(f, str[i]);
 	}
 	
@@ -609,8 +603,7 @@ static void x86asciiz(FILE *f, const char *str)
 
 void x86_emit(FILE *f, struct list *blocks)
 {
-	void *it, *sym;
-	it = list_iterator(blocks);
+	void *sym, *it = list_iterator(blocks);
 	while (iterator_next(&it, &sym))
 		x86_emit_symbol(f, sym);
 }

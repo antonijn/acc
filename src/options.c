@@ -39,10 +39,9 @@ static enum asmflavor flavor =
 
 void options_init(int argc, char *argv[])
 {
-	int i;
 	input = new_list(NULL, 0);
 
-	for (i = 1; i < argc; ++i) {
+	for (int i = 1; i < argc; ++i) {
 		char *arg = argv[i];
 		if (!strcmp(arg, "-o")) {
 			if (++i >= argc)

@@ -169,7 +169,7 @@ void leave_scope(void);
 struct symbol *get_symbol(char *id);
 struct enumerator *get_enumerator(char *id);
 struct cstruct *get_struct(char *name);
-struct cunion *get_union(char *name);
+struct cstruct *get_union(char *name);
 struct ctype *get_typedef(char *id);
 
 struct operator *getbop(const char *opname);

@@ -46,9 +46,8 @@ static struct list *symscopes;
 
 static void registerty(struct ctype *t)
 {
-	struct list *topscope;
 	list_push_back(alltypes, t);
-	topscope = list_last(typescopes);
+	struct list *topscope = list_last(typescopes);
 	list_push_back(topscope, t);
 }
 
@@ -142,10 +141,8 @@ void ast_destroy(void)
 
 void enter_scope(void)
 {
-	struct list * typescope = new_list(NULL, 0);
-	struct list * symscope = new_list(NULL, 0);
-	list_push_back(typescopes, typescope);
-	list_push_back(symscopes, symscope);
+	list_push_back(typescopes, new_list(NULL, 0));
+	list_push_back(symscopes, new_list(NULL, 0));
 }
 
 void leave_scope(void)
@@ -236,9 +233,8 @@ void struct_add_field(struct ctype *type, struct ctype *ty, char *id)
 struct field *struct_get_field(struct ctype *type, char *name)
 {
 	struct cstruct *cs = (struct cstruct *)type;
-	void *it;
 	struct field *fi;
-	it = list_iterator(cs->fields);
+	void *it = list_iterator(cs->fields);
 	while (iterator_next(&it, (void **)&fi))
 		if (!strcmp(name, fi->id))
 			return fi;
@@ -299,16 +295,14 @@ static void free_function(struct ctype *ty)
 
 static void function_to_string(FILE *f, struct ctype *ty)
 {
-	int i;
-	void *it;
-	struct symbol *sym;
 	struct cfunction *cf = (struct cfunction *)ty;
 	fprintf(f, "(function ");
 	cf->ret->to_string(f, cf->ret);
 	fprintf(f, " (taking ");
 
-	i = 0;
-	it = list_iterator(cf->parameters);
+	int i = 0;
+	struct symbol *sym;
+	void *it = list_iterator(cf->parameters);
 	while (iterator_next(&it, (void **)&sym)) {
 		sym->type->to_string(f, sym->type);
 
@@ -341,12 +335,11 @@ struct ctype *new_function(struct ctype *ret, struct list *params)
 
 struct symbol *get_symbol(char *id)
 {
-	int i;
-	for (i = list_length(symscopes) - 1; i >= 0; --i) {
-		struct list *l = get_list_item(symscopes, i);
-		void *it;
+	struct list *l;
+	void *revit = list_rev_iterator(symscopes);
+	while (rev_iterator_next(&revit, (void **)&l)) {
 		struct symbol *sym;
-		it = list_iterator(l);
+		void *it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym))
 			if (!strcmp(sym->id, id) && sym->storage != SC_TYPEDEF)
 				return sym;
@@ -362,12 +355,11 @@ struct enumerator *get_enumerator(char *id)
 
 struct cstruct *get_struct(char *name)
 {
-	int i;
-	for (i = list_length(typescopes) - 1; i >= 0; --i) {
-		struct list *l = get_list_item(typescopes, i);
-		void *it;
+	struct list *l;
+	void *revit = list_rev_iterator(typescopes);
+	while (rev_iterator_next(&revit, (void **)&l)) {
 		struct ctype *sym;
-		it = list_iterator(l);
+		void *it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym))
 			if (sym->type == STRUCTURE && !strcmp(sym->name, name))
 				return (struct cstruct *)sym;
@@ -375,17 +367,16 @@ struct cstruct *get_struct(char *name)
 	return NULL;
 }
 
-struct cunion *get_union(char *name)
+struct cstruct *get_union(char *name)
 {
-	int i;
-	for (i = list_length(typescopes) - 1; i >= 0; --i) {
-		struct list *l = get_list_item(typescopes, i);
-		void *it;
+	struct list *l;
+	void *revit = list_rev_iterator(typescopes);
+	while (rev_iterator_next(&revit, (void **)&l)) {
 		struct ctype *sym;
-		it = list_iterator(l);
+		void *it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym))
 			if (sym->type == UNION && !strcmp(sym->name, name))
-				return (struct cunion *)sym;
+				return (struct cstruct *)sym;
 	}
 	return NULL;
 }
@@ -413,12 +404,11 @@ void registersym(struct symbol *sym)
 
 struct ctype *get_typedef(char *id)
 {
-	int i;
-	for (i = list_length(symscopes) - 1; i >= 0; --i) {
-		struct list *l = get_list_item(symscopes, i);
-		void *it;
+	struct list *l;
+	void *revit = list_rev_iterator(symscopes);
+	while (rev_iterator_next(&revit, (void **)&l)) {
 		struct symbol *sym;
-		it = list_iterator(l);
+		void *it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym))
 			if (!strcmp(sym->id, id) && sym->storage == SC_TYPEDEF)
 				return sym->type;
@@ -454,8 +444,7 @@ struct operator *unoperators[] = {
 
 struct operator *getbop(const char *opname)
 {
-	int i;
-	for (i = 0; i < sizeof(binoperators) / sizeof(struct operator *); ++i)
+	for (int i = 0; i < sizeof(binoperators) / sizeof(struct operator *); ++i)
 		if (!strcmp(binoperators[i]->rep, opname))
 			return binoperators[i];
 
@@ -464,8 +453,7 @@ struct operator *getbop(const char *opname)
 
 struct operator *getuop(const char *opname)
 {
-	int i;
-	for (i = 0; i < sizeof(unoperators) / sizeof(struct operator *); ++i)
+	for (int i = 0; i < sizeof(unoperators) / sizeof(struct operator *); ++i)
 		if (!strcmp(unoperators[i]->rep, opname))
 			return unoperators[i];
 

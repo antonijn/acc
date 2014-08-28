@@ -54,8 +54,7 @@ static enum exno enabled = 0;
 
 enum exno getex(const char *ext)
 {
-	int i;
-	for (i = 0; i < sizeof(extensions) / sizeof(struct extension); ++i) {
+	for (int i = 0; i < sizeof(extensions) / sizeof(struct extension); ++i) {
 		struct extension ex = extensions[i];
 		if (!strcmp(ext, ex.str))
 			return ex.no;
