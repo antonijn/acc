@@ -18,6 +18,7 @@
  */
 
 #include <stdlib.h>
+#include <assert.h>
 
 #include <acc/list.h>
 
@@ -66,6 +67,8 @@ struct list *new_list(void *init[], int count)
 
 struct list *clone_list(struct list *l)
 {
+	assert(l != NULL);
+
 	struct list *result = new_list(NULL, 0);
 	struct node *prev = NULL;
 	struct node *head = NULL;
@@ -91,6 +94,8 @@ struct list *clone_list(struct list *l)
 
 void delete_list(struct list *l, void (*destr)(void *))
 {
+	assert(l != NULL);
+
 	struct node *next = l->head;
 	while (next) {
 		struct node *n = next;
@@ -104,11 +109,16 @@ void delete_list(struct list *l, void (*destr)(void *))
 
 void *list_iterator(struct list *l)
 {
+	assert(l != NULL);
+
 	return l->head;
 }
 
-bool iterator_next(void **it, void **item)
+bool iterator_next(void **restrict it, void **restrict item)
 {
+	assert(it != NULL);
+	assert(item != NULL);
+
 	struct node *n = *it;
 	if (!n)
 		return false;
@@ -119,11 +129,16 @@ bool iterator_next(void **it, void **item)
 
 void *list_rev_iterator(struct list *l)
 {
+	assert(l != NULL);
+
 	return l->last;
 }
 
-bool rev_iterator_next(void **it, void **item)
+bool rev_iterator_next(void **restrict it, void **restrict item)
 {
+	assert(it != NULL);
+	assert(item != NULL);
+
 	struct node *n = *it;
 	if (!n)
 		return false;
@@ -134,22 +149,38 @@ bool rev_iterator_next(void **it, void **item)
 
 void *get_list_item(struct list *l, int idx)
 {
+	assert(l != NULL);
+
+	if (idx < 0)
+		idx = l->length + idx;
+
+	assert(idx >= 0);
+
 	struct node *n = l->head;
 	while (idx-- > 0)
 		n = n->next;
 	return n->data;
 }
 
-void set_list_item(struct list *l, int idx, void *data)
+void set_list_item(struct list *l, int idx, void *restrict data)
 {
+	assert(l != NULL);
+
+	if (idx < 0)
+		idx = l->length + idx;
+
+	assert(idx >= 0);
+
 	struct node *n = l->head;
 	while (idx-- > 0)
 		n = n->next;
 	n->data = data;
 }
 
-void list_push_back(struct list *l, void *data)
+void list_push_back(struct list *l, void *restrict data)
 {
+	assert(l != NULL);
+
 	struct node *n = malloc(sizeof(struct node));
 	n->next = NULL;
 	n->previous = l->last;
@@ -164,6 +195,8 @@ void list_push_back(struct list *l, void *data)
 
 void *list_pop_back(struct list *l)
 {
+	assert(l != NULL);
+
 	void *data = l->last->data;
 
 	--l->length;
@@ -179,8 +212,10 @@ void *list_pop_back(struct list *l)
 	return data;
 }
 
-void list_push_front(struct list *l, void *data)
+void list_push_front(struct list *l, void *restrict data)
 {
+	assert(l != NULL);
+
 	struct node *n = malloc(sizeof(struct node));
 	n->previous = NULL;
 	n->next = l->head;
@@ -191,6 +226,8 @@ void list_push_front(struct list *l, void *data)
 
 void *list_pop_front(struct list *l)
 {
+	assert(l != NULL);
+
 	void *data = l->head->data;
 
 	--l->length;
@@ -206,8 +243,10 @@ void *list_pop_front(struct list *l)
 	return data;
 }
 
-bool list_contains(struct list *l, void *data)
+bool list_contains(struct list *l, void *restrict data)
 {
+	assert(l != NULL);
+
 	void *dat;
 	void *it = list_iterator(l);
 	while (iterator_next(&it, &dat))
@@ -219,15 +258,23 @@ bool list_contains(struct list *l, void *data)
 
 void *list_head(struct list *l)
 {
+	assert(l != NULL);
+	assert(l->head != NULL);
+
 	return l->head->data;
 }
 
 void *list_last(struct list *l)
 {
+	assert(l != NULL);
+	assert(l->last != NULL);
+
 	return l->last->data;
 }
 
 size_t list_length(struct list *l)
 {
+	assert(l != NULL);
+
 	return l->length;
 }

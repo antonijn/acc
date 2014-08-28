@@ -55,7 +55,7 @@ static bool parseif(FILE *f, enum statflags flags, struct itm_block **block)
 	struct expr cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE, block, NULL);
 	cond = cast(cond, &cbool, *block);
 
-	/* remove ) from stream */
+	// remove ) from stream
 	tok = gettok(f);
 	freetok(&tok);
 
@@ -103,7 +103,7 @@ static bool parseif(FILE *f, enum statflags flags, struct itm_block **block)
 
 static bool parsedo(FILE *f, enum statflags flags, struct itm_block **block)
 {
-	/* TODO: implement */
+	// TODO: implement
 	return false;
 }
 
@@ -146,7 +146,7 @@ static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block)
 	struct expr cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE, &condb, NULL);
 	cond = cast(cond, &cbool, condb);
 
-	/* remove ) from stream */
+	// remove ) from stream
 	tok = gettok(f);
 	freetok(&tok);
 
@@ -199,7 +199,7 @@ static bool parsewhile(FILE *f, enum statflags flags,
 	struct expr cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE, &condb, NULL);
 	cond = cast(cond, &cbool, condb);
 
-	/* remove ) from stream */
+	// remove ) from stream
 	tok = gettok(f);
 	freetok(&tok);
 
@@ -231,7 +231,7 @@ static bool parseestat(FILE *f, enum statflags flags,
 	struct expr e = parseexpr(f, EF_FINISH_SEMICOLON, block, NULL);
 	if (!e.itm)
 		return false;
-	/* remove ; from stream */
+	// remove ; from stream
 	struct token tok = gettok(f);
 	freetok(&tok);
 	return true;

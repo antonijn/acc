@@ -286,7 +286,7 @@ static void skipf(FILE *f)
 	while (chkc(f, NULL, " \n\t\v\r\f"))
 		;
 	
-	/* look for comments */
+	// look for comments
 	if (chks(f, NULL, "/*")) {
 		while (!chks(f, NULL, "*/"))
 			chkc(f, NULL, NULL);
@@ -466,7 +466,7 @@ static int readnum(FILE *f, SFILE *t, const char *allowed,
 static bool chknum(FILE *f, SFILE *t, enum tokenty *tt)
 {
 	if (chkc(f, t, "0")) {
-		/* octal, hex or zero */
+		// octal, hex or zero
 		if (chkc(f, t, "xX")) {
 			*tt = T_HEX;
 			if (readnum(f, t, hexchars, tt) == 0)
@@ -476,7 +476,7 @@ static bool chknum(FILE *f, SFILE *t, enum tokenty *tt)
 
 		*tt = T_OCT;
 		if (readnum(f, t, octchars, tt) == 0) {
-			/* zero literal */
+			// zero literal
 			*tt = T_DEC;
 		}
 		return true;
@@ -506,7 +506,7 @@ static bool readch(FILE *f, SFILE *t, char terminator)
 		return true;
 	}
 
-	/* escape sequence */
+	// escape sequence
 	if (chkc(f, t, "x")) {
 		for (i = 0; chkc(f, t, hexchars); ++i)
 			;
@@ -515,7 +515,7 @@ static bool readch(FILE *f, SFILE *t, char terminator)
 		return true;
 	}
 
-	/* octal number */
+	// octal number
 	for (i = 0; i < 3 && chkc(f, t, octchars); ++i)
 		;
 	if (i != 0)

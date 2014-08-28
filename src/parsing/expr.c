@@ -111,7 +111,7 @@ static struct expr parsefcall(FILE *f, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty, struct list *operators,
 	struct expr acc)
 {
-	/* TODO: implement */
+	// TODO: implement
 	struct expr res = { 0 };
 	return res;
 }
@@ -141,12 +141,12 @@ static struct expr parsebop(FILE *f, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty, struct list *operators,
 	struct expr acc)
 {
-	struct token *tok;
 	struct expr nil = { 0 };
 	
 	if (!acc.itm)
 		return nil;
 	
+	struct token *tok;
 	if (!(tok = chkttp(f, T_OPERATOR)))
 		return nil;
 	
@@ -354,8 +354,7 @@ static struct expr parselit(FILE *f, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty, struct list *operators,
 	struct expr acc)
 {
-	struct expr res = { 0 };
-	res = parseintlit(f, flags, block, initty, operators, acc);
+	struct expr res = parseintlit(f, flags, block, initty, operators, acc);
 	if (res.itm)
 		return res;
 	res = parsefloatlit(f, flags, block, initty, operators, acc);
@@ -458,11 +457,11 @@ static struct expr parsefloatlit(FILE *f, enum exprflags flags,
 struct expr parseexpr(FILE *f, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty)
 {
-	struct list *operators = new_list(NULL, 0);
-	struct expr e = { 0 };
-
 	assert(block != NULL);
 	assert(*block != NULL);
+
+	struct list *operators = new_list(NULL, 0);
+	struct expr e = { 0 };
 
 	e = parseexpro(f, flags, block, initty, operators, e);
 	delete_list(operators, NULL);
@@ -472,11 +471,11 @@ struct expr parseexpr(FILE *f, enum exprflags flags,
 struct expr cast(struct expr e, struct ctype *ty,
 	struct itm_block *b)
 {
-	struct expr res = e;
-
 	assert(e.itm != NULL);
 	assert(ty != NULL);
 	assert(e.itm->type != NULL);
+
+	struct expr res = e;
 
 	if (e.itm->type == ty)
 		return e;
@@ -518,7 +517,7 @@ struct expr cast(struct expr e, struct ctype *ty,
 		}
 	}
 
-	/* TODO: other casts */
+	// TODO: other casts
 
 	return res;
 }

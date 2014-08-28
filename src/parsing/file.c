@@ -43,7 +43,6 @@ static void addparams(void *fsym)
 
 static void processdecls(FILE *f, struct list *decls, struct list *syms)
 {
-
 	struct symbol *sym;
 	void *it = list_iterator(decls);
 	while (iterator_next(&it, (void **)&sym))

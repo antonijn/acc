@@ -29,7 +29,7 @@
 #include <acc/itm.h>
 #include <acc/ast.h>
 
-/* primitive modifiers */
+// primitive modifiers
 enum primmod {
 	PM_NONE = 0x00,
 	PM_IMOD = 0x200,
@@ -72,7 +72,7 @@ bool parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_bloc
 {
 	enum storageclass sc = SC_DEFAULT;
 	struct ctype *basety = parsebasety(f, flags, &sc);
-	/* number of symbols in syms before syms was appended to */
+	// number of symbols in syms before syms was appended to
 	int numsymsb4 = syms ? list_length(syms) : -1;
 	if (!basety)
 		return false;
@@ -89,13 +89,13 @@ bool parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_bloc
 		
 		if ((flags & DF_INIT) && chkt(f, "=") &&
 		    sc != SC_EXTERN && sc != SC_TYPEDEF) {
-			/* TODO: this only works for locals */
+			// TODO: this only works for locals
 			struct expr e = parseexpr(f, EF_INIT | EF_FINISH_SEMICOLON |
 				EF_EXPECT_RVALUE, b, sym->type);
 			itm_store(*b, e.itm, sym->value);
 		}
 		if ((flags & DF_BITFIELD) && chkt(f, ":")) {
-			/* TODO: parse bitfield */
+			// TODO: parse bitfield
 			assert(false);
 		}
 		if (((flags & DF_FINISH_SEMICOLON) && chkt(f, ";")) ||
@@ -335,11 +335,10 @@ static struct ctype *parseddend(FILE *f, struct ctype *ty)
 
 static struct ctype *parseparamlist(FILE *f, struct ctype *ty)
 {
-	struct list *paramlist;
 	if (!chkt(f, "("))
 		return ty;
 
-	paramlist = new_list(NULL, 0);
+	struct list *paramlist = new_list(NULL, 0);
 
 	struct token *tok1;
 	if (tok1 = chktp(f, "void")) {
@@ -365,7 +364,7 @@ ret:
 
 static struct ctype *parsearray(FILE *f, struct ctype *ty)
 {
-	/* TODO: placeholder implementation */
+	// TODO: placeholder implementation
 	return ty;
 }
 
@@ -418,7 +417,7 @@ static struct ctype *getprimitive(enum primmod mods)
 	else if (mods & PM_VOID)
 		return &cvoid;
 
-	/* unreachable */
+	// unreachable
 	return NULL;
 }
 

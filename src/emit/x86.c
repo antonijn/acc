@@ -155,7 +155,7 @@ static const struct x86reg r13 = { { XREGISTER, 8 }, "r13", NULL, &r13d, NULL };
 static const struct x86reg r14 = { { XREGISTER, 8 }, "r14", NULL, &r14d, NULL };
 static const struct x86reg r15 = { { XREGISTER, 8 }, "r15", NULL, &r15d, NULL };
 
-/* list of available registers per platform */
+// list of available registers per platform
 static const struct x86reg *regav8086[] = {
 	&ah, &al, &bh, &bl, &ch, &cl, &dh, &dl,
 	&spl, &bpl, &sil, &dil,
@@ -239,11 +239,11 @@ static void new_x86_imm(struct x86imm *res, int size, long value)
 
 static void new_x86_label(struct x86imm *res, char *value)
 {
-	/* I don't know if ISO true values are necessarily 1... */
-	int uscorepfix = ((getos() == &oswindows) && value[0] != '.') ? 1 : 0;
-	
 	assert(res != NULL);
 	assert(value != NULL);
+
+	// I don't know if ISO true values are necessarily 1...
+	int uscorepfix = ((getos() == &oswindows) && value[0] != '.') ? 1 : 0;
 	
 	res->base.type = XIMMEDIATE;
 	res->base.size = getcpu()->bits / 8;
@@ -301,7 +301,7 @@ static void new_x86_ea(struct x86ea *res, int size,
 
 static void delete_x86_ea(struct x86ea *ea)
 {
-	/* stub for future compatibility */
+	// stub for future compatibility
 }
 
 
@@ -442,7 +442,7 @@ static void x86eatostr(FILE *f, struct x86ea *ea)
 		fprintf(f, "qword");
 		break;
 	case 10:
-		/* TODO: ? */
+		// TODO: ?
 		break;
 	}
 	fprintf(f, " [");
@@ -488,9 +488,10 @@ static void x86extern(FILE *f, struct x86imm *imm)
 
 static void x86sect(FILE *f, enum x86section sec)
 {
+	assert(sec != SECTION_INVALID);
+
 	static enum x86section cursect = SECTION_INVALID;
 	
-	assert(sec != SECTION_INVALID);
 	if (sec == cursect)
 		return;
 	cursect = sec;
@@ -610,5 +611,5 @@ void x86_emit(FILE *f, struct list *blocks)
 
 static void x86_emit_symbol(FILE *f, struct symbol *sym)
 {
-	/* TODO: implement */
+	// TODO: implement
 }

@@ -23,7 +23,7 @@
 #include <acc/itm.h>
 #include <acc/error.h>
 
-/* to_string functions */
+// to_string functions
 #ifndef NDEBUG
 static int itm_instr_number(struct itm_instr *i)
 {
@@ -116,7 +116,7 @@ void itm_block_to_string(FILE *f, struct itm_block *block)
 
 #endif
 
-/* label, literal and block initializers/destructors */
+// label, literal and block initializers/destructors
 struct itm_label *new_itm_label(void)
 {
 	struct itm_label *lab = malloc(sizeof(struct itm_label));
@@ -205,11 +205,11 @@ static void free_dummy(struct itm_expr *e)
 {
 }
 
-/* instruction initializers and instructions */
+// instruction initializers and instructions
 enum opflags {
 	OF_NONE = 0x0,
 	OF_TERMINAL = 0x1,
-	OF_START = 0x2 /* only really used for alloca */
+	OF_START = 0x2 // only really used for alloca
 };
 
 static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (*id)(void),
@@ -240,7 +240,7 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 		while (b->lexprev)
 			b = b->lexprev;
 		
-		/* find first non-id instruction */
+		// find first non-id instruction
 		after = b->first;
 		while (after && after->id == id) {
 			before = after;

@@ -62,7 +62,7 @@ static void primitive_to_string(FILE *f, struct ctype *p)
 
 static enum typecomp primitive_compare(struct ctype *l, struct ctype *r)
 {
-	/* TODO: proper implementation */
+	// TODO: proper implementation
 	return EXPLICIT;
 }
 
@@ -164,7 +164,7 @@ static void pointer_to_string(FILE *f, struct ctype *p)
 
 static enum typecomp pointer_compare(struct ctype *l, struct ctype *r)
 {
-	/* TODO: proper implementation */
+	// TODO: proper implementation
 	return IMPLICIT;
 }
 
@@ -249,7 +249,7 @@ struct ctype *new_union(char *name)
 
 struct ctype *new_array(struct ctype *etype, int length)
 {
-	/* TODO: implement */
+	// TODO: implement
 	return NULL;
 }
 
@@ -267,7 +267,7 @@ static void qualified_to_string(FILE *f, struct ctype *ty)
 
 static enum typecomp qualified_compare(struct ctype *l, struct ctype *r)
 {
-	/* TODO: proper implementation */
+	// TODO: proper implementation
 	return EXPLICIT;
 }
 
@@ -314,7 +314,7 @@ static void function_to_string(FILE *f, struct ctype *ty)
 
 static enum typecomp function_compare(struct ctype *l, struct ctype *r)
 {
-	/* TODO: proper implementation */
+	// TODO: proper implementation
 	return INCOMPATIBLE;
 }
 
@@ -349,7 +349,7 @@ struct symbol *get_symbol(char *id)
 
 struct enumerator *get_enumerator(char *id)
 {
-	/* TODO: implement */
+	// TODO: implement
 	return NULL;
 }
 
