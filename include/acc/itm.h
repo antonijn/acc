@@ -20,6 +20,8 @@
 #ifndef ITM_H
 #define ITM_H
 
+#include <stdint.h>
+
 #include <acc/list.h>
 #include <acc/ast.h>
 
@@ -64,7 +66,7 @@ struct itm_literal {
 	struct itm_expr base;
 
 	union {
-		unsigned long i;
+		uint64_t i;
 		float f;
 		double d;
 	} value;

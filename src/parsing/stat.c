@@ -18,6 +18,7 @@
  */
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include <acc/parsing/stat.h>
@@ -29,15 +30,15 @@
 #include <acc/ext.h>
 #include <acc/error.h>
 
-static int parseif(FILE *f, enum statflags flags, struct itm_block **block);
-static int parsedo(FILE *f, enum statflags flags, struct itm_block **block);
-static int parsefor(FILE *f, enum statflags flags, struct itm_block **block);
-static int parsewhile(FILE *f, enum statflags flags,
+static bool parseif(FILE *f, enum statflags flags, struct itm_block **block);
+static bool parsedo(FILE *f, enum statflags flags, struct itm_block **block);
+static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block);
+static bool parsewhile(FILE *f, enum statflags flags,
 	struct itm_block **block);
-static int parseestat(FILE *f, enum statflags flags,
+static bool parseestat(FILE *f, enum statflags flags,
 	struct itm_block **block);
 
-static int parseif(FILE *f, enum statflags flags, struct itm_block **block)
+static bool parseif(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	struct expr cond = { 0 };
 	struct itm_block *tblock;
@@ -46,7 +47,7 @@ static int parseif(FILE *f, enum statflags flags, struct itm_block **block)
 	struct token tok;
 	
 	if (!chkt(f, "if"))
-		return 0;
+		return false;
 	
 	if (!chkt(f, "(")) {
 		tok = gettok(f);
@@ -101,16 +102,16 @@ static int parseif(FILE *f, enum statflags flags, struct itm_block **block)
 		set_itm_label_block(elabel, *block);
 	}
 	
-	return 1;
+	return true;
 }
 
-static int parsedo(FILE *f, enum statflags flags, struct itm_block **block)
+static bool parsedo(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	/* TODO: implement */
-	return 0;
+	return false;
 }
 
-static int parsefor(FILE *f, enum statflags flags, struct itm_block **block)
+static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	struct itm_block *condb, *bodyb, *quitb;
 	struct itm_label *condl, *bodyl, *quitl;
@@ -119,7 +120,7 @@ static int parsefor(FILE *f, enum statflags flags, struct itm_block **block)
 	struct token tok;
 
 	if (!chkt(f, "do"))
-		return 0;
+		return false;
 
 	condl = new_itm_label();
 	bodyl = new_itm_label();
@@ -172,10 +173,10 @@ static int parsefor(FILE *f, enum statflags flags, struct itm_block **block)
 
 	*block = quitb;
 
-	return 1;
+	return true;
 }
 
-static int parsewhile(FILE *f, enum statflags flags,
+static bool parsewhile(FILE *f, enum statflags flags,
 	struct itm_block **block)
 {
 	struct itm_block *condb, *bodyb, *quitb;
@@ -185,7 +186,7 @@ static int parsewhile(FILE *f, enum statflags flags,
 	struct token tok;
 
 	if (!chkt(f, "while"))
-		return 0;
+		return false;
 	
 	if (!chkt(f, "(")) {
 		tok = gettok(f);
@@ -231,24 +232,24 @@ static int parsewhile(FILE *f, enum statflags flags,
 
 	*block = quitb;
 
-	return 1;
+	return true;
 }
 
-static int parseestat(FILE *f, enum statflags flags,
+static bool parseestat(FILE *f, enum statflags flags,
 	struct itm_block **block)
 {
 	struct token tok;
 	struct expr e;
 	e = parseexpr(f, EF_FINISH_SEMICOLON, block, NULL);
 	if (!e.itm)
-		return 0;
+		return false;
 	/* remove ; from stream */
 	tok = gettok(f);
 	freetok(&tok);
-	return 1;
+	return true;
 }
 
-int parsestat(FILE *f, enum statflags flags, struct itm_block **block)
+bool parsestat(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	return parseif(f, flags, block) ||
 	       parsedo(f, flags, block) ||
@@ -258,17 +259,17 @@ int parsestat(FILE *f, enum statflags flags, struct itm_block **block)
 	       parseestat(f, flags, block);
 }
 
-int parseblock(FILE *f, enum statflags flags, struct itm_block **block)
+bool parseblock(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	if (!chkt(f, "{"))
-		return 0;
+		return false;
 
 	while (parsedecl(f, DF_LOCAL, NULL, block))
 		if (chkt(f, "}"))
-			return 1;
+			return true;
 	
 	while (!chkt(f, "}"))
 		parsestat(f, flags, block);
 
-	return 1;
+	return true;
 }

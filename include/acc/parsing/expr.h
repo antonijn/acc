@@ -21,13 +21,14 @@
 #define PARSING_EXPR_H
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <acc/itm.h>
 #include <acc/ast.h>
 
 struct expr {
 	struct itm_expr *itm;
-	int islvalue;
+	bool islvalue;
 };
 
 enum exprflags {

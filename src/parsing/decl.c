@@ -45,7 +45,7 @@ enum primmod {
 	PM_VOID = 0x400
 };
 
-static int parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
+static bool parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
 	enum primmod *pm, enum storageclass *sc);
 static struct ctype *parsebasety(FILE *f, enum declflags flags,
 	enum storageclass *sc);
@@ -59,7 +59,7 @@ static struct ctype *parsearray(FILE *f, struct ctype *ty);
 
 static struct ctype *getfullty(struct ctype *incomp, struct ctype *ty);
 
-static int aremods(enum primmod new, enum primmod prev,
+static bool aremods(enum primmod new, enum primmod prev,
 	enum primmod l, enum primmod r);
 static void checkmods(struct token *tok, enum primmod new, enum primmod prev);
 
@@ -68,15 +68,15 @@ static struct ctype *getprimitive(enum primmod mods);
 static struct ctype *parsestructure(FILE *f);
 static struct ctype *parsetypedef(FILE *f);
 
-int parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_block **b)
+bool parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_block **b)
 {
 	enum storageclass sc = SC_DEFAULT;
 	struct ctype *basety = parsebasety(f, flags, &sc);
 	int numsymsb4 = syms ? list_length(syms) : -1;
 	if (!basety)
-		return 0;
+		return false;
 
-	while (1) {
+	while (true) {
 		struct token *closep;
 		struct token tok;
 		struct symbol *sym;
@@ -119,10 +119,10 @@ int parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_block
 		break;
 	}
 
-	return 1;
+	return true;
 }
 
-static int parsestorage(FILE *f, enum storageclass *sc,
+static bool parsestorage(FILE *f, enum storageclass *sc,
 	const char *mod, enum storageclass set)
 {
 	struct token *nxt;
@@ -133,12 +133,12 @@ static int parsestorage(FILE *f, enum storageclass *sc,
 			report(E_PARSER, nxt, "multiple storage class specifiers");
 		*sc = set;
 		freetp(nxt);
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
 }
 
-static int aremods(enum primmod new, enum primmod prev,
+static bool aremods(enum primmod new, enum primmod prev,
 	enum primmod l, enum primmod r)
 {
 	return ((prev & l) == l && (new & r) == r) ||
@@ -172,7 +172,7 @@ static void checkmods(struct token *tok, enum primmod new, enum primmod prev)
 		report(E_PARSER, tok, "\"void\" and \"double\" are mutually exclusive");
 }
 
-static int parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
+static bool parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
 	enum primmod *pm, enum storageclass *sc)
 {
 	struct token *nxt;
@@ -181,68 +181,68 @@ static int parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
 			report(E_PARSER, nxt, "duplicate \"const\" modifier");
 		*quals |= Q_CONST;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (nxt = chktp(f, "volatile")) {
 		if (*quals & Q_VOLATILE)
 			report(E_PARSER, nxt, "duplicate \"volatile\" modifier");
 		*quals |= Q_VOLATILE;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (sc && parsestorage(f, sc, "auto", SC_AUTO))
-		return 1;
+		return true;
 	else if (sc && parsestorage(f, sc, "static", SC_STATIC))
-		return 1;
+		return true;
 	else if (sc && parsestorage(f, sc, "typedef", SC_TYPEDEF))
-		return 1;
+		return true;
 	else if (sc && (flags & DF_EXTERN) && parsestorage(f, sc, "extern", SC_EXTERN))
-		return 1;
+		return true;
 	else if (sc && (flags & DF_REGISTER) && parsestorage(f, sc, "register", SC_REGISTER))
-		return 1;
+		return true;
 	else if (pm && (nxt = chktp(f, "unsigned"))) {
 		checkmods(nxt, PM_UNSIGNED, *pm);
 		*pm |= PM_UNSIGNED;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "signed"))) {
 		checkmods(nxt, PM_SIGNED, *pm);
 		*pm |= PM_SIGNED;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "short"))) {
 		checkmods(nxt, PM_SHORT, *pm);
 		*pm |= PM_SHORT;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "long"))) {
 		checkmods(nxt, PM_LONG, *pm);
 		*pm |= PM_LONG;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "int"))) {
 		checkmods(nxt, PM_INT, *pm);
 		*pm |= PM_INT;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "char"))) {
 		checkmods(nxt, PM_CHAR, *pm);
 		*pm |= PM_CHAR;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "float"))) {
 		checkmods(nxt, PM_FLOAT, *pm);
 		*pm |= PM_FLOAT;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "double"))) {
 		checkmods(nxt, PM_DOUBLE, *pm);
 		*pm |= PM_DOUBLE;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "void"))) {
 		checkmods(nxt, PM_VOID, *pm);
 		*pm |= PM_VOID;
 		freetp(nxt);
-		return 1;
+		return true;
 	}
 
 	return 0;

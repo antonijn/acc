@@ -117,14 +117,14 @@ void *list_iterator(struct list *l)
 	return l->head;
 }
 
-int iterator_next(void **it, void **item)
+bool iterator_next(void **it, void **item)
 {
 	struct node *n = *it;
 	if (!n)
-		return 0;
+		return false;
 	*item = n->data;
 	*it = n->next;
-	return 1;
+	return true;
 }
 
 void *list_rev_iterator(struct list *l)
@@ -132,14 +132,14 @@ void *list_rev_iterator(struct list *l)
 	return l->last;
 }
 
-int rev_iterator_next(void **it, void **item)
+bool rev_iterator_next(void **it, void **item)
 {
 	struct node *n = *it;
 	if (!n)
-		return 0;
+		return false;
 	*item = n->data;
 	*it = n->previous;
-	return 1;
+	return true;
 }
 
 void *get_list_item(struct list *l, int idx)
@@ -222,16 +222,16 @@ void *list_pop_front(struct list *l)
 	return data;
 }
 
-int list_contains(struct list *l, void *data)
+bool list_contains(struct list *l, void *data)
 {
 	void *it;
 	void *dat;
 	it = list_iterator(l);
 	while (iterator_next(&it, &dat))
 		if (dat == data)
-			return 1;
+			return true;
 
-	return 0;
+	return false;
 }
 
 void *list_head(struct list *l)

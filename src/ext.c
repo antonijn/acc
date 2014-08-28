@@ -17,6 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <stdbool.h>
 #include <string.h>
 
 #include <acc/ext.h>
@@ -80,7 +81,7 @@ void disableext(const char *ext)
 		enabled &= ~getex(ext);
 }
 
-int isext(enum exno ext)
+bool isext(enum exno ext)
 {
 	return (enabled & ext) == ext;
 }

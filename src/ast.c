@@ -18,6 +18,7 @@
  */
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <assert.h>
 
@@ -78,7 +79,7 @@ static void initprimitive(struct ctype *p, const char *name)
 		registerty(p);
 }
 
-int hastc(struct ctype *ty, enum typeclass tc)
+bool hastc(struct ctype *ty, enum typeclass tc)
 {
 	return gettc(ty) & tc;
 }
@@ -390,7 +391,7 @@ struct cunion *get_union(char *name)
 }
 
 struct symbol *new_symbol(struct ctype *type, char *id,
-	enum storageclass sc, int reg)
+	enum storageclass sc, bool reg)
 {
 	struct symbol *sym = malloc(sizeof(struct symbol));
 	sym->block = NULL;
@@ -471,42 +472,42 @@ struct operator *getuop(const char *opname)
 	return NULL;
 }
 
-struct operator binop_plus = { 6, 0, "+" };
-struct operator binop_min = { 6, 0, "-" };
-struct operator binop_div = { 5, 0, "/" };
-struct operator binop_mul = { 5, 0, "*" };
-struct operator binop_mod = { 5, 0, "%" };
-struct operator binop_shl = { 7, 0, "<<" };
-struct operator binop_shr = { 7, 0, ">>" };
-struct operator binop_or = { 12, 0, "|" };
-struct operator binop_and = { 10, 0, "&" };
-struct operator binop_xor = { 11, 0, "^" };
-struct operator binop_shcor = { 14, 0, "||" };
-struct operator binop_shcand = { 14, 0, "&&" };
-struct operator binop_lt = { 8, 0, "<" };
-struct operator binop_lte = { 8, 0, "<=" };
-struct operator binop_gt = { 8, 0, ">" };
-struct operator binop_gte = { 8, 0, ">=" };
-struct operator binop_eq = { 9, 0, "==" };
-struct operator binop_neq = { 9, 0, "!=" };
-struct operator binop_assign = { 16, 1, "=" };
-struct operator binop_assign_plus = { 16, 1, "+=" };
-struct operator binop_assign_min = { 16, 1, "-=" };
-struct operator binop_assign_mul = { 16, 1, "*=" };
-struct operator binop_assign_div = { 16, 1, "/=" };
-struct operator binop_assign_mod = { 16, 1, "%=" };
-struct operator binop_assign_shl = { 16, 1, "<<=" };
-struct operator binop_assign_shr = { 16, 1, ">>=" };
-struct operator binop_assign_and = { 16, 1, "&=" };
-struct operator binop_assign_xor = { 16, 1, "^=" };
-struct operator binop_assign_or = { 16, 1, "|=" };
+struct operator binop_plus = { 6, false, "+" };
+struct operator binop_min = { 6, false, "-" };
+struct operator binop_div = { 5, false, "/" };
+struct operator binop_mul = { 5, false, "*" };
+struct operator binop_mod = { 5, false, "%" };
+struct operator binop_shl = { 7, false, "<<" };
+struct operator binop_shr = { 7, false, ">>" };
+struct operator binop_or = { 12, false, "|" };
+struct operator binop_and = { 10, false, "&" };
+struct operator binop_xor = { 11, false, "^" };
+struct operator binop_shcor = { 14, false, "||" };
+struct operator binop_shcand = { 14, false, "&&" };
+struct operator binop_lt = { 8, false, "<" };
+struct operator binop_lte = { 8, false, "<=" };
+struct operator binop_gt = { 8, false, ">" };
+struct operator binop_gte = { 8, false, ">=" };
+struct operator binop_eq = { 9, false, "==" };
+struct operator binop_neq = { 9, false, "!=" };
+struct operator binop_assign = { 16, true, "=" };
+struct operator binop_assign_plus = { 16, true, "+=" };
+struct operator binop_assign_min = { 16, true, "-=" };
+struct operator binop_assign_mul = { 16, true, "*=" };
+struct operator binop_assign_div = { 16, true, "/=" };
+struct operator binop_assign_mod = { 16, true, "%=" };
+struct operator binop_assign_shl = { 16, true, "<<=" };
+struct operator binop_assign_shr = { 16, true, ">>=" };
+struct operator binop_assign_and = { 16, true, "&=" };
+struct operator binop_assign_xor = { 16, true, "^=" };
+struct operator binop_assign_or = { 16, true, "|=" };
 
-struct operator unop_suffinc = { 2, 0, "++" };
-struct operator unop_suffdef = { 2, 0, "--" };
-struct operator unop_preinc = { 3, 1, "++" };
-struct operator unop_predec = { 3, 1, "--" };
-struct operator unop_plus = { 3, 1, "+" };
-struct operator unop_min = { 3, 1, "-" };
-struct operator unop_deref = { 3, 1, "-" };
-struct operator unop_ref = { 3, 1, "-" };
-struct operator unop_sizeof = { 3, 1, "-" };
+struct operator unop_suffinc = { 2, false, "++" };
+struct operator unop_suffdef = { 2, false, "--" };
+struct operator unop_preinc = { 3, true, "++" };
+struct operator unop_predec = { 3, true, "--" };
+struct operator unop_plus = { 3, true, "+" };
+struct operator unop_min = { 3, true, "-" };
+struct operator unop_deref = { 3, true, "-" };
+struct operator unop_ref = { 3, true, "-" };
+struct operator unop_sizeof = { 3, true, "-" };

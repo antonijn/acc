@@ -21,6 +21,7 @@
 #define PARSING_DECL_H
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <acc/ast.h>
 #include <acc/list.h>
@@ -55,7 +56,7 @@ enum declflags {
 		DF_ARRAY_POINTER
 };
 
-int parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_block **b);
+bool parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_block **b);
 
 #endif
  

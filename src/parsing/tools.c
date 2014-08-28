@@ -18,26 +18,27 @@
  */
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 
 #include <acc/parsing/tools.h>
 
-int chkt(FILE *f, const char *t)
+bool chkt(FILE *f, const char *t)
 {
 	struct token *tok = chktp(f, t);
 	if (!tok)
-		return 0;
+		return false;
 	freetp(tok);
-	return 1;
+	return true;
 }
 
-int chktt(FILE *f, enum tokenty tt)
+bool chktt(FILE *f, enum tokenty tt)
 {
 	struct token *t = chkttp(f, tt);
 	if (!t)
-		return 0;
+		return false;
 	freetp(t);
-	return 1;
+	return true;
 }
 
 struct token *chktp(FILE *f, const char *t)

@@ -18,6 +18,7 @@
  */
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <assert.h>
 
@@ -71,7 +72,7 @@ static struct expr pack(struct itm_block *b, struct expr e, enum exprflags flags
 
 	if ((flags & EF_EXPECT_RVALUE) && e.islvalue) {
 		struct expr res;
-		res.islvalue = 0;
+		res.islvalue = false;
 		res.itm = (struct itm_expr *)itm_load(b, e.itm);
 		return res;
 	}
@@ -131,7 +132,7 @@ static struct expr parseid(FILE *f, enum exprflags flags,
 	freetp(id);
 
 	acc.itm = sym->value;
-	acc.islvalue = 1;
+	acc.islvalue = true;
 
 	return parseexpro(f, flags, block, initty, operators, acc);
 }
@@ -232,14 +233,14 @@ static struct expr performaop(FILE *f, struct operator *op, enum exprflags flags
 		if (hastc(lt, TC_ARITHMETIC))
 			ifunc = &itm_add;
 		else if (hastc(lt, TC_POINTER))
-			/* TODO */ assert(0);
+			/* TODO */ assert(false);
 		else
 			goto invalid;
 	} else if (op == &binop_min) {
 		if (hastc(lt, TC_ARITHMETIC))
 			ifunc = &itm_sub;
 		else if (hastc(lt, TC_POINTER))
-			/* TODO */ assert(0);
+			/* TODO */ assert(false);
 		else
 			goto invalid;
 	} else if (op == &binop_div) {
@@ -312,7 +313,7 @@ static struct expr performaop(FILE *f, struct operator *op, enum exprflags flags
 	r = cast(r, et, *block);
 	
 	acc.itm = (struct itm_expr *)ifunc(*block, acc.itm, r.itm);
-	acc.islvalue = 0;
+	acc.islvalue = false;
 	return acc;
 
 invalid:
@@ -432,7 +433,7 @@ static struct expr parseintlit(FILE *f, enum exprflags flags,
 	lit->value.i = ul;
 
 	acc.itm = (struct itm_expr *)lit;
-	acc.islvalue = 0;
+	acc.islvalue = false;
 	return parseexpro(f, flags, block, initty, operators, acc);
 }
 
@@ -459,7 +460,7 @@ static struct expr parsefloatlit(FILE *f, enum exprflags flags,
 	freetp(tok);
 	
 	acc.itm = (struct itm_expr *)lit;
-	acc.islvalue = 0;
+	acc.islvalue = false;
 	return parseexpro(f, flags, block, initty, operators, acc);
 }
 

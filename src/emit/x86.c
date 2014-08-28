@@ -20,7 +20,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 #include <assert.h>
 
 #include <acc/emit/x86.h>
@@ -218,7 +220,7 @@ static void x86quad(FILE *f, size_t cnt, ...);
 static void x86asciiz(FILE *f, const char *str);
 static void x86etostr(FILE *f, struct x86e *e);
 static void x86eatostr(FILE *f, struct x86ea *ea);
-static void x86immtostr(FILE *f, struct x86imm *imm, int attprefix);
+static void x86immtostr(FILE *f, struct x86imm *imm, bool attprefix);
 
 static void x86_emit_symbol(FILE *f, struct symbol *sym);
 
@@ -391,7 +393,7 @@ static void x86etostr(FILE *f, struct x86e *e)
 	}
 }
 
-static void x86immtostr(FILE *f, struct x86imm *imm, int attprefix)
+static void x86immtostr(FILE *f, struct x86imm *imm, bool attprefix)
 {
 	if (imm->op) {
 		fprintf(f, "(");
@@ -412,10 +414,10 @@ static void x86eatostr(FILE *f, struct x86ea *ea)
 {
 	if (option_asmflavor() == AF_ATT) {
 		if (ea->displacement && (ea->basereg || ea->offset))
-			x86immtostr(f, ea->displacement, 0);
+			x86immtostr(f, ea->displacement, false);
 		fprintf(f, "(");
 		if (ea->displacement && !(ea->basereg || ea->offset))
-			x86immtostr(f, ea->displacement, 0);
+			x86immtostr(f, ea->displacement, false);
 		if (ea->basereg)
 			x86etostr(f, (struct x86e *)ea->basereg);
 		if (ea->offset) {

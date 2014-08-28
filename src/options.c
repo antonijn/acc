@@ -21,11 +21,12 @@
 
 #include <acc/options.h>
 #include <acc/error.h>
+#include <acc/ext.h>
 
 static char *outfile = "a.out";
 static struct list *input;
 static int optimize = 0;
-static int warnings = 1;
+static bool warnings = true;
 static enum asmflavor flavor =
 #if defined(BUILDFOR_LINUX) || defined(BUILDFOR_OSX)
 	AF_ATT;
@@ -48,7 +49,7 @@ void options_init(int argc, char *argv[])
 				report(E_OPTIONS, NULL, "expected output file name");
 			outfile = argv[++i];
 		} else if (!strcmp(arg, "-w")) {
-			warnings = 0;
+			warnings = false;
 		} else if (!strcmp(arg, "-O0")) {
 			optimize = 0;
 		} else if (!strcmp(arg, "-O1")) {
@@ -96,7 +97,7 @@ enum asmflavor option_asmflavor(void)
 	return flavor;
 }
 
-int option_warnings(void)
+bool option_warnings(void)
 {
 	return warnings;
 }
