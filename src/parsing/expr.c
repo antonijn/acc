@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <inttypes.h>
 #include <assert.h>
 
 #include <acc/parsing/expr.h>
@@ -473,27 +474,27 @@ static struct expr parseintlit(FILE *f, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty, struct list *operators,
 	struct expr acc)
 {
-	unsigned long ul;
+	uint64_t ul;
 	struct token tok = gettok(f);
 	struct ctype *itypes[5] = { 0 };
 	struct expr nil = { 0 };
 	
 	switch (tok.type) {
 	case T_DEC:
-		sscanf(tok.lexeme, "%lu", &ul);
+		sscanf(tok.lexeme, "%" SCNu64, &ul);
 		itypes[0] = &cint;
 		itypes[1] = &clong;
 		break;
 	case T_OCT:
-		sscanf(tok.lexeme, "0%lo", &ul);
+		sscanf(tok.lexeme, "0%" SCNo64, &ul);
 		itypes[0] = &cint;
 		itypes[1] = &cuint;
 		itypes[2] = &clong;
 		itypes[3] = &culong;
 		break;
 	case T_HEX:
-		if (!sscanf(tok.lexeme, "0x%lx", &ul))
-			sscanf(tok.lexeme, "0X%lx", &ul);
+		if (!sscanf(tok.lexeme, "0x%" SCNx64, &ul))
+			sscanf(tok.lexeme, "0X%" SCNx64, &ul);
 		itypes[0] = &cint;
 		itypes[1] = &cuint;
 		itypes[2] = &clong;
