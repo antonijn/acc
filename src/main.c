@@ -17,6 +17,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#ifndef NDEBUG
+#include <signal.h>
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -55,10 +58,39 @@ static void compilefile(FILE *f)
 	ast_destroy();
 }
 
+#ifndef NDEBUG
+static void segvcatcher(int signo)
+{
+	/*
+	 * DANGER
+	 * This function can fail awfully on an awful amount of levels.
+	 * It is only used in debug mode to catch segmentation faults.
+	 * It prints where the error occured in the compilation, along with a
+	 * funny face.
+	 */
+	fprintf(stderr, "\n"
+	                "\t\\|/ ____ \\|/\n"
+	                "\t\"@'/ .. \\`@\"\n"
+                        "\t/_| \\__/ |_\\\n"
+	                "\t   \\__U_/\n\n");
+	fprintf(stderr, "Oops! Received SIGSEGV during compilation!\n");
+	fprintf(stderr, "\tFile:\t%s\n", currentfile ? currentfile : "<stdin>");
+	fprintf(stderr, "\tLine:\t%d\n", get_line());
+	fprintf(stderr, "\tColumn:\t%d\n\n", get_column());
+	abort();
+}
+#endif
+
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
 	options_init(argc, argv);
+
+#ifndef NDEBUG
+	if (signal(SIGSEGV, &segvcatcher) == SIG_ERR)
+		fprintf(stderr, "debug warning: failed to register"
+		                "segmentation fault handler\n");
+#endif
 
 	void *li = list_iterator(option_input());
 	while (iterator_next(&li, (void **)&currentfile)) {
