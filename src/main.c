@@ -26,6 +26,7 @@
 #include <acc/token.h>
 #include <acc/error.h>
 #include <acc/target.h>
+#include <acc/itm.h>
 #include <acc/parsing/file.h>
 
 static void compilefile(FILE *f)
@@ -34,6 +35,21 @@ static void compilefile(FILE *f)
 	resettok();
 	ast_init();
 	parsefile(f, syms);
+
+#ifndef NDEBUG
+	char ofname[strlen(currentfile ? currentfile : "-") + 5];
+	sprintf(&ofname[0], "%s.itm", currentfile ? currentfile : "-");
+	FILE *out = fopen(&ofname[0], "wb");
+
+	struct symbol *sym;
+	void *it = list_iterator(syms);
+	while (iterator_next(&it, (void **)&sym))
+		if (sym->block)
+			itm_block_to_string(out, sym->block);
+
+	fclose(out);
+#endif
+
 	getarch()->emitter(stdout, syms);
 	delete_list(syms, NULL);
 	ast_destroy();

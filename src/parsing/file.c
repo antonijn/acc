@@ -68,6 +68,9 @@ static void processdecls(FILE *f, struct list *decls, struct list *syms)
 
 	if (!block->last || !block->last->isterminal)
 		itm_leave(block);
+
+	struct symbol *last = list_last(syms);
+	last->block = bb;
 }
 
 void parsefile(FILE *f, struct list *syms)
