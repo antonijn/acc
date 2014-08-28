@@ -21,6 +21,7 @@
 #define AST_H
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #include <acc/list.h>
 
@@ -131,7 +132,7 @@ enum typeclass {
 	TC_UNSIGNED = 0x40
 };
 
-int hastc(struct ctype *ty, enum typeclass tc);
+bool hastc(struct ctype *ty, enum typeclass tc);
 enum typeclass gettc(struct ctype *ty);
 
 struct symbol {
@@ -144,7 +145,7 @@ struct symbol {
 };
 
 struct symbol *new_symbol(struct ctype *type, char *id,
-	enum storageclass sc, int reg);
+	enum storageclass sc, bool reg);
 void registersym(struct symbol *sym);
 
 struct enumerator {
@@ -155,7 +156,7 @@ struct enumerator {
 
 struct operator {
 	int prec;
-	int rtol;
+	bool rtol;
 	const char *rep;
 };
 
@@ -168,7 +169,7 @@ void leave_scope(void);
 struct symbol *get_symbol(char *id);
 struct enumerator *get_enumerator(char *id);
 struct cstruct *get_struct(char *name);
-struct cunion *get_union(char *name);
+struct cstruct *get_union(char *name);
 struct ctype *get_typedef(char *id);
 
 struct operator *getbop(const char *opname);

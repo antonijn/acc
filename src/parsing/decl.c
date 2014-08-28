@@ -45,7 +45,7 @@ enum primmod {
 	PM_VOID = 0x400
 };
 
-static int parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
+static bool parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
 	enum primmod *pm, enum storageclass *sc);
 static struct ctype *parsebasety(FILE *f, enum declflags flags,
 	enum storageclass *sc);
@@ -59,7 +59,7 @@ static struct ctype *parsearray(FILE *f, struct ctype *ty);
 
 static struct ctype *getfullty(struct ctype *incomp, struct ctype *ty);
 
-static int aremods(enum primmod new, enum primmod prev,
+static bool aremods(enum primmod new, enum primmod prev,
 	enum primmod l, enum primmod r);
 static void checkmods(struct token *tok, enum primmod new, enum primmod prev);
 
@@ -68,20 +68,17 @@ static struct ctype *getprimitive(enum primmod mods);
 static struct ctype *parsestructure(FILE *f);
 static struct ctype *parsetypedef(FILE *f);
 
-int parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_block **b)
+bool parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_block **b)
 {
 	enum storageclass sc = SC_DEFAULT;
 	struct ctype *basety = parsebasety(f, flags, &sc);
+	/* number of symbols in syms before syms was appended to */
 	int numsymsb4 = syms ? list_length(syms) : -1;
 	if (!basety)
-		return 0;
+		return false;
 
-	while (1) {
-		struct token *closep;
-		struct token tok;
-		struct symbol *sym;
-
-		sym = parsedeclarator(f, flags, basety, sc);
+	while (true) {
+		struct symbol *sym = parsedeclarator(f, flags, basety, sc);
 		if (syms)
 			list_push_back(syms, sym);
 		if (flags & DF_ALLOCA) {
@@ -99,10 +96,13 @@ int parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_block
 		}
 		if ((flags & DF_BITFIELD) && chkt(f, ":")) {
 			/* TODO: parse bitfield */
+			assert(false);
 		}
 		if (((flags & DF_FINISH_SEMICOLON) && chkt(f, ";")) ||
 		    ((flags & DF_FINISH_COMMA) && chkt(f, ",")))
 			break;
+
+		struct token *closep;
 		if (((flags & DF_FINISH_PARENT) && (closep = chktp(f, ")"))) ||
 		    ((flags & DF_FINISH_BRACE) && sym->type->type == FUNCTION &&
 		     syms && (list_length(syms) - numsymsb4) == 1 &&
@@ -114,15 +114,15 @@ int parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_block
 		if ((flags & DF_MULTIPLE) && chkt(f, ","))
 			continue;
 
-		tok = gettok(f);
+		struct token tok = gettok(f);
 		report(E_PARSER, &tok, "unexpected token in declaration");
 		break;
 	}
 
-	return 1;
+	return true;
 }
 
-static int parsestorage(FILE *f, enum storageclass *sc,
+static bool parsestorage(FILE *f, enum storageclass *sc,
 	const char *mod, enum storageclass set)
 {
 	struct token *nxt;
@@ -133,12 +133,12 @@ static int parsestorage(FILE *f, enum storageclass *sc,
 			report(E_PARSER, nxt, "multiple storage class specifiers");
 		*sc = set;
 		freetp(nxt);
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
 }
 
-static int aremods(enum primmod new, enum primmod prev,
+static bool aremods(enum primmod new, enum primmod prev,
 	enum primmod l, enum primmod r)
 {
 	return ((prev & l) == l && (new & r) == r) ||
@@ -172,7 +172,7 @@ static void checkmods(struct token *tok, enum primmod new, enum primmod prev)
 		report(E_PARSER, tok, "\"void\" and \"double\" are mutually exclusive");
 }
 
-static int parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
+static bool parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
 	enum primmod *pm, enum storageclass *sc)
 {
 	struct token *nxt;
@@ -181,71 +181,71 @@ static int parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
 			report(E_PARSER, nxt, "duplicate \"const\" modifier");
 		*quals |= Q_CONST;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (nxt = chktp(f, "volatile")) {
 		if (*quals & Q_VOLATILE)
 			report(E_PARSER, nxt, "duplicate \"volatile\" modifier");
 		*quals |= Q_VOLATILE;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (sc && parsestorage(f, sc, "auto", SC_AUTO))
-		return 1;
+		return true;
 	else if (sc && parsestorage(f, sc, "static", SC_STATIC))
-		return 1;
+		return true;
 	else if (sc && parsestorage(f, sc, "typedef", SC_TYPEDEF))
-		return 1;
+		return true;
 	else if (sc && (flags & DF_EXTERN) && parsestorage(f, sc, "extern", SC_EXTERN))
-		return 1;
+		return true;
 	else if (sc && (flags & DF_REGISTER) && parsestorage(f, sc, "register", SC_REGISTER))
-		return 1;
+		return true;
 	else if (pm && (nxt = chktp(f, "unsigned"))) {
 		checkmods(nxt, PM_UNSIGNED, *pm);
 		*pm |= PM_UNSIGNED;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "signed"))) {
 		checkmods(nxt, PM_SIGNED, *pm);
 		*pm |= PM_SIGNED;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "short"))) {
 		checkmods(nxt, PM_SHORT, *pm);
 		*pm |= PM_SHORT;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "long"))) {
 		checkmods(nxt, PM_LONG, *pm);
 		*pm |= PM_LONG;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "int"))) {
 		checkmods(nxt, PM_INT, *pm);
 		*pm |= PM_INT;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "char"))) {
 		checkmods(nxt, PM_CHAR, *pm);
 		*pm |= PM_CHAR;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "float"))) {
 		checkmods(nxt, PM_FLOAT, *pm);
 		*pm |= PM_FLOAT;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "double"))) {
 		checkmods(nxt, PM_DOUBLE, *pm);
 		*pm |= PM_DOUBLE;
 		freetp(nxt);
-		return 1;
+		return true;
 	} else if (pm && (nxt = chktp(f, "void"))) {
 		checkmods(nxt, PM_VOID, *pm);
 		*pm |= PM_VOID;
 		freetp(nxt);
-		return 1;
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 static struct ctype *parsebasety(FILE *f, enum declflags flags,
@@ -304,14 +304,13 @@ static struct symbol *parseddeclarator(FILE *f, enum declflags flags,
 {
 	struct symbol *res;
 	struct token *tok;
-	struct token t;
 	if (tok = chkttp(f, T_IDENTIFIER)) {
 		res = new_symbol(parseddend(f, ty), tok->lexeme, sc,
 			flags & DF_REGISTER_SYMBOL);
 		freetp(tok);
 	} else if (chkt(f, "(")) {
 		res = parsedeclarator(f, flags, NULL, sc);
-		t = gettok(f);
+		struct token t = gettok(f);
 		if (strcmp(t.lexeme, ")")) {
 			report(E_PARSER, &t, "expected ')' to finish declarator");
 			ungettok(&t, f);
@@ -336,14 +335,15 @@ static struct ctype *parseddend(FILE *f, struct ctype *ty)
 
 static struct ctype *parseparamlist(FILE *f, struct ctype *ty)
 {
-	struct token *tok1, *tok2;
 	struct list *paramlist;
 	if (!chkt(f, "("))
 		return ty;
 
 	paramlist = new_list(NULL, 0);
 
+	struct token *tok1;
 	if (tok1 = chktp(f, "void")) {
+		struct token *tok2;
 		if (tok2 = chktp(f, ")")) {
 			freetp(tok1);
 			freetp(tok2);
@@ -373,6 +373,7 @@ static struct ctype *getfullty(struct ctype *incomp, struct ctype *ty)
 {
 	struct cpointer *cp;
 	struct cfunction *cf;
+
 	if (!incomp)
 		return ty;
 
@@ -423,15 +424,14 @@ static struct ctype *getprimitive(enum primmod mods)
 
 static struct ctype *parsestructure(FILE *f)
 {
-	struct token *idtok = NULL, *tok = NULL;
 	struct cstruct *str;
 	if (!chkt(f, "struct"))
 		return NULL;
 
-	idtok = chkttp(f, T_IDENTIFIER);
+	struct token *idtok = chkttp(f, T_IDENTIFIER);
 
+	struct token *tok;
 	if (!(tok = chktp(f, "{"))) {
-		struct cstruct *str;
 		if (!idtok) {
 			report(E_PARSER, tok, "expected '{' or ';'");
 		} else if (str = get_struct(idtok->lexeme)) {
@@ -455,11 +455,10 @@ static struct ctype *parsestructure(FILE *f)
 	
 	while (!chkt(f, "}")) {
 		struct list *syms = new_list(NULL, 0);
-		struct symbol *sym;
-		void *it;
 		parsedecl(f, DF_FIELD, syms, NULL);
 
-		it = list_iterator(syms);
+		struct symbol *sym;
+		void *it = list_iterator(syms);
 		while (iterator_next(&it, (void **)&sym))
 			struct_add_field((struct ctype *)str, sym->type, sym->id);
 		delete_list(syms, NULL);
@@ -471,11 +470,10 @@ static struct ctype *parsestructure(FILE *f)
 static struct ctype *parsetypedef(FILE *f)
 {
 	struct token *tok;
-	struct ctype *ty;
 	if (!(tok = chkttp(f, T_IDENTIFIER))) {
 		return NULL;
 	}
-	ty = get_typedef(tok->lexeme);
+	struct ctype *ty = get_typedef(tok->lexeme);
 	if (!ty)
 		ungettok(tok, f);
 	freetp(tok);

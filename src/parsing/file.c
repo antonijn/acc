@@ -35,40 +35,35 @@ static void addparams(void *fsym)
 {
 	struct symbol *sym = fsym;
 	struct cfunction *fun = (struct cfunction *)sym->type;
-	void *it;
 
-	it = list_iterator(fun->parameters);
+	void *it = list_iterator(fun->parameters);
 	while (iterator_next(&it, (void **)&sym))
 		registersym(sym);
 }
 
 static void processdecls(FILE *f, struct list *decls, struct list *syms)
 {
-	void *it;
-	struct symbol *sym;
-	struct token *tok;
-	struct itm_block *block;
-	struct itm_block *bb;
-	int success;
 
-	it = list_iterator(decls);
+	struct symbol *sym;
+	void *it = list_iterator(decls);
 	while (iterator_next(&it, (void **)&sym))
 		list_push_back(syms, sym);
-	
+
+	struct token *tok;
 	if (list_length(decls) != 1 ||
 	   ((struct symbol *)list_head(decls))->type->type != FUNCTION ||
 	   !(tok = chktp(f, "{")))
 		return;
 
-	block = new_itm_block(NULL, NULL);
-	bb = block;
+	struct itm_block *block = new_itm_block(NULL, NULL);
+	struct itm_block *bb = block;
 
 	ungettok(tok, f);
 	freetp(tok);
 
 	enter_scope();
 	addparams(list_head(decls));
-	success = parseblock(f, SF_NORMAL, &block);
+	bool success = parseblock(f, SF_NORMAL, &block);
 	assert(success);
 	leave_scope();
 
@@ -79,7 +74,6 @@ static void processdecls(FILE *f, struct list *decls, struct list *syms)
 void parsefile(FILE *f, struct list *syms)
 {
 	struct list * declsyms;
-
 	while (!chkeof(f) &&
 	      parsedecl(f, DF_GLOBAL, (declsyms = new_list(NULL, 0)), NULL)) {
 		processdecls(f, declsyms, syms);

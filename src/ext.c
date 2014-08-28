@@ -17,6 +17,7 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <stdbool.h>
 #include <string.h>
 
 #include <acc/ext.h>
@@ -53,8 +54,7 @@ static enum exno enabled = 0;
 
 enum exno getex(const char *ext)
 {
-	int i;
-	for (i = 0; i < sizeof(extensions) / sizeof(struct extension); ++i) {
+	for (int i = 0; i < sizeof(extensions) / sizeof(struct extension); ++i) {
 		struct extension ex = extensions[i];
 		if (!strcmp(ext, ex.str))
 			return ex.no;
@@ -80,7 +80,7 @@ void disableext(const char *ext)
 		enabled &= ~getex(ext);
 }
 
-int isext(enum exno ext)
+bool isext(enum exno ext)
 {
 	return (enabled & ext) == ext;
 }

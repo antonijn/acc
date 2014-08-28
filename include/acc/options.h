@@ -36,7 +36,7 @@ void options_destroy(void);
 char *option_outfile(void);
 int option_optimize(void);
 struct list *option_input(void);
-int option_warnings(void);
+bool option_warnings(void);
 enum asmflavor option_asmflavor(void);
 
 #endif

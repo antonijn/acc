@@ -21,6 +21,7 @@
 #define TOKEN_H
 
 #include <stdio.h>
+#include <stdbool.h>
 
 enum tokenty {
 	T_IDENTIFIER,
@@ -45,7 +46,7 @@ struct token {
 };
 
 struct token gettok(FILE *f);
-int chkeof(FILE *f);
+bool chkeof(FILE *f);
 void ungettok(struct token *t, FILE *f);
 void freetok(struct token *t);
 void resettok(void);

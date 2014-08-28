@@ -70,8 +70,7 @@ static const struct cpu *cpu = &cpui386;
 
 const struct os *osbyname(const char * name)
 {
-	int i;
-	for (i = 0; i < sizeof(oses) / sizeof(struct os); ++i)
+	for (int i = 0; i < sizeof(oses) / sizeof(struct os); ++i)
 		if (!strcmp(oses[i]->name, name))
 			return oses[i];
 	
@@ -80,8 +79,7 @@ const struct os *osbyname(const char * name)
 
 const struct arch *archbyname(const char * name)
 {
-	int i;
-	for (i = 0; i < sizeof(arches) / sizeof(struct arch); ++i)
+	for (int i = 0; i < sizeof(arches) / sizeof(struct arch); ++i)
 		if (!strcmp(arches[i]->name, name))
 			return arches[i];
 	
@@ -90,8 +88,7 @@ const struct arch *archbyname(const char * name)
 
 const struct cpu *cpubyname(const char * name)
 {
-	int i;
-	for (i = 0; i < sizeof(cpus) / sizeof(struct cpu); ++i)
+	for (int i = 0; i < sizeof(cpus) / sizeof(struct cpu); ++i)
 		if (!strcmp(cpus[i]->name, name))
 			return cpus[i];
 	

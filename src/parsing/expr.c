@@ -18,6 +18,7 @@
  */
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <assert.h>
 
@@ -71,7 +72,7 @@ static struct expr pack(struct itm_block *b, struct expr e, enum exprflags flags
 
 	if ((flags & EF_EXPECT_RVALUE) && e.islvalue) {
 		struct expr res;
-		res.islvalue = 0;
+		res.islvalue = false;
 		res.itm = (struct itm_expr *)itm_load(b, e.itm);
 		return res;
 	}
@@ -131,7 +132,7 @@ static struct expr parseid(FILE *f, enum exprflags flags,
 	freetp(id);
 
 	acc.itm = sym->value;
-	acc.islvalue = 1;
+	acc.islvalue = true;
 
 	return parseexpro(f, flags, block, initty, operators, acc);
 }
@@ -140,9 +141,7 @@ static struct expr parsebop(FILE *f, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty, struct list *operators,
 	struct expr acc)
 {
-	struct operator *op;
 	struct token *tok;
-	struct expr e, r;
 	struct expr nil = { 0 };
 	
 	if (!acc.itm)
@@ -151,7 +150,7 @@ static struct expr parsebop(FILE *f, enum exprflags flags,
 	if (!(tok = chkttp(f, T_OPERATOR)))
 		return nil;
 	
-	op = getbop(tok->lexeme);
+	struct operator *op = getbop(tok->lexeme);
 	if (!op) {
 		ungettok(tok, f);
 		freetp(tok);
@@ -170,7 +169,7 @@ static struct expr parsebop(FILE *f, enum exprflags flags,
 	
 	list_push_back(operators, op);
 	
-	e = performasnop(f, op, flags, block, initty, operators, acc);
+	struct expr e = performasnop(f, op, flags, block, initty, operators, acc);
 	if (e.itm)
 		goto ret;
 	e = performaop(f, op, flags, block, initty, operators, acc);
@@ -194,13 +193,12 @@ static struct expr performasnop(FILE *f, struct operator *op, enum exprflags fla
 	struct expr acc)
 {
 	struct expr nil = { 0 };
-	struct expr r;
 	if (op != &binop_assign)
 		return nil;
 
 	acc = pack(*block, acc, EF_EXPECT_LVALUE);
 
-	r = parseexpro(f, (flags & EF_CLEAR_MASK) | EF_EXPECT_RVALUE,
+	struct expr r = parseexpro(f, (flags & EF_CLEAR_MASK) | EF_EXPECT_RVALUE,
 		block, initty, operators, nil);
 	r = cast(r, ((struct cpointer *)acc.itm->type)->pointsto, *block);
 
@@ -212,34 +210,31 @@ static struct expr performaop(FILE *f, struct operator *op, enum exprflags flags
 	struct itm_block **block, struct ctype *initty, struct list *operators,
 	struct expr acc)
 {
-	struct itm_instr *(*ifunc)(struct itm_block *b,
-		struct itm_expr *l, struct itm_expr *r);
-	struct ctype *lt;
-	struct ctype *rt;
-	struct ctype *et;
 	struct expr nil = { 0 };
-	struct expr r;
 
 	acc = pack(*block, acc, EF_EXPECT_RVALUE);
 
-	r = parseexpro(f, (flags & EF_CLEAR_MASK) | EF_EXPECT_RVALUE,
+	struct expr r = parseexpro(f, (flags & EF_CLEAR_MASK) | EF_EXPECT_RVALUE,
 		block, initty, operators, nil);
 
-	lt = acc.itm->type;
-	rt = r.itm->type;
+	struct ctype *lt = acc.itm->type;
+	struct ctype *rt = r.itm->type;
+
+	struct itm_instr *(*ifunc)(struct itm_block *b,
+		struct itm_expr *l, struct itm_expr *r);
 
 	if (op == &binop_plus) {
 		if (hastc(lt, TC_ARITHMETIC))
 			ifunc = &itm_add;
 		else if (hastc(lt, TC_POINTER))
-			/* TODO */ assert(0);
+			/* TODO */ assert(false);
 		else
 			goto invalid;
 	} else if (op == &binop_min) {
 		if (hastc(lt, TC_ARITHMETIC))
 			ifunc = &itm_sub;
 		else if (hastc(lt, TC_POINTER))
-			/* TODO */ assert(0);
+			/* TODO */ assert(false);
 		else
 			goto invalid;
 	} else if (op == &binop_div) {
@@ -295,6 +290,7 @@ static struct expr performaop(FILE *f, struct operator *op, enum exprflags flags
 	else
 		return nil; /* this shouldn't happen. ever. */
 	
+	struct ctype *et;
 	if (lt == &cdouble || rt == &cdouble)
 		et = &cdouble;
 	else if (lt == &cfloat || rt == &cfloat)
@@ -312,7 +308,7 @@ static struct expr performaop(FILE *f, struct operator *op, enum exprflags flags
 	r = cast(r, et, *block);
 	
 	acc.itm = (struct itm_expr *)ifunc(*block, acc.itm, r.itm);
-	acc.islvalue = 0;
+	acc.islvalue = false;
 	return acc;
 
 invalid:
@@ -333,8 +329,6 @@ static struct expr parseparents(FILE *f, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty, struct list *operators,
 	struct expr acc)
 {
-	struct token close;
-	struct list *noperators;
 	struct expr nil = { 0 };
 	if (acc.itm)
 		return nil;
@@ -344,13 +338,13 @@ static struct expr parseparents(FILE *f, enum exprflags flags,
 	
 	/* TODO: check for type cast */
 	
-	noperators = new_list(NULL, 0);
+	struct list *noperators = new_list(NULL, 0);
 	acc = parseexpro(f, EF_NORMAL | EF_FINISH_BRACKET,
 		block, initty, noperators, nil);
 	delete_list(noperators, NULL);
 	
 	/* remove closing ) from the stream */
-	close = gettok(f);
+	struct token close = gettok(f);
 	freetok(&close);
 	
 	return parseexpro(f, flags, block, initty, operators, acc);
@@ -376,11 +370,8 @@ static struct expr parseintlit(FILE *f, enum exprflags flags,
 {
 	unsigned long ul;
 	struct token tok = gettok(f);
-	struct itm_literal *lit;
 	struct ctype *itypes[5] = { 0 };
-	struct ctype *type;
 	struct expr nil = { 0 };
-	int i;
 	
 	switch (tok.type) {
 	case T_DEC:
@@ -410,29 +401,30 @@ static struct expr parseintlit(FILE *f, enum exprflags flags,
 	}
 	
 	freetok(&tok);
-	
-	for (i = 0; itypes[i]; ++i) {
-		unsigned long top;
+
+	struct ctype *type;
+	for (int i = 0; itypes[i]; ++i) {
+		uint64_t mask;
 		type = itypes[i];
 		if (type == &cuint ||
 		    type == &culong) {
-			top = (1ul << (type->size * 8 - 1)) - 1;
-			top <<= 1;
-			top |= 1;
+			mask = (1ul << (type->size * 8 - 1)) - 1;
+			mask <<= 1;
+			mask |= 1;
 		} else {
-			top = (1ul << (type->size * 8 - 2)) - 1;
-			top <<= 1;
-			top |= 1;
+			mask = (1ul << (type->size * 8 - 2)) - 1;
+			mask <<= 1;
+			mask |= 1;
 		}
-		if (ul <= top)
+		if ((ul & ~mask) == 0)
 			break;
 	}
 
-	lit = new_itm_literal(type);
+	struct itm_literal *lit = new_itm_literal(type);
 	lit->value.i = ul;
 
 	acc.itm = (struct itm_expr *)lit;
-	acc.islvalue = 0;
+	acc.islvalue = false;
 	return parseexpro(f, flags, block, initty, operators, acc);
 }
 
@@ -440,9 +432,9 @@ static struct expr parsefloatlit(FILE *f, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty, struct list *operators,
 	struct expr acc)
 {
+	struct expr nil = { 0 };
 	struct token *tok;
 	struct itm_literal *lit;
-	struct expr nil = { 0 };
 	if (tok = chkttp(f, T_FLOAT)) {
 		float f;
 		sscanf(tok->lexeme, "%ff", &f);
@@ -459,7 +451,7 @@ static struct expr parsefloatlit(FILE *f, enum exprflags flags,
 	freetp(tok);
 	
 	acc.itm = (struct itm_expr *)lit;
-	acc.islvalue = 0;
+	acc.islvalue = false;
 	return parseexpro(f, flags, block, initty, operators, acc);
 }
 

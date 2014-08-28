@@ -38,10 +38,6 @@ static int itm_instr_number(struct itm_instr *i)
 
 static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 {
-	void *it;
-	int j;
-	struct itm_expr *ex;
-	struct itm_label *lbl;
 
 	assert(i != NULL);
 
@@ -53,8 +49,9 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 	}
 	fprintf(f, "%s ", i->operation);
 
-	it = list_iterator(i->operands);
-	for (j = 0; iterator_next(&it, (void **)&ex); ++j) {
+	struct itm_expr *ex;
+	void *it = list_iterator(i->operands);
+	for (int j = 0; iterator_next(&it, (void **)&ex); ++j) {
 		ex->to_string(f, ex);
 		if (j != list_length(i->operands) - 1 ||
 		   (i->labeloperands && list_length(i->labeloperands) > 0) ||
@@ -63,8 +60,9 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 	}
 	
 	if (i->labeloperands) {
+		struct itm_label *lbl;
 		it = list_iterator(i->labeloperands);
-		for (j = 0; iterator_next(&it, (void **)&lbl); ++j) {
+		for (int j = 0; iterator_next(&it, (void **)&lbl); ++j) {
 			fprintf(f, "block %%%d", lbl->block->number);
 			if (j != list_length(i->labeloperands) - 1 || i->typeoperand)
 				fprintf(f, ", ");
@@ -108,9 +106,6 @@ static void itm_literal_to_string(FILE *f, struct itm_expr *e)
 
 void itm_block_to_string(FILE *f, struct itm_block *block)
 {
-	void *it;
-	struct itm_block *nxt;
-	
 	fprintf(f, "\n%%%d:\n", block->number);
 	if (block->first)
 		itm_instr_to_string(f, block->first);
@@ -167,9 +162,7 @@ struct itm_block *new_itm_block(struct itm_block *before, struct list *previous)
 	
 	if (previous) {
 		struct itm_block *fprev;
-		void *it;
-		
-		it = list_iterator(previous);
+		void *it = list_iterator(previous);
 		while (iterator_next(&it, (void **)&fprev))
 			list_push_back(fprev->next, res);
 	}
@@ -182,10 +175,8 @@ struct itm_block *new_itm_block(struct itm_block *before, struct list *previous)
 
 static void cleanup_instr(struct itm_instr *i)
 {
-	void *it;
 	struct itm_expr *op;
-	
-	it = list_iterator(i->operands);
+	void *it = list_iterator(i->operands);
 	while (iterator_next(&it, (void **)&op))
 		op->free(op);
 	

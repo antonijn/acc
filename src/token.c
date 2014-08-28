@@ -50,18 +50,18 @@ struct lchar {
 static struct lchar fgetlc(FILE *f);
 static void ungetlc(struct lchar *lc, FILE *f);
 
-static int chkc(FILE *f, SFILE *t, const char *chs);
-static int chks(FILE *f, SFILE *t, const char *s);
+static bool chkc(FILE *f, SFILE *t, const char *chs);
+static bool chks(FILE *f, SFILE *t, const char *s);
 
-static int chkid(FILE *f, SFILE *t, enum tokenty *tt);
-static int chknum(FILE *f, SFILE *t, enum tokenty *tt);
-static int chkstr(FILE *f, SFILE *t, enum tokenty *tt);
-static int chkop(FILE *f, SFILE *t, enum tokenty *tt);
-static int chkppdir(FILE *f, SFILE *t, enum tokenty *tt);
+static bool chkid(FILE *f, SFILE *t, enum tokenty *tt);
+static bool chknum(FILE *f, SFILE *t, enum tokenty *tt);
+static bool chkstr(FILE *f, SFILE *t, enum tokenty *tt);
+static bool chkop(FILE *f, SFILE *t, enum tokenty *tt);
+static bool chkppdir(FILE *f, SFILE *t, enum tokenty *tt);
 
 static int readnum(FILE *f, SFILE *t, const char *allowed,
 	enum tokenty *tt);
-static int readch(FILE *f, SFILE *t, char terminator);
+static bool readch(FILE *f, SFILE *t, char terminator);
 
 static int line = 1;
 static int column = 1;
@@ -111,11 +111,10 @@ static char *ssgets(SFILE *ss)
  */
 static void ssputc(SFILE *ss, char ch)
 {
-	int i;
 	if (ss->av == 0) {
 		ss->av = ss->count;
 		ss->buf = realloc(ss->buf, ss->count * 2 + 1);
-		for (i = ss->count; i < ss->count * 2 + 1; ++i)
+		for (int i = ss->count; i < ss->count * 2 + 1; ++i)
 			ss->buf[i] = '\0';
 	}
 	ss->buf[ss->count++] = ch;
@@ -203,8 +202,7 @@ static struct lchar fgetlc(FILE *f)
 
 static void ungetlc(struct lchar *lc, FILE *f)
 {
-	int i;
-	for (i = lc->len - 1; i >= 0; --i) {
+	for (int i = lc->len - 1; i >= 0; --i) {
 		int c = lc->chars[i];
 		if (c == '\n') {
 			--line;
@@ -221,9 +219,8 @@ static void ungetlc(struct lchar *lc, FILE *f)
  * If next char is in chs, returns 1 and advances stream
  * If not, returns 0
  */
-static int chkc(FILE *f, SFILE *t, const char *chs)
+static bool chkc(FILE *f, SFILE *t, const char *chs)
 {
-	char ch;
 	struct lchar act = fgetlc(f);
 
 	if (act.ch == '\\') {
@@ -237,29 +234,29 @@ static int chkc(FILE *f, SFILE *t, const char *chs)
 	if (!chs) {
 		if (t)
 			ssputc(t, act.ch);
-		return 1;
+		return true;
 	}
 
-	for (; ch = *chs; ++chs) {
+	for (char ch; ch = *chs; ++chs) {
 		if (ch != act.ch)
 			continue;
 		if (t)
 			ssputc(t, ch);
-		return 1;
+		return true;
 	}
 	ungetlc(&act, f);
-	return 0;
+	return false;
 }
 
 /*
  * Check for string
  * Like chkc but checks for an entire sequence.
  */
-static int chks(FILE *f, SFILE *t, const char *s)
+static bool chks(FILE *f, SFILE *t, const char *s)
 {
+	int i;
 	size_t len = strlen(s);
 	struct lchar *lcs = malloc(sizeof(struct lchar) * len);
-	int i;
 	for (i = 0; s[i]; ++i) {
 		lcs[i] = fgetlc(f);
 		if (lcs[i].ch != s[i])
@@ -268,7 +265,7 @@ static int chks(FILE *f, SFILE *t, const char *s)
 			ssputc(t, s[i]);
 	}
 	free(lcs);
-	return 1;
+	return true;
 
 cleanup:
 	for (; i >= 0; --i) {
@@ -278,7 +275,7 @@ cleanup:
 	}
 
 	free(lcs);
-	return 0;
+	return false;
 }
 
 /*
@@ -301,22 +298,22 @@ static void skipf(FILE *f)
  * Check for preprocessor directive
  * Returns 1 if a preprocessor directive was read
  */
-static int chkppdir(FILE *f, SFILE *t, enum tokenty *tt)
+static bool chkppdir(FILE *f, SFILE *t, enum tokenty *tt)
 {
 	if (chkc(f, t, "#")) {
 		while (!(!chkc(f, NULL, "\\") && chkc(f, NULL, "\n")))
 			chkc(f, t, NULL);
 		*tt = T_PREPROC;
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
 }
 
 /*
  * Check for operator
  * Returns 1 if an operator was read
  */
-static int chkop(FILE *f, SFILE *t, enum tokenty *tt)
+static bool chkop(FILE *f, SFILE *t, enum tokenty *tt)
 {
 	if (chkc(f, t, "*/%^!=~")) {
 		chkc(f, t, "=");
@@ -356,23 +353,23 @@ static int chkop(FILE *f, SFILE *t, enum tokenty *tt)
 	if (chkc(f, t, "{};:()?.,[]"))
 		goto ret;
 
-	return 0;
+	return false;
 
 ret:
 	*tt = T_OPERATOR;
-	return 1;
+	return true;
 }
 
 /*
  * Returns 1 if str is a reserved word
  */
-static int isreserved(char *str)
+static bool isreserved(char *str)
 {
-	if (str[0] == '_' && isupper(str[1]))
-		return 1;
+	if (str[0] == '_')
+		return true;
 
 	if (isext(EX_RESTRICT) && !strcmp(str, "restrict"))
-		return 1;
+		return true;
 
 	return !strcmp(str, "auto") ||
 	       !strcmp(str, "break") ||
@@ -420,16 +417,16 @@ static const char alphanum[] =
  * Check for identifier
  * Returns 1 if an identifier was read
  */
-static int chkid(FILE *f, SFILE *t, enum tokenty *tt)
+static bool chkid(FILE *f, SFILE *t, enum tokenty *tt)
 {
 	if (chkc(f, t, alpha)) {
 		while (chkc(f, t, alphanum))
 			;
 		*tt = isreserved(ssgets(t)) ?
 			T_RESERVED : T_IDENTIFIER;
-		return 1;
+		return true;
 	}
-	return 0;
+	return false;
 }
 
 const char hexchars[] = "0123456789abcdefABCDEF";
@@ -466,7 +463,7 @@ static int readnum(FILE *f, SFILE *t, const char *allowed,
  * Check for number
  * Returns 1 if a number is read
  */
-static int chknum(FILE *f, SFILE *t, enum tokenty *tt)
+static bool chknum(FILE *f, SFILE *t, enum tokenty *tt)
 {
 	if (chkc(f, t, "0")) {
 		/* octal, hex or zero */
@@ -474,7 +471,7 @@ static int chknum(FILE *f, SFILE *t, enum tokenty *tt)
 			*tt = T_HEX;
 			if (readnum(f, t, hexchars, tt) == 0)
 				report(E_TOKENIZER, NULL, "unfinished hexadecimal literal");
-			return 1;
+			return true;
 		}
 
 		*tt = T_OCT;
@@ -482,7 +479,7 @@ static int chknum(FILE *f, SFILE *t, enum tokenty *tt)
 			/* zero literal */
 			*tt = T_DEC;
 		}
-		return 1;
+		return true;
 	}
 	*tt = T_DEC;
 	return readnum(f, t, decchars, tt) != 0;
@@ -491,7 +488,7 @@ static int chknum(FILE *f, SFILE *t, enum tokenty *tt)
 /*
  * Returns 1 if a non-terminator character is read
  */
-static int readch(FILE *f, SFILE *t, char terminator)
+static bool readch(FILE *f, SFILE *t, char terminator)
 {
 	int i;
 	char termstr[2];
@@ -499,14 +496,14 @@ static int readch(FILE *f, SFILE *t, char terminator)
 	termstr[0] = terminator;
 	termstr[1] = '\0';
 	if (chkc(f, t, termstr))
-		return 0;
+		return false;
 
 	if (chkc(f, t, "\n"))
 		report(E_TOKENIZER, NULL, "newline in string literal");
 
 	if (!chkc(f, t, "\\")) {
 		chkc(f, t, NULL);
-		return 1;
+		return true;
 	}
 
 	/* escape sequence */
@@ -515,37 +512,37 @@ static int readch(FILE *f, SFILE *t, char terminator)
 			;
 		if (i == 0)
 			report(E_TOKENIZER, NULL, "hexadecimal escape sequences cannot be empty");
-		return 1;
+		return true;
 	}
 
 	/* octal number */
 	for (i = 0; i < 3 && chkc(f, t, octchars); ++i)
 		;
 	if (i != 0)
-		return 1;
+		return true;
 
 	if (chkc(f, NULL, "\n")) {
 		ssunputc(t);
-		return 1;
+		return true;
 	}
 
 	if (!chkc(f, t, "abfnrtv\\'\"?"))
 		report(E_TOKENIZER, NULL, "invalid escape sequence");
 	
-	return 1;
+	return true;
 }
 
 /*
  * Check for string
  * Returns 1 if a string or character literal is read
  */
-static int chkstr(FILE *f, SFILE *t, enum tokenty *tt)
+static bool chkstr(FILE *f, SFILE *t, enum tokenty *tt)
 {
 	if (chkc(f, t, "\"")) {
 		while (readch(f, t, '"'))
 			;
 		*tt = T_STRING;
-		return 1;
+		return true;
 	}
 
 	if (chkc(f, t, "'")) {
@@ -555,10 +552,10 @@ static int chkstr(FILE *f, SFILE *t, enum tokenty *tt)
 			report(E_TOKENIZER, NULL,
 				"character literals may only contain one character");
 		*tt = T_CHAR;
-		return 1;
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 struct token gettok(FILE *f)
@@ -597,22 +594,21 @@ ret:
 	return res;
 }
 
-int chkeof(FILE *f)
+bool chkeof(FILE *f)
 {
 	int nxt;
 	skipf(f);
 	if ((nxt = fgetc(f)) == EOF)
-		return 1;
+		return true;
 
 	ungetc(nxt, f);
-	return 0;
+	return false;
 }
 
 void ungettok(struct token *t, FILE *f)
 {
 	size_t len = strlen(t->lexeme);
-	int i;
-	for (i = len - 1; i >= 0; --i)
+	for (int i = len - 1; i >= 0; --i)
 		ungetc(t->lexeme[i], f);
 	
 	column = t->column;
