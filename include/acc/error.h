@@ -20,6 +20,8 @@
 #ifndef ERROR_H
 #define ERROR_H
 
+#include <setjmp.h>
+
 #include <acc/token.h>
 
 enum errorty {
@@ -38,5 +40,6 @@ enum errorty {
 void report(enum errorty ty, struct token *tok, const char *frmt, ...);
 
 extern const char *currentfile;
+extern jmp_buf fatal_env;
 
 #endif

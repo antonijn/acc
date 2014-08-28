@@ -27,6 +27,7 @@
 #include <acc/options.h>
 
 const char *currentfile = NULL;
+jmp_buf fatal_env;
 
 void report(enum errorty ty, struct token *tok, const char *frmt, ...)
 {
@@ -54,5 +55,5 @@ void report(enum errorty ty, struct token *tok, const char *frmt, ...)
 		fprintf(stderr, "\t%s\n", tok->lexeme);
 
 	if (ty & E_FATAL)
-		exit(1);
+		longjmp(fatal_env, 1);
 }

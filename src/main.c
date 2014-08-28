@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <setjmp.h>
 #include <locale.h>
 
 #include <acc/options.h>
@@ -33,24 +34,33 @@
 static void compilefile(FILE *f)
 {
 	struct list *syms = new_list(NULL, 0);
+
 	ast_init();
+
+	if (setjmp(fatal_env))
+		goto cleanup;
+
 	parsefile(f, syms);
 
 #ifndef NDEBUG
-	char ofname[strlen(currentfile ? currentfile : "-") + 5];
-	sprintf(&ofname[0], "%s.itm", currentfile ? currentfile : "-");
-	FILE *out = fopen(&ofname[0], "wb");
+	{
+		char ofname[strlen(currentfile ? currentfile : "-") + 5];
+		sprintf(&ofname[0], "%s.itm", currentfile ? currentfile : "-");
+		FILE *out = fopen(&ofname[0], "wb");
 
-	struct symbol *sym;
-	void *it = list_iterator(syms);
-	while (iterator_next(&it, (void **)&sym))
-		if (sym->block)
-			itm_block_to_string(out, sym->block);
+		struct symbol *sym;
+		void *it = list_iterator(syms);
+		while (iterator_next(&it, (void **)&sym))
+			if (sym->block)
+				itm_block_to_string(out, sym->block);
 
-	fclose(out);
+		fclose(out);
+	}
 #endif
 
 	getarch()->emitter(stdout, syms);
+
+cleanup:
 	delete_list(syms, NULL);
 	ast_destroy();
 }
@@ -80,6 +90,9 @@ int main(int argc, char *argv[])
 	if (signal(SIGSEGV, &segvcatcher) == SIG_ERR)
 		fprintf(stderr, "warning: failed to register"
 		                "segmentation fault handler\n");
+
+	if (setjmp(fatal_env))
+		exit(EXIT_FAILURE);
 
 	options_init(argc, argv);
 
