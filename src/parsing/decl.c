@@ -23,7 +23,6 @@
 
 #include <acc/parsing/decl.h>
 #include <acc/parsing/expr.h>
-#include <acc/parsing/tools.h>
 #include <acc/error.h>
 #include <acc/ext.h>
 #include <acc/itm.h>
@@ -102,13 +101,13 @@ bool parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_bloc
 		    ((flags & DF_FINISH_COMMA) && chkt(f, ",")))
 			break;
 
-		struct token *closep;
-		if (((flags & DF_FINISH_PARENT) && (closep = chktp(f, ")"))) ||
+		struct token closep;
+		if (((flags & DF_FINISH_PARENT) && chktp(f, ")", &closep)) ||
 		    ((flags & DF_FINISH_BRACE) && sym->type->type == FUNCTION &&
 		     syms && (list_length(syms) - numsymsb4) == 1 &&
-		    (closep = chktp(f, "{")))) {
-			ungettok(closep, f);
-			freetp(closep);
+		    chktp(f, "{", &closep))) {
+			ungettok(&closep, f);
+			freetok(&closep);
 			break;
 		}
 		if ((flags & DF_MULTIPLE) && chkt(f, ","))
@@ -125,14 +124,14 @@ bool parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_bloc
 static bool parsestorage(FILE *f, enum storageclass *sc,
 	const char *mod, enum storageclass set)
 {
-	struct token *nxt;
-	if (nxt = chktp(f, mod)) {
+	struct token nxt;
+	if (chktp(f, mod, &nxt)) {
 		if (*sc == set)
-			report(E_PARSER, nxt, "duplicate \"%s\" modifier", mod);
+			report(E_PARSER, &nxt, "duplicate \"%s\" modifier", mod);
 		else if (*sc != SC_DEFAULT)
-			report(E_PARSER, nxt, "multiple storage class specifiers");
+			report(E_PARSER, &nxt, "multiple storage class specifiers");
 		*sc = set;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
 	}
 	return false;
@@ -175,18 +174,18 @@ static void checkmods(struct token *tok, enum primmod new, enum primmod prev)
 static bool parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
 	enum primmod *pm, enum storageclass *sc)
 {
-	struct token *nxt;
-	if (nxt = chktp(f, "const")) {
+	struct token nxt;
+	if (chktp(f, "const", &nxt)) {
 		if (*quals & Q_CONST)
-			report(E_PARSER, nxt, "duplicate \"const\" modifier");
+			report(E_PARSER, &nxt, "duplicate \"const\" modifier");
 		*quals |= Q_CONST;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
-	} else if (nxt = chktp(f, "volatile")) {
+	} else if (chktp(f, "volatile", &nxt)) {
 		if (*quals & Q_VOLATILE)
-			report(E_PARSER, nxt, "duplicate \"volatile\" modifier");
+			report(E_PARSER, &nxt, "duplicate \"volatile\" modifier");
 		*quals |= Q_VOLATILE;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
 	} else if (sc && parsestorage(f, sc, "auto", SC_AUTO))
 		return true;
@@ -198,50 +197,50 @@ static bool parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
 		return true;
 	else if (sc && (flags & DF_REGISTER) && parsestorage(f, sc, "register", SC_REGISTER))
 		return true;
-	else if (pm && (nxt = chktp(f, "unsigned"))) {
-		checkmods(nxt, PM_UNSIGNED, *pm);
+	else if (pm && chktp(f, "unsigned", &nxt)) {
+		checkmods(&nxt, PM_UNSIGNED, *pm);
 		*pm |= PM_UNSIGNED;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
-	} else if (pm && (nxt = chktp(f, "signed"))) {
-		checkmods(nxt, PM_SIGNED, *pm);
+	} else if (pm && chktp(f, "signed", &nxt)) {
+		checkmods(&nxt, PM_SIGNED, *pm);
 		*pm |= PM_SIGNED;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
-	} else if (pm && (nxt = chktp(f, "short"))) {
-		checkmods(nxt, PM_SHORT, *pm);
+	} else if (pm && chktp(f, "short", &nxt)) {
+		checkmods(&nxt, PM_SHORT, *pm);
 		*pm |= PM_SHORT;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
-	} else if (pm && (nxt = chktp(f, "long"))) {
-		checkmods(nxt, PM_LONG, *pm);
+	} else if (pm && chktp(f, "long", &nxt)) {
+		checkmods(&nxt, PM_LONG, *pm);
 		*pm |= PM_LONG;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
-	} else if (pm && (nxt = chktp(f, "int"))) {
-		checkmods(nxt, PM_INT, *pm);
+	} else if (pm && chktp(f, "int", &nxt)) {
+		checkmods(&nxt, PM_INT, *pm);
 		*pm |= PM_INT;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
-	} else if (pm && (nxt = chktp(f, "char"))) {
-		checkmods(nxt, PM_CHAR, *pm);
+	} else if (pm && chktp(f, "char", &nxt)) {
+		checkmods(&nxt, PM_CHAR, *pm);
 		*pm |= PM_CHAR;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
-	} else if (pm && (nxt = chktp(f, "float"))) {
-		checkmods(nxt, PM_FLOAT, *pm);
+	} else if (pm && chktp(f, "float", &nxt)) {
+		checkmods(&nxt, PM_FLOAT, *pm);
 		*pm |= PM_FLOAT;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
-	} else if (pm && (nxt = chktp(f, "double"))) {
-		checkmods(nxt, PM_DOUBLE, *pm);
+	} else if (pm && chktp(f, "double", &nxt)) {
+		checkmods(&nxt, PM_DOUBLE, *pm);
 		*pm |= PM_DOUBLE;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
-	} else if (pm && (nxt = chktp(f, "void"))) {
-		checkmods(nxt, PM_VOID, *pm);
+	} else if (pm && chktp(f, "void", &nxt)) {
+		checkmods(&nxt, PM_VOID, *pm);
 		*pm |= PM_VOID;
-		freetp(nxt);
+		freetok(&nxt);
 		return true;
 	}
 
@@ -303,11 +302,11 @@ static struct symbol *parseddeclarator(FILE *f, enum declflags flags,
 	struct ctype *ty, enum storageclass sc)
 {
 	struct symbol *res;
-	struct token *tok;
-	if (tok = chkttp(f, T_IDENTIFIER)) {
-		res = new_symbol(parseddend(f, ty), tok->lexeme, sc,
+	struct token tok;
+	if (chkttp(f, T_IDENTIFIER, &tok)) {
+		res = new_symbol(parseddend(f, ty), tok.lexeme, sc,
 			flags & DF_REGISTER_SYMBOL);
-		freetp(tok);
+		freetok(&tok);
 	} else if (chkt(f, "(")) {
 		res = parsedeclarator(f, flags, NULL, sc);
 		struct token t = gettok(f);
@@ -340,16 +339,16 @@ static struct ctype *parseparamlist(FILE *f, struct ctype *ty)
 
 	struct list *paramlist = new_list(NULL, 0);
 
-	struct token *tok1;
-	if (tok1 = chktp(f, "void")) {
-		struct token *tok2;
-		if (tok2 = chktp(f, ")")) {
-			freetp(tok1);
-			freetp(tok2);
+	struct token tok1;
+	if (chktp(f, "void", &tok1)) {
+		struct token tok2;
+		if (chktp(f, ")", &tok2)) {
+			freetok(&tok1);
+			freetok(&tok2);
 			goto ret;
 		} else {
-			ungettok(tok1, f);
-			freetp(tok1);
+			ungettok(&tok1, f);
+			freetok(&tok1);
 		}
 	}
 
@@ -427,30 +426,31 @@ static struct ctype *parsestructure(FILE *f)
 	if (!chkt(f, "struct"))
 		return NULL;
 
-	struct token *idtok = chkttp(f, T_IDENTIFIER);
+	struct token idtok;
+	bool hasid = chkttp(f, T_IDENTIFIER, &idtok);
 
-	struct token *tok;
-	if (!(tok = chktp(f, "{"))) {
-		if (!idtok) {
-			report(E_PARSER, tok, "expected '{' or ';'");
-		} else if (str = get_struct(idtok->lexeme)) {
-			freetp(idtok);
-			freetp(tok);
+	struct token tok;
+	if (!chktp(f, "{", &tok)) {
+		if (!hasid) {
+			report(E_PARSER, &tok, "expected '{' or ';'");
+		} else if (str = get_struct(idtok.lexeme)) {
+			freetok(&idtok);
+			freetok(&tok);
 			return (struct ctype *)str;
 		} else {
-			str = (struct cstruct *)new_struct(idtok->lexeme);
-			freetp(idtok);
-			freetp(tok);
+			str = (struct cstruct *)new_struct(idtok.lexeme);
+			freetok(&idtok);
+			freetok(&tok);
 			return (struct ctype *)str;
 		}
 
-		freetp(tok);
+		freetok(&tok);
 		return NULL;
 	}
 
-	str = (struct cstruct *)new_struct(idtok ? idtok->lexeme : NULL);
-	if (idtok)
-		freetp(idtok);
+	str = (struct cstruct *)new_struct(hasid ? idtok.lexeme : NULL);
+	if (hasid)
+		freetok(&idtok);
 	
 	while (!chkt(f, "}")) {
 		struct list *syms = new_list(NULL, 0);
@@ -468,13 +468,12 @@ static struct ctype *parsestructure(FILE *f)
 
 static struct ctype *parsetypedef(FILE *f)
 {
-	struct token *tok;
-	if (!(tok = chkttp(f, T_IDENTIFIER))) {
+	struct token tok;
+	if (chkttp(f, T_IDENTIFIER, &tok))
 		return NULL;
-	}
-	struct ctype *ty = get_typedef(tok->lexeme);
+	struct ctype *ty = get_typedef(tok.lexeme);
 	if (!ty)
-		ungettok(tok, f);
-	freetp(tok);
+		ungettok(&tok, f);
+	freetok(&tok);
 	return ty;
 }

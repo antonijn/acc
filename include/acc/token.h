@@ -45,11 +45,14 @@ struct token {
 	int line;
 };
 
+bool chkt(FILE *f, const char *t);
+bool chktt(FILE *f, enum tokenty tt);
+bool chktp(FILE * f, const char *t, struct token *nxt);
+bool chkttp(FILE * f, enum tokenty tt, struct token *nxt);
+
 struct token gettok(FILE *f);
-bool chkeof(FILE *f);
 void ungettok(struct token *t, FILE *f);
 void freetok(struct token *t);
-void resettok(void);
 
 int get_line(void);
 int get_column(void);

@@ -24,7 +24,6 @@
 #include <assert.h>
 
 #include <acc/parsing/expr.h>
-#include <acc/parsing/tools.h>
 #include <acc/list.h>
 #include <acc/token.h>
 #include <acc/ext.h>
@@ -99,14 +98,14 @@ static struct expr parseexpro(FILE *f, enum exprflags flags,
 	struct expr acc)
 {
 	struct expr res = { 0 };
-	struct token *tok;
-	
-	if (((flags & EF_FINISH_BRACKET) && (tok = chktp(f, ")"))) ||
-	    ((flags & EF_FINISH_SEMICOLON) && (tok = chktp(f, ";"))) ||
-	    ((flags & EF_FINISH_SQUARE_BRACKET) && (tok = chktp(f, "]"))) ||
-	    ((flags & EF_FINISH_COMMA) && (tok = chktp(f, ",")))) {
-		ungettok(tok, f);
-		freetp(tok);
+	struct token tok;
+
+	if (((flags & EF_FINISH_BRACKET) && chktp(f, ")", &tok)) ||
+	    ((flags & EF_FINISH_SEMICOLON) && chktp(f, ";", &tok)) ||
+	    ((flags & EF_FINISH_SQUARE_BRACKET) && chktp(f, "]", &tok)) ||
+	    ((flags & EF_FINISH_COMMA) && chktp(f, ",", &tok))) {
+		ungettok(&tok, f);
+		freetok(&tok);
 		return pack(*block, acc, flags);
 	}
 	
@@ -133,16 +132,16 @@ static struct expr parseid(FILE *f, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty, struct list *operators,
 	struct expr acc)
 {
-	struct token *id;
+	struct token id;
 	struct symbol *sym;
 	struct expr nil = { 0 };
 	if (acc.itm)
 		return nil;
-	if (!(id = chkttp(f, T_IDENTIFIER)))
+	if (!chkttp(f, T_IDENTIFIER, &id))
 		return nil;
 
-	sym = get_symbol(id->lexeme);
-	freetp(id);
+	sym = get_symbol(id.lexeme);
+	freetok(&id);
 
 	acc.itm = sym->value;
 	acc.islvalue = true;
@@ -159,14 +158,14 @@ static struct expr parsebop(FILE *f, enum exprflags flags,
 	if (!acc.itm)
 		return nil;
 	
-	struct token *tok;
-	if (!(tok = chkttp(f, T_OPERATOR)))
+	struct token tok;
+	if (!chkttp(f, T_OPERATOR, &tok))
 		return nil;
 	
-	struct operator *op = getbop(tok->lexeme);
+	struct operator *op = getbop(tok.lexeme);
 	if (!op) {
-		ungettok(tok, f);
-		freetp(tok);
+		ungettok(&tok, f);
+		freetok(&tok);
 		return nil;
 	}
 	
@@ -192,12 +191,12 @@ static struct expr parsebop(FILE *f, enum exprflags flags,
 ret:
 	list_pop_back(operators);
 
-	freetp(tok);
+	freetok(&tok);
 	return parseexpro(f, flags, block, initty, operators, e);
 	
 opbreak:
-	ungettok(tok, f);
-	freetp(tok);
+	ungettok(&tok, f);
+	freetok(&tok);
 	return acc;
 }
 
@@ -351,20 +350,19 @@ static struct expr parseuop(FILE *f, enum exprflags flags,
 {
 	struct expr nil = { 0 };
 	struct operator *op;
-	struct token *opt;
+	struct token opt;
 
 	if (acc.itm) {
-		if (opt = chktp(f, "++"))
+		if (chktp(f, "++", &opt))
 			op = &unop_postinc;
-		else if (opt = chktp(f, "--"))
+		else if (chktp(f, "--", &opt))
 			op = &unop_postdec;
 		else
 			return nil;
 	} else {
-		opt = chkttp(f, T_OPERATOR);
-		if (!opt)
+		if (!chkttp(f, T_OPERATOR, &opt))
 			return nil;
-		op = getuop(opt->lexeme);
+		op = getuop(opt.lexeme);
 		if (!op)
 			return nil;
 	}
@@ -383,19 +381,19 @@ static struct expr parseuop(FILE *f, enum exprflags flags,
 
 	if (op == &unop_postdec || op == &unop_postinc) {
 		res = performpostuop(f, flags, block, initty, operators, acc,
-			op, opt);
+			op, &opt);
 	} else {
 		list_push_back(operators, op);
-		res = performpreuop(f, flags, block, initty, operators, op, opt);
+		res = performpreuop(f, flags, block, initty, operators, op, &opt);
 		list_pop_back(operators);
 	}
 
-	freetp(opt);
+	freetok(&opt);
 	return parseexpro(f, flags, block, initty, operators, res);
 
 opbreak:
-	ungettok(opt, f);
-	freetp(opt);
+	ungettok(&opt, f);
+	freetok(&opt);
 	return acc;
 }
 
@@ -539,22 +537,23 @@ static struct expr parsefloatlit(FILE *f, enum exprflags flags,
 	struct expr acc)
 {
 	struct expr nil = { 0 };
-	struct token *tok;
+	struct token tok;
 	struct itm_literal *lit;
-	if (tok = chkttp(f, T_FLOAT)) {
+	if (chkttp(f, T_FLOAT, &tok)) {
 		float f;
-		sscanf(tok->lexeme, "%ff", &f);
+		sscanf(tok.lexeme, "%ff", &f);
 		lit = new_itm_literal(&cfloat);
 		lit->value.f = f;
-	} else if (tok = chkttp(f, T_DOUBLE)) {
+	} else if (chkttp(f, T_DOUBLE, &tok)) {
 		double d;
-		sscanf(tok->lexeme, "%lf", &d);
+		sscanf(tok.lexeme, "%lf", &d);
 		lit = new_itm_literal(&cdouble);
 		lit->value.d = d;
-	} else
+	} else {
 		return nil;
+	}
 	
-	freetp(tok);
+	freetok(&tok);
 	
 	acc.itm = (struct itm_expr *)lit;
 	acc.islvalue = false;

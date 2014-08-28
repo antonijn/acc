@@ -23,7 +23,6 @@
 
 #include <acc/parsing/stat.h>
 #include <acc/parsing/expr.h>
-#include <acc/parsing/tools.h>
 #include <acc/parsing/decl.h>
 #include <acc/list.h>
 #include <acc/token.h>

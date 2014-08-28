@@ -25,7 +25,6 @@
 #include <acc/parsing/file.h>
 #include <acc/parsing/decl.h>
 #include <acc/parsing/stat.h>
-#include <acc/parsing/tools.h>
 #include <acc/ast.h>
 #include <acc/ext.h>
 #include <acc/error.h>
@@ -48,17 +47,17 @@ static void processdecls(FILE *f, struct list *decls, struct list *syms)
 	while (iterator_next(&it, (void **)&sym))
 		list_push_back(syms, sym);
 
-	struct token *tok;
+	struct token tok;
 	if (list_length(decls) != 1 ||
 	   ((struct symbol *)list_head(decls))->type->type != FUNCTION ||
-	   !(tok = chktp(f, "{")))
+	   !chktp(f, "{", &tok))
 		return;
 
 	struct itm_block *block = new_itm_block(NULL, NULL);
 	struct itm_block *bb = block;
 
-	ungettok(tok, f);
-	freetp(tok);
+	ungettok(&tok, f);
+	freetok(&tok);
 
 	enter_scope();
 	addparams(list_head(decls));
@@ -76,7 +75,7 @@ static void processdecls(FILE *f, struct list *decls, struct list *syms)
 void parsefile(FILE *f, struct list *syms)
 {
 	struct list * declsyms;
-	while (!chkeof(f) &&
+	while (!chktt(f, T_EOF) &&
 	      parsedecl(f, DF_GLOBAL, (declsyms = new_list(NULL, 0)), NULL)) {
 		processdecls(f, declsyms, syms);
 		delete_list(declsyms, NULL);

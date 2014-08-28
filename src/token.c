@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <assert.h>
 
 #include <acc/token.h>
 #include <acc/error.h>
@@ -63,8 +64,15 @@ static int readnum(FILE *f, SFILE *t, const char *allowed,
 	enum tokenty *tt);
 static bool readch(FILE *f, SFILE *t, char terminator);
 
+static void resettok(void);
+
+static struct token clonetok(struct token *tok);
+
 static int line = 1;
 static int column = 1;
+
+static struct token buffer = { 0 };
+static bool isbuffered = false;
 
 int get_line(void)
 {
@@ -558,23 +566,24 @@ static bool chkstr(FILE *f, SFILE *t, enum tokenty *tt)
 	return false;
 }
 
-struct token gettok(FILE *f)
+static struct token readtok(FILE *f)
 {
-	struct token res;
-	SFILE *t;
-	int nxt;
-
 	skipf(f);
+
+	struct token res;
 	res.line = line;
 	res.column = column;
 
-	t = ssopen();
+	SFILE *t = ssopen();
 
-	nxt = fgetc(f);
-	if (nxt == EOF)
-		report(E_TOKENIZER | E_FATAL, NULL, "unexpected end-of-file");
-	else
+	int nxt = fgetc(f);
+	if (nxt == EOF) {
+		res.type = T_EOF;
+		res.lexeme = NULL;
+		goto eofret;
+	} else {
 		ungetc(nxt, f);
+	}
 
 	if (chkop(f, t, &res.type))
 		goto ret;
@@ -591,37 +600,127 @@ struct token gettok(FILE *f)
 
 ret:
 	res.lexeme = ssclose(t);
+eofret:
 	return res;
 }
 
-bool chkeof(FILE *f)
-{
-	int nxt;
-	skipf(f);
-	if ((nxt = fgetc(f)) == EOF)
-		return true;
-
-	ungetc(nxt, f);
-	return false;
-}
-
-void ungettok(struct token *t, FILE *f)
+static void rewritetok(struct token *t, FILE *f)
 {
 	size_t len = strlen(t->lexeme);
 	for (int i = len - 1; i >= 0; --i)
 		ungetc(t->lexeme[i], f);
-	
+
 	column = t->column;
 	line = t->line;
 }
 
-void freetok(struct token *t)
+void ungettok(struct token *t, FILE *f)
 {
-	free(t->lexeme);
+	if (isbuffered) {
+		rewritetok(&buffer, f);
+		buffer = clonetok(t);
+	} else {
+		rewritetok(t, f);
+	}
 }
 
-void resettok(void)
+void freetok(struct token *t)
+{
+	if (t->lexeme)
+		free(t->lexeme);
+}
+
+static void validatebuf(FILE *f)
+{
+	if (isbuffered)
+		return;
+
+	buffer = readtok(f);
+	isbuffered = true;
+}
+
+static void resettok(void)
 {
 	line = 1;
 	column = 1;
+	isbuffered = false;
+}
+
+static struct token clonetok(struct token *tok)
+{
+	struct token res = *tok;
+	if (tok->lexeme) {
+		res.lexeme = malloc((strlen(tok->lexeme) + 1) * sizeof(char));
+		sprintf(res.lexeme, "%s", tok->lexeme);
+	} else {
+		res.lexeme = NULL;
+	}
+	return res;
+}
+
+struct token gettok(FILE *f)
+{
+	validatebuf(f);
+	struct token res = clonetok(&buffer);
+	buffer = readtok(f);
+	return res;
+}
+
+bool chkt(FILE *f, const char *t)
+{
+	validatebuf(f);
+
+	if (buffer.type == T_EOF) {
+		report(E_FATAL | E_HIDE_TOKEN, NULL,
+		       "unexpected end-of-file");
+		resettok();
+	}
+
+	if (strcmp(t, buffer.lexeme))
+		return false;
+
+	freetok(&buffer);
+	buffer = readtok(f);
+	return true;
+}
+
+bool chktt(FILE *f, enum tokenty tt)
+{
+	validatebuf(f);
+
+	if (buffer.type != tt) {
+		if (buffer.type == T_EOF) {
+			report(E_FATAL | E_HIDE_TOKEN, NULL,
+				"unexpected end-of-file");
+			resettok();
+		}
+		return false;
+	}
+
+	if (buffer.type == T_EOF) {
+		resettok();
+		return true;
+	}
+
+	freetok(&buffer);
+	buffer = readtok(f);
+	return true;
+}
+
+bool chktp(FILE *f, const char *t, struct token *nxt)
+{
+	validatebuf(f);
+
+	*nxt = clonetok(&buffer);
+
+	return chkt(f, t);
+}
+
+bool chkttp(FILE *f, enum tokenty tt, struct token *nxt)
+{
+	validatebuf(f);
+
+	*nxt = clonetok(&buffer);
+
+	return chktt(f, tt);
 }
