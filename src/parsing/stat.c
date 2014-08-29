@@ -124,8 +124,119 @@ static bool parseif(FILE *f, enum statflags flags, struct itm_block **block)
 
 static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block)
 {
-	// TODO: implement
-	return false;
+	/*
+	 * for (init; cond; final) body;
+	 * becomes:
+	 *   ...
+	 *     init
+	 *     jmp condb
+	 *   condb
+	 *     cond
+	 *     split body, quit
+	 *   body
+	 *     jmp finalb
+	 *   finalb
+	 *     final
+	 *     jmp condb
+	 * 
+	 * if cond is omitted:
+	 *   condb is aliased to body
+	 * if final is omitted:
+	 *   final is aliased to condb
+	 * 
+	 * continue jumps to final
+	 * break jumps to quit
+	 * 
+	 * As opposed to the other control flow statements, the graph is
+	 * generated on the fly instead of at the end in this one.
+	 */
+	
+	struct token tok;
+	
+	if (!chkt(f, "for"))
+		return false;
+	
+	if (!chkt(f, "(")) {
+		tok = gettok(f);
+		report(E_PARSER, &tok, "expected '('");
+		ungettok(&tok, f);
+		freetok(&tok);
+	}
+
+	struct itm_block *condb;
+	struct itm_block *condblbl;
+	struct itm_block *body = new_itm_block();
+	struct itm_block *bodylbl = body;
+	struct itm_block *finalb;
+	struct itm_block *finalblbl;
+	struct itm_block *quit = new_itm_block();
+	struct itm_block *quitlbl = quit;
+	
+	if (!chkt(f, ";")) {
+		parseexpr(f, EF_FINISH_SEMICOLON, block, NULL);
+
+		// remove ; from stream
+		tok = gettok(f);
+		freetok(&tok);
+	}
+	
+	if (!chkt(f, ";")) {
+		condb = new_itm_block();
+		condblbl = condb;
+
+		itm_jmp(*block, condblbl);
+		itm_progress(*block, condblbl);
+
+		struct expr cond = parseexpr(f,
+			EF_FINISH_SEMICOLON | EF_EXPECT_RVALUE, &condb, NULL);
+		cond = cast(cond, &cbool, condb);
+
+		// remove ; from stream
+		tok = gettok(f);
+		freetok(&tok);
+		
+		itm_split(condb, cond.itm, bodylbl, quitlbl);
+		itm_progress(condb, bodylbl);
+		itm_progress(condb, quitlbl);
+	} else {
+		condb = body;
+		condblbl = bodylbl;
+		
+		itm_jmp(*block, bodylbl);
+		itm_progress(*block, bodylbl);
+	}
+	
+	if (!chkt(f, ")")) {
+		finalb = new_itm_block();
+		finalblbl = finalb;
+		
+		parseexpr(f, EF_FINISH_BRACKET, &finalb, NULL);
+
+		// remove ) from stream
+		tok = gettok(f);
+		freetok(&tok);
+		
+		itm_jmp(finalb, condblbl);
+		itm_progress(finalb, condblbl);
+	} else {
+		finalb = condb;
+		finalblbl = condblbl;
+	}
+	
+	
+	parsestat(f, SF_NORMAL, &body);
+	itm_jmp(body, finalblbl);
+	itm_progress(body, finalblbl);
+	
+	itm_lex_progress(*block, condblbl);
+	if (condb != body)
+		itm_lex_progress(condb, bodylbl);
+	itm_lex_progress(body, finalblbl);
+	if (finalb != condb)
+		itm_lex_progress(finalb, quitlbl);
+	
+	*block = quit;
+	return true;
 }
 
 static bool parsedo(FILE *f, enum statflags flags, struct itm_block **block)
@@ -277,6 +388,9 @@ static bool parseestat(FILE *f, enum statflags flags,
 
 bool parsestat(FILE *f, enum statflags flags, struct itm_block **block)
 {
+	if (chkt(f, ";"))
+		return true;
+
 	return parseif(f, flags, block) ||
 	       parsedo(f, flags, block) ||
 	       parsefor(f, flags, block) ||

@@ -153,12 +153,16 @@ struct itm_block *new_itm_block(void)
 
 void itm_progress(struct itm_block *before, struct itm_block *after)
 {
+	assert(before != NULL);
+	assert(after != NULL);
 	list_push_back(before->next, after);
 	list_push_back(after->previous, before);
 }
 
 void itm_lex_progress(struct itm_block *before, struct itm_block *after)
 {
+	assert(before != NULL);
+	assert(after != NULL);
 	before->lexnext = after;
 	after->lexprev = before;
 }
