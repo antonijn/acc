@@ -111,7 +111,7 @@ bool parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_bloc
 			freetok(&closep);
 			break;
 		}
-		if ((flags & DF_MULTIPLE) && chkt(f, ","))
+		if ((flags & DF_MULTIPLE) && sym->id && chkt(f, ","))
 			continue;
 
 		struct token tok = gettok(f);
@@ -304,7 +304,7 @@ static struct symbol *parseddeclarator(FILE *f, enum declflags flags,
 {
 	struct symbol *res;
 	struct token tok;
-	if (chkttp(f, T_IDENTIFIER, &tok)) {
+	if (chkttp(f, T_IDENTIFIER, &tok) && !(flags & DF_NO_ID)) {
 		res = new_symbol(parseddend(f, ty), tok.lexeme, sc,
 			flags & DF_REGISTER_SYMBOL);
 		freetok(&tok);
@@ -317,8 +317,10 @@ static struct symbol *parseddeclarator(FILE *f, enum declflags flags,
 		}
 		freetok(&t);
 		res->type = getfullty(res->type, parseddend(f, ty));
-	} else
-		return NULL;
+	} else {
+		res = new_symbol(parseddend(f, ty), NULL, sc,
+			flags & DF_REGISTER_SYMBOL);
+	}
 
 	return res;
 }

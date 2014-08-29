@@ -387,8 +387,12 @@ struct symbol *new_symbol(struct ctype *type, char *id,
 	struct symbol *sym = malloc(sizeof(struct symbol));
 	sym->block = NULL;
 	sym->type = type;
-	sym->id = calloc(strlen(id) + 1, sizeof(char));
-	sprintf(sym->id, "%s", id);
+	if (id) {
+		sym->id = calloc(strlen(id) + 1, sizeof(char));
+		sprintf(sym->id, "%s", id);
+	} else {
+		sym->id = NULL;
+	}
 	sym->storage = sc;
 	if (reg)
 		registersym(sym);
