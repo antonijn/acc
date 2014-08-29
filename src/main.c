@@ -35,6 +35,7 @@ static void compilefile(FILE *f)
 {
 	struct list *syms = new_list(NULL, 0);
 
+	resettok();
 	ast_init();
 
 	if (setjmp(fatal_env))

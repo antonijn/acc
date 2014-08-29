@@ -29,8 +29,8 @@
 /* string stream */
 typedef struct {
 	char * buf;
-	int av;
-	int count;
+	size_t av;
+	size_t count;
 } SFILE;
 
 static SFILE *ssopen(void);
