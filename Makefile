@@ -27,7 +27,8 @@ SOURCES = $(wildcard src/*.c) $(wildcard src/**/*.c)
 OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
 release: CFLAGS += -DNDEBUG -O2
-debug: CFLAGS += -g
+debug: CFLAGS += -g -D_GNU_SOURCE
+	LD += -rdynamic
 
 release debug: $(TARGET)
 

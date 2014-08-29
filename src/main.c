@@ -23,6 +23,10 @@
 #include <string.h>
 #include <setjmp.h>
 #include <locale.h>
+#if !defined(NDEBUG) && defined(__GNU_LIBRARY__)
+#include <execinfo.h>
+#include <unistd.h>
+#endif
 
 #include <acc/options.h>
 #include <acc/token.h>
@@ -81,6 +85,16 @@ static void segvcatcher(int signo)
 	fprintf(stderr, "\tFile:\t%s\n", currentfile ? currentfile : "<stdin>");
 	fprintf(stderr, "\tLine:\t%d\n", get_line());
 	fprintf(stderr, "\tColumn:\t%d\n\n", get_column());
+
+#if !defined(NDEBUG) && defined(__GNU_LIBRARY__)
+	fprintf(stderr, "======= Backtrace: =======\n");
+
+	void *buffer[100];
+	size_t nptrs = backtrace(buffer, sizeof(buffer) / sizeof(void *));
+	backtrace_symbols_fd(buffer, nptrs, STDERR_FILENO);
+	fprintf(stderr, "\n");
+#endif
+
 	abort();
 }
 
