@@ -39,6 +39,28 @@ static bool parseestat(FILE *f, enum statflags flags,
 
 static bool parseif(FILE *f, enum statflags flags, struct itm_block **block)
 {
+	/*
+	 * if (cond) ontrue; else onfalse;
+	 * becomes:
+	 *   ...
+	 *     cond
+	 *     split ontrue, onfalse
+	 *   ontrue
+	 *     jmp quit
+	 *   onfalse
+	 *     jmp quit
+	 *   quit
+	 *
+	 * if (cond) ontrue;
+	 * becomes:
+	 *   ...
+	 *     cond
+	 *     split ontrue, onfalse
+	 *   ontrue
+	 *     jmp onfalse
+	 *   onfalse
+	 */
+
 	struct token tok;
 	
 	if (!chkt(f, "if"))
@@ -50,6 +72,11 @@ static bool parseif(FILE *f, enum statflags flags, struct itm_block **block)
 		ungettok(&tok, f);
 		freetok(&tok);
 	}
+
+	struct itm_block *ontrue = new_itm_block();
+	struct itm_block *ontruelbl = ontrue;
+	struct itm_block *onfalse = new_itm_block();
+	struct itm_block *onfalselbl = onfalse;
 	
 	struct expr cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE, block, NULL);
 	cond = cast(cond, &cbool, *block);
@@ -58,74 +85,83 @@ static bool parseif(FILE *f, enum statflags flags, struct itm_block **block)
 	tok = gettok(f);
 	freetok(&tok);
 
-	struct itm_label *tlabel = new_itm_label();
-	struct itm_label *elabel = new_itm_label();
-	itm_split(*block, cond.itm, tlabel, elabel);
-	
-	struct list *prev = new_list(NULL, 0);
-	list_push_back(prev, *block);
-	struct itm_block *tblock = new_itm_block(*block, prev);
-	set_itm_label_block(tlabel, tblock);
+	itm_split(*block, cond.itm, ontruelbl, onfalselbl);
 
-	parsestat(f, SF_NORMAL, &tblock);
+	parsestat(f, SF_NORMAL, &ontrue);
 
 	if (chkt(f, "else")) {
-		struct itm_label *common = new_itm_label();
+		struct itm_block *onquit = new_itm_block();
 
-		itm_jmp(tblock, common);
+		itm_jmp(ontrue, onquit);
 
-		prev = new_list(NULL, 0);
-		list_push_back(prev, *block);
-		*block = new_itm_block(tblock, prev);
-		set_itm_label_block(elabel, *block);
+		parsestat(f, SF_NORMAL, &onfalse);
+		itm_jmp(onfalse, onquit);
 
-		parsestat(f, SF_NORMAL, block);
+		// construct if-else graph
+		itm_progress(*block, ontruelbl);
+		itm_progress(*block, onfalselbl);
+		itm_progress(ontrue, onquit);
+		itm_progress(onfalse, onquit);
+		itm_lex_progress(*block, ontruelbl);
+		itm_lex_progress(ontrue, onfalselbl);
+		itm_lex_progress(onfalse, onquit);
 
-		itm_jmp(*block, common);
-
-		prev = new_list(NULL, 0);
-		list_push_back(prev, *block);
-		*block = new_itm_block(*block, prev);
-		set_itm_label_block(common, *block);
+		*block = onquit;
 	} else {
-		itm_jmp(tblock, elabel);
+		itm_jmp(ontrue, onfalselbl);
 
-		prev = new_list(NULL, 0);
-		list_push_back(prev, tblock);
-		list_push_back(prev, *block);
-		*block = new_itm_block(tblock, prev);
-		set_itm_label_block(elabel, *block);
+		// construct if graph
+		itm_progress(*block, ontruelbl);
+		itm_progress(*block, onfalselbl);
+		itm_progress(ontrue, onfalselbl);
+		itm_lex_progress(*block, ontruelbl);
+		itm_lex_progress(ontrue, onfalselbl);
+
+		*block = onfalse;
 	}
-	
 	return true;
 }
 
-static bool parsedo(FILE *f, enum statflags flags, struct itm_block **block)
+static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	// TODO: implement
 	return false;
 }
 
-static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block)
+static bool parsedo(FILE *f, enum statflags flags, struct itm_block **block)
 {
-	struct list *prev;
+	/*
+	 * do body; while(cond);
+	 * becomes:
+	 *   ...
+	 *     jmp body
+	 *   body
+	 *     jmp condb
+	 *   condb
+	 *     cond
+	 *     split body, quit
+	 *   quit
+	 *
+	 * continue jumps to condb
+	 * break jumps to quit
+	 */
+
 	struct token tok;
 
 	if (!chkt(f, "do"))
 		return false;
 
-	struct itm_label *condl = new_itm_label();
-	struct itm_label *bodyl = new_itm_label();
-	struct itm_label *quitl = new_itm_label();
+	struct itm_block *body = new_itm_block();
+	struct itm_block *bodylbl = body;
+	struct itm_block *condb = new_itm_block();
+	struct itm_block *condblbl = condb;
+	struct itm_block *quit = new_itm_block();
+	struct itm_block *quitlbl = quit;
 
-	itm_jmp(*block, bodyl);
+	itm_jmp(*block, bodylbl);
 
-	prev = new_list(NULL, 0);
-	list_push_back(prev, *block);
-	struct itm_block *bodyb = new_itm_block(*block, prev);
-	set_itm_label_block(bodyl, bodyb);
-
-	parsestat(f, SF_NORMAL, &bodyb);
+	parsestat(f, SF_NORMAL, &body);
+	itm_jmp(body, condblbl);
 
 	if (!chkt(f, "while") || !chkt(f, "(")) {
 		tok = gettok(f);
@@ -134,15 +170,8 @@ static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block)
 		freetok(&tok);
 	}
 
-	prev = new_list(NULL, 0);
-	list_push_back(prev, bodyb);
-	struct itm_block *condb = new_itm_block(bodyb, prev);
-	set_itm_label_block(condl, condb);
-
-	list_push_back(bodyb->previous, condb);
-	list_push_back(condb->next, bodyb);
-
-	struct expr cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE, &condb, NULL);
+	struct expr cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE,
+		&condb, NULL);
 	cond = cast(cond, &cbool, condb);
 
 	// remove ) from stream
@@ -156,22 +185,37 @@ static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block)
 		freetok(&tok);
 	}
 
-	itm_split(condb, cond.itm, bodyl, quitl);
+	itm_split(condb, cond.itm, bodylbl, quitlbl);
 
-	prev = new_list(NULL, 0);
-	list_push_back(prev, condb);
-	struct itm_block *quitb = new_itm_block(condb, prev);
-	set_itm_label_block(quitl, quitb);
+	// construct do-while graph
+	itm_progress(*block, bodylbl);
+	itm_progress(body, condblbl);
+	itm_progress(condb, bodylbl);
+	itm_progress(condb, quitlbl);
+	itm_lex_progress(*block, bodylbl);
+	itm_lex_progress(body, condblbl);
+	itm_lex_progress(condb, quitlbl);
 
-	*block = quitb;
-
+	*block = quit;
 	return true;
 }
 
 static bool parsewhile(FILE *f, enum statflags flags,
 	struct itm_block **block)
 {
-	struct list *prev;
+	/*
+	 * while (cond) body;
+	 * becomes:
+	 *   ...
+	 *     jmp condb
+	 *   condb
+	 *     cond
+	 *     split body, quit
+	 *   body
+	 *     jmp condb
+	 *   quit
+	 */
+
 	struct token tok;
 
 	if (!chkt(f, "while"))
@@ -184,43 +228,38 @@ static bool parsewhile(FILE *f, enum statflags flags,
 		freetok(&tok);
 	}
 
-	struct itm_label *condl = new_itm_label();
-	struct itm_label *bodyl = new_itm_label();
-	struct itm_label *quitl = new_itm_label();
+	struct itm_block *body = new_itm_block();
+	struct itm_block *bodylbl = body;
+	struct itm_block *condb = new_itm_block();
+	struct itm_block *condblbl = condb;
+	struct itm_block *quit = new_itm_block();
+	struct itm_block *quitlbl = quit;
 
-	itm_jmp(*block, condl);
-
-	prev = new_list(NULL, 0);
-	list_push_back(prev, *block);
-	struct itm_block *condb = new_itm_block(*block, prev);
-	set_itm_label_block(condl, condb);
+	itm_jmp(*block, condblbl);
 	
-	struct expr cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE, &condb, NULL);
+	struct expr cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE,
+		&condb, NULL);
 	cond = cast(cond, &cbool, condb);
 
 	// remove ) from stream
 	tok = gettok(f);
 	freetok(&tok);
 
-	itm_split(condb, cond.itm, bodyl, quitl);
+	itm_split(condb, cond.itm, bodylbl, quitlbl);
 
-	prev = new_list(NULL, 0);
-	list_push_back(prev, condb);
-	struct itm_block *bodyb = new_itm_block(condb, prev);
-	set_itm_label_block(bodyl, bodyb);
+	parsestat(f, SF_NORMAL, &body);
+	itm_jmp(body, condb);
 
-	parsestat(f, SF_NORMAL, &bodyb);
+	// construct while graph
+	itm_progress(*block, condblbl);
+	itm_progress(condb, bodylbl);
+	itm_progress(condb, quitlbl);
+	itm_progress(body, condblbl);
+	itm_lex_progress(*block, condblbl);
+	itm_lex_progress(condb, bodylbl);
+	itm_lex_progress(body, quitlbl);
 
-	itm_jmp(bodyb, condl);
-
-	prev = new_list(NULL, 0);
-	list_push_back(prev, condb);
-	list_push_back(prev, bodyb);
-	struct itm_block *quitb = new_itm_block(bodyb, prev);
-	set_itm_label_block(quitl, quitb);
-
-	*block = quitb;
-
+	*block = quit;
 	return true;
 }
 

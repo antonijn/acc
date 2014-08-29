@@ -53,7 +53,7 @@ static void processdecls(FILE *f, struct list *decls, struct list *syms)
 	   !chktp(f, "{", &tok))
 		return;
 
-	struct itm_block *block = new_itm_block(NULL, NULL);
+	struct itm_block *block = new_itm_block();
 	struct itm_block *bb = block;
 
 	ungettok(&tok, f);
