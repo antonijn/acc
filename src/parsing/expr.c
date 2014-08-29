@@ -141,6 +141,9 @@ static struct expr parseid(FILE *f, enum exprflags flags,
 		return nil;
 
 	sym = get_symbol(id.lexeme);
+	// TODO: C90 implicit function declarations
+	if (!sym)
+		report(E_PARSER, &id, "undeclared identifier");
 	freetok(&id);
 
 	acc.itm = sym->value;

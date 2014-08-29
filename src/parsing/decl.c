@@ -80,6 +80,7 @@ bool parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_bloc
 		struct symbol *sym = parsedeclarator(f, flags, basety, sc);
 		if (syms)
 			list_push_back(syms, sym);
+
 		if (flags & DF_ALLOCA) {
 			assert(b != NULL);
 			assert(sym != NULL);
@@ -469,7 +470,7 @@ static struct ctype *parsestructure(FILE *f)
 static struct ctype *parsetypedef(FILE *f)
 {
 	struct token tok;
-	if (chkttp(f, T_IDENTIFIER, &tok))
+	if (!chkttp(f, T_IDENTIFIER, &tok))
 		return NULL;
 	struct ctype *ty = get_typedef(tok.lexeme);
 	if (!ty)
