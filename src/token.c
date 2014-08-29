@@ -64,8 +64,6 @@ static int readnum(FILE *f, SFILE *t, const char *allowed,
 	enum tokenty *tt);
 static bool readch(FILE *f, SFILE *t, char terminator);
 
-static void resettok(void);
-
 static struct token clonetok(struct token *tok);
 
 static int line = 1;
@@ -92,13 +90,14 @@ static SFILE *ssopen(void)
 	SFILE *res = malloc(sizeof(SFILE));
 	res->count = 0;
 	res->av = 16;
-	res->buf = calloc(res->av + 1, sizeof(char));
+	res->buf = malloc((res->av + 1) * sizeof(char));
+	res->buf[0] = '\0';
 	return res;
 }
 
- /*
-  * Close string stream
-  */
+/*
+ * Close string stream
+ */
 static char *ssclose(SFILE *ss)
 {
 	char *buf = ss->buf;
@@ -121,11 +120,10 @@ static void ssputc(SFILE *ss, char ch)
 {
 	if (ss->av == 0) {
 		ss->av = ss->count;
-		ss->buf = realloc(ss->buf, ss->count * 2 + 1);
-		for (int i = ss->count; i < ss->count * 2 + 1; ++i)
-			ss->buf[i] = '\0';
+		ss->buf = realloc(ss->buf, (ss->count * 2 + 1) * sizeof(char));
 	}
 	ss->buf[ss->count++] = ch;
+	ss->buf[ss->count] = '\0';
 	--ss->av;
 }
 
@@ -373,9 +371,6 @@ ret:
  */
 static bool isreserved(char *str)
 {
-	if (str[0] == '_')
-		return true;
-
 	if (isext(EX_RESTRICT) && !strcmp(str, "restrict"))
 		return true;
 
@@ -620,7 +615,8 @@ void ungettok(struct token *t, FILE *f)
 		rewritetok(&buffer, f);
 		buffer = clonetok(t);
 	} else {
-		rewritetok(t, f);
+		buffer = clonetok(t);
+		isbuffered = true;
 	}
 }
 
@@ -639,7 +635,7 @@ static void validatebuf(FILE *f)
 	isbuffered = true;
 }
 
-static void resettok(void)
+void resettok(void)
 {
 	line = 1;
 	column = 1;
@@ -673,14 +669,13 @@ bool chkt(FILE *f, const char *t)
 	if (buffer.type == T_EOF) {
 		report(E_FATAL | E_HIDE_TOKEN, NULL,
 		       "unexpected end-of-file");
-		resettok();
 	}
 
 	if (strcmp(t, buffer.lexeme))
 		return false;
 
 	freetok(&buffer);
-	buffer = readtok(f);
+	isbuffered = false;
 	return true;
 }
 
@@ -692,7 +687,6 @@ bool chktt(FILE *f, enum tokenty tt)
 		if (buffer.type == T_EOF) {
 			report(E_FATAL | E_HIDE_TOKEN, NULL,
 				"unexpected end-of-file");
-			resettok();
 		}
 		return false;
 	}
@@ -703,24 +697,20 @@ bool chktt(FILE *f, enum tokenty tt)
 	}
 
 	freetok(&buffer);
-	buffer = readtok(f);
+	isbuffered = false;
 	return true;
 }
 
 bool chktp(FILE *f, const char *t, struct token *nxt)
 {
 	validatebuf(f);
-
 	*nxt = clonetok(&buffer);
-
 	return chkt(f, t);
 }
 
 bool chkttp(FILE *f, enum tokenty tt, struct token *nxt)
 {
 	validatebuf(f);
-
 	*nxt = clonetok(&buffer);
-
 	return chktt(f, tt);
 }
