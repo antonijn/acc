@@ -15,6 +15,20 @@
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ * 
+ * 
+ * 
+ * The acc tokenizer tokenizes on the fly in order to decrease memory usage.
+ * A token can be read from a file using readtok().
+ * 
+ * The standard interface provides buffered access to tokens, although this is
+ * abstracted away through an interface that seems unbuffered. The variable
+ * "isbuffered" indicates whether the next token is already buffered or not. If
+ * this is so, the next token is stored in the global variable "buffer". Using
+ * readtok() immediately is not preferred. It is more performance efficient to
+ * make certain input is buffered first (call validatebuf()) and then read from
+ * "buffer". To then advance the token for the next function, set "isbuffered"
+ * to false, so that validatebuf() forces a new token into "buffer".
  */
 
 #include <stdlib.h>
