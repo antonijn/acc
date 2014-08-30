@@ -29,15 +29,19 @@
 #include <acc/ext.h>
 #include <acc/error.h>
 
-static bool parseif(FILE *f, enum statflags flags, struct itm_block **block);
+static bool parsestatx(FILE *f, enum statflags flags, struct itm_block **block,
+	struct itm_block *tobreak, struct itm_block *tocont);
+static bool parseblockx(FILE *f, enum statflags flags, struct itm_block **block,
+	struct itm_block *tobreak, struct itm_block *tocont);
+static bool parseif(FILE *f, enum statflags flags, struct itm_block **block,
+	struct itm_block *tobreak, struct itm_block *tocont);
 static bool parsedo(FILE *f, enum statflags flags, struct itm_block **block);
 static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block);
-static bool parsewhile(FILE *f, enum statflags flags,
-	struct itm_block **block);
-static bool parseestat(FILE *f, enum statflags flags,
-	struct itm_block **block);
+static bool parsewhile(FILE *f, enum statflags flags, struct itm_block **block);
+static bool parseestat(FILE *f, enum statflags flags, struct itm_block **block);
 
-static bool parseif(FILE *f, enum statflags flags, struct itm_block **block)
+static bool parseif(FILE *f, enum statflags flags, struct itm_block **block,
+	struct itm_block *tobreak, struct itm_block *tocont)
 {
 	/*
 	 * if (cond) ontrue; else onfalse;
@@ -87,14 +91,14 @@ static bool parseif(FILE *f, enum statflags flags, struct itm_block **block)
 
 	itm_split(*block, cond.itm, ontruelbl, onfalselbl);
 
-	parsestat(f, SF_NORMAL, &ontrue);
+	parsestatx(f, SF_NORMAL, &ontrue, tobreak, tocont);
 
 	if (chkt(f, "else")) {
 		struct itm_block *onquit = new_itm_block();
 
 		itm_jmp(ontrue, onquit);
 
-		parsestat(f, SF_NORMAL, &onfalse);
+		parsestatx(f, SF_NORMAL, &onfalse, tobreak, tocont);
 		itm_jmp(onfalse, onquit);
 
 		// construct if-else graph
@@ -223,8 +227,7 @@ static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block)
 		finalblbl = condblbl;
 	}
 	
-	
-	parsestat(f, SF_NORMAL, &body);
+	parsestatx(f, SF_NORMAL, &body, quitlbl, finalblbl);
 	itm_jmp(body, finalblbl);
 	itm_progress(body, finalblbl);
 	
@@ -271,7 +274,7 @@ static bool parsedo(FILE *f, enum statflags flags, struct itm_block **block)
 
 	itm_jmp(*block, bodylbl);
 
-	parsestat(f, SF_NORMAL, &body);
+	parsestatx(f, SF_NORMAL, &body, quitlbl, condblbl);
 	itm_jmp(body, condblbl);
 
 	if (!chkt(f, "while") || !chkt(f, "(")) {
@@ -311,8 +314,7 @@ static bool parsedo(FILE *f, enum statflags flags, struct itm_block **block)
 	return true;
 }
 
-static bool parsewhile(FILE *f, enum statflags flags,
-	struct itm_block **block)
+static bool parsewhile(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	/*
 	 * while (cond) body;
@@ -358,7 +360,7 @@ static bool parsewhile(FILE *f, enum statflags flags,
 
 	itm_split(condb, cond.itm, bodylbl, quitlbl);
 
-	parsestat(f, SF_NORMAL, &body);
+	parsestatx(f, SF_NORMAL, &body, quitlbl, condblbl);
 	itm_jmp(body, condb);
 
 	// construct while graph
@@ -374,8 +376,7 @@ static bool parsewhile(FILE *f, enum statflags flags,
 	return true;
 }
 
-static bool parseestat(FILE *f, enum statflags flags,
-	struct itm_block **block)
+static bool parseestat(FILE *f, enum statflags flags, struct itm_block **block)
 {
 	struct expr e = parseexpr(f, EF_FINISH_SEMICOLON, block, NULL);
 	if (!e.itm)
@@ -386,20 +387,64 @@ static bool parseestat(FILE *f, enum statflags flags,
 	return true;
 }
 
-bool parsestat(FILE *f, enum statflags flags, struct itm_block **block)
+static bool parsestatx(FILE *f, enum statflags flags, struct itm_block **block,
+	struct itm_block *tobreak, struct itm_block *tocont)
 {
 	if (chkt(f, ";"))
 		return true;
 
-	return parseif(f, flags, block) ||
+	struct token btok;
+	if (chktp(f, "break", &btok)) {
+		if (!tobreak) {
+			report(E_PARSER, &btok, "no loop to break from");
+		} else {
+			itm_jmp(*block, tobreak);
+			struct itm_block *newblock = new_itm_block();
+			itm_lex_progress(*block, newblock);
+			itm_progress(*block, tobreak);
+			*block = newblock;
+		}
+
+		if (!chkt(f, ";"))
+			report(E_PARSER, &btok, "expected ';' after statement");
+
+		return true;
+	}
+
+	struct token ctok;
+	if (chktp(f, "continue", &btok)) {
+		if (!tocont) {
+			report(E_PARSER, &btok, "no loop to continue from");
+		} else {
+			itm_jmp(*block, tocont);
+			struct itm_block *newblock = new_itm_block();
+			itm_lex_progress(*block, newblock);
+			itm_progress(*block, tocont);
+			*block = newblock;
+		}
+
+		if (!chkt(f, ";"))
+			report(E_PARSER, &btok, "expected ';' after statement");
+
+		return true;
+	}
+
+	return parseif(f, flags, block, tobreak, tocont) ||
 	       parsedo(f, flags, block) ||
 	       parsefor(f, flags, block) ||
 	       parsewhile(f, flags, block) ||
-	       parseblock(f, flags, block) ||
+	       parseblockx(f, flags, block, tobreak, tocont) ||
 	       parseestat(f, flags, block);
 }
 
-bool parseblock(FILE *f, enum statflags flags, struct itm_block **block)
+
+bool parsestat(FILE *f, enum statflags flags, struct itm_block **block)
+{
+	return parsestatx(f, flags, block, NULL, NULL);
+}
+
+static bool parseblockx(FILE *f, enum statflags flags, struct itm_block **block,
+	struct itm_block *tobreak, struct itm_block *tocont)
 {
 	if (!chkt(f, "{"))
 		return false;
@@ -407,9 +452,14 @@ bool parseblock(FILE *f, enum statflags flags, struct itm_block **block)
 	while (parsedecl(f, DF_LOCAL, NULL, block))
 		if (chkt(f, "}"))
 			return true;
-	
+
 	while (!chkt(f, "}"))
-		parsestat(f, flags, block);
+		parsestatx(f, flags, block, tobreak, tocont);
 
 	return true;
+}
+
+bool parseblock(FILE *f, enum statflags flags, struct itm_block **block)
+{
+	return parseblockx(f, flags, block, NULL, NULL);
 }
