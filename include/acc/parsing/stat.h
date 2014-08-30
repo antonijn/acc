@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include <acc/itm.h>
+#include <acc/itm/ast.h>
 
 enum statflags {
 	SF_NORMAL = 0x00,

@@ -20,9 +20,10 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include <acc/list.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#include <acc/list.h>
 
 enum asmflavor {
 	AF_ATT,

@@ -20,7 +20,7 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-#include <acc/ast.h>
+#include <acc/parsing/ast.h>
 
 struct os {
 	const char *name;

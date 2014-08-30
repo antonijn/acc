@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include <acc/ast.h>
+#include <acc/parsing/ast.h>
 #include <acc/list.h>
 
 /* flags for what is and what isn't allowed when parsing a declaration */

@@ -21,12 +21,12 @@
 #include <string.h>
 #include <assert.h>
 
+#include <acc/itm/ast.h>
+#include <acc/parsing/ast.h>
 #include <acc/parsing/decl.h>
 #include <acc/parsing/expr.h>
 #include <acc/error.h>
 #include <acc/ext.h>
-#include <acc/itm.h>
-#include <acc/ast.h>
 
 // primitive modifiers
 enum primmod {

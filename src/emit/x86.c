@@ -26,7 +26,7 @@
 #include <assert.h>
 
 #include <acc/emit/x86.h>
-#include <acc/itm.h>
+#include <acc/itm/ast.h>
 #include <acc/options.h>
 #include <acc/target.h>
 
@@ -524,7 +524,7 @@ static void x86sect(FILE *f, enum x86section sec)
 
 static void x86reslike(FILE *f, const char *dir, size_t cnt, va_list ap)
 {
-	fprintf(f, "\t%s\t");
+	fprintf(f, "\t%s\t", dir);
 	for (int i = 0; i < cnt; ++i) {
 		fprintf(f, "%s", va_arg(ap, char *));
 		if (i != cnt - 1)

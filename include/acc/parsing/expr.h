@@ -23,8 +23,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include <acc/itm.h>
-#include <acc/ast.h>
+#include <acc/itm/ast.h>
+#include <acc/parsing/ast.h>
 
 struct expr {
 	struct itm_expr *itm;

@@ -17,8 +17,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef AST_H
-#define AST_H
+#ifndef PARSING_AST_H
+#define PARSING_AST_H
 
 #include <stdio.h>
 #include <stdbool.h>

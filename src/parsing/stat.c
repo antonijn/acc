@@ -24,8 +24,8 @@
 #include <acc/parsing/stat.h>
 #include <acc/parsing/expr.h>
 #include <acc/parsing/decl.h>
+#include <acc/parsing/token.h>
 #include <acc/list.h>
-#include <acc/token.h>
 #include <acc/ext.h>
 #include <acc/error.h>
 

@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 
-#include <acc/ast.h>
+#include <acc/parsing/ast.h>
 
 void x86_emit(FILE *f, struct list *symbols);
 

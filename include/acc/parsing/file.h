@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 
-#include <acc/ast.h>
+#include <acc/parsing/ast.h>
 
 void parsefile(FILE *f, struct list *syms);
 

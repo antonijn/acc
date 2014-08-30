@@ -28,12 +28,12 @@
 #include <unistd.h>
 #endif
 
+#include <acc/itm/ast.h>
+#include <acc/parsing/file.h>
+#include <acc/parsing/token.h>
 #include <acc/options.h>
-#include <acc/token.h>
 #include <acc/error.h>
 #include <acc/target.h>
-#include <acc/itm.h>
-#include <acc/parsing/file.h>
 
 static void compilefile(FILE *f)
 {

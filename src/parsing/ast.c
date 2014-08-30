@@ -22,10 +22,10 @@
 #include <string.h>
 #include <assert.h>
 
-#include <acc/ast.h>
+#include <acc/itm/ast.h>
+#include <acc/parsing/ast.h>
 #include <acc/target.h>
 #include <acc/ext.h>
-#include <acc/itm.h>
 
 struct ctype cbool;
 struct ctype cint;

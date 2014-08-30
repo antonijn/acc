@@ -22,8 +22,8 @@
 #include <stdarg.h>
 #include <assert.h>
 
+#include <acc/parsing/token.h>
 #include <acc/error.h>
-#include <acc/token.h>
 #include <acc/options.h>
 
 const char *currentfile = NULL;

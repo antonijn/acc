@@ -20,7 +20,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include <acc/itm.h>
+#include <acc/itm/ast.h>
 #include <acc/error.h>
 
 // to_string functions

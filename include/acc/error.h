@@ -22,7 +22,7 @@
 
 #include <setjmp.h>
 
-#include <acc/token.h>
+#include <acc/parsing/token.h>
 
 enum errorty {
 	E_ERROR = 0x00,

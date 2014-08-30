@@ -17,13 +17,13 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef ITM_H
-#define ITM_H
+#ifndef ITM_AST_H
+#define ITM_AST_H
 
 #include <stdint.h>
 
+#include <acc/parsing/ast.h>
 #include <acc/list.h>
-#include <acc/ast.h>
 
 enum itm_expr_type {
 	ITME_LITERAL,

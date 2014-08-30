@@ -25,10 +25,10 @@
 #include <acc/parsing/file.h>
 #include <acc/parsing/decl.h>
 #include <acc/parsing/stat.h>
-#include <acc/ast.h>
+#include <acc/parsing/ast.h>
+#include <acc/parsing/token.h>
 #include <acc/ext.h>
 #include <acc/error.h>
-#include <acc/token.h>
 
 static void addparams(void *fsym)
 {

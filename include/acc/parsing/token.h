@@ -17,8 +17,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef TOKEN_H
-#define TOKEN_H
+#ifndef PARSING_TOKEN_H
+#define PARSING_TOKEN_H
 
 #include <stdio.h>
 #include <stdbool.h>

@@ -36,7 +36,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include <acc/token.h>
+#include <acc/parsing/token.h>
 #include <acc/error.h>
 #include <acc/ext.h>
 
