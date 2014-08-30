@@ -26,9 +26,10 @@
 #include <acc/list.h>
 
 enum typecomp {
-	IMPLICIT,
-	EXPLICIT,
-	INCOMPATIBLE
+	TC_EQUAL,
+	TC_IMPLICIT,
+	TC_EXPLICIT,
+	TC_INCOMPATIBLE
 };
 
 enum ctypeid {

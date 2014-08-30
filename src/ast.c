@@ -65,8 +65,13 @@ static void primitive_to_string(FILE *f, struct ctype *p)
 
 static enum typecomp primitive_compare(struct ctype *l, struct ctype *r)
 {
-	// TODO: proper implementation
-	return EXPLICIT;
+	if (l == r)
+		return TC_EQUAL;
+	if (hastc(r, TC_ARITHMETIC))
+		return TC_IMPLICIT;
+	if (hastc(r, TC_POINTER) && hastc(l, TC_INTEGRAL))
+		return TC_EXPLICIT;
+	return TC_INCOMPATIBLE;
 }
 
 static void initprimitive(struct ctype *p, const char *name)
@@ -88,6 +93,9 @@ bool hastc(struct ctype *ty, enum typeclass tc)
 
 enum typeclass gettc(struct ctype *ty)
 {
+	if (ty->type == QUALIFIED)
+		return gettc(((struct cqualified *)ty)->type);
+
 	if (ty == &cfloat ||
 	    ty == &cdouble)
 		return TC_ARITHMETIC | TC_FLOATING;
@@ -167,8 +175,23 @@ static void pointer_to_string(FILE *f, struct ctype *p)
 
 static enum typecomp pointer_compare(struct ctype *l, struct ctype *r)
 {
-	// TODO: proper implementation
-	return IMPLICIT;
+	if (r->type == QUALIFIED) {
+		struct cqualified *cq = (struct cqualified *)r;
+		return l->compare(l, cq->type);
+	}
+	if (r->type == PRIMITIVE)
+		return TC_EXPLICIT;
+	if (r->type != POINTER)
+		return TC_INCOMPATIBLE;
+
+	struct cpointer *cpl = (struct cpointer *)l;
+	struct cpointer *cpr = (struct cpointer *)r;
+
+	if (cpl->pointsto->compare(cpl->pointsto, cpr->pointsto) == TC_EQUAL)
+		return TC_EQUAL;
+	if (cpl->pointsto == &cvoid || cpr->pointsto == &cvoid)
+		return TC_IMPLICIT;
+	return TC_EXPLICIT;
 }
 
 struct ctype *new_pointer(struct ctype *base)
@@ -193,7 +216,9 @@ static void struct_to_string(FILE *f, struct ctype *p)
 
 static enum typecomp struct_compare(struct ctype *l, struct ctype *r)
 {
-	return INCOMPATIBLE;
+	if (l == r)
+		return TC_EQUAL;
+	return TC_INCOMPATIBLE;
 }
 
 static void free_struct(struct ctype *t)
@@ -270,8 +295,9 @@ static void qualified_to_string(FILE *f, struct ctype *ty)
 
 static enum typecomp qualified_compare(struct ctype *l, struct ctype *r)
 {
-	// TODO: proper implementation
-	return EXPLICIT;
+	// TODO: is this right?
+	struct cqualified *cq = (struct cqualified *)l;
+	return cq->type->compare(cq->type, r);
 }
 
 struct ctype * new_qualified(struct ctype *base, enum qualifier q)
@@ -318,7 +344,7 @@ static void function_to_string(FILE *f, struct ctype *ty)
 static enum typecomp function_compare(struct ctype *l, struct ctype *r)
 {
 	// TODO: proper implementation
-	return INCOMPATIBLE;
+	return TC_INCOMPATIBLE;
 }
 
 struct ctype *new_function(struct ctype *ret, struct list *params)

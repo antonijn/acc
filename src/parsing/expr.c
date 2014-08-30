@@ -684,6 +684,15 @@ struct expr cast(struct expr e, struct ctype *ty,
 	assert(ty != NULL);
 	assert(e.itm->type != NULL);
 
+	enum typecomp tc = e.itm->type->compare(e.itm->type, ty);
+
+	if (tc == TC_EXPLICIT) {
+		report(E_PARSER | E_HIDE_TOKEN, NULL, "no implicit conversion");
+	} else if (tc == TC_INCOMPATIBLE) {
+		report(E_PARSER | E_HIDE_TOKEN, NULL, "no conversion exists");
+		return e;
+	}
+
 	struct expr res = e;
 
 	if (e.itm->type == ty)
