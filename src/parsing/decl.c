@@ -435,20 +435,21 @@ static struct ctype *parsestructure(FILE *f)
 	struct token tok;
 	if (!chktp(f, "{", &tok)) {
 		if (!hasid) {
+			tok = gettok(f);
 			report(E_PARSER, &tok, "expected '{' or ';'");
-		} else if (str = get_struct(idtok.lexeme)) {
-			freetok(&idtok);
+			ungettok(&tok, f);
 			freetok(&tok);
-			return (struct ctype *)str;
-		} else {
-			str = (struct cstruct *)new_struct(idtok.lexeme);
+			return NULL;
+		}
+
+		if (str = get_struct(idtok.lexeme)) {
 			freetok(&idtok);
-			freetok(&tok);
 			return (struct ctype *)str;
 		}
 
-		freetok(&tok);
-		return NULL;
+		str = (struct cstruct *)new_struct(idtok.lexeme);
+		freetok(&idtok);
+		return (struct ctype *)str;
 	}
 
 	str = (struct cstruct *)new_struct(hasid ? idtok.lexeme : NULL);
