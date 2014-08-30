@@ -704,11 +704,16 @@ struct expr cast(struct expr e, struct ctype *ty,
 			report(E_ERROR | E_HIDE_TOKEN, NULL, "cannot convert to boolean value");
 
 		res.itm = (struct itm_expr *)itm_cmpneq(b, e.itm, (struct itm_expr *)lit);
-	} else if (hastc(e.itm->type, TC_FLOATING) && hastc(ty, TC_INTEGRAL))
+	} else if (hastc(e.itm->type, TC_FLOATING) && hastc(ty, TC_INTEGRAL)) {
 		res.itm = (struct itm_expr *)itm_ftoi(b, e.itm, ty);
-	else if (hastc(e.itm->type, TC_INTEGRAL) && hastc(ty, TC_FLOATING))
+	} else if (hastc(e.itm->type, TC_INTEGRAL) && hastc(ty, TC_FLOATING)) {
 		res.itm = (struct itm_expr *)itm_itof(b, e.itm, ty);
-	else if (hastc(e.itm->type, TC_POINTER) && hastc(ty, TC_INTEGRAL)) {
+	} else if (hastc(e.itm->type, TC_FLOATING) && hastc(ty, TC_FLOATING)) {
+		if (e.itm->type->size > ty->size)
+			res.itm = (struct itm_expr *)itm_ftrunc(b, e.itm, ty);
+		else
+			res.itm = (struct itm_expr *)itm_fext(b, e.itm, ty);
+	} else if (hastc(e.itm->type, TC_POINTER) && hastc(ty, TC_INTEGRAL)) {
 		if (e.itm->type->size > ty->size)
 			res.itm = (struct itm_expr *)itm_trunc(b, e.itm, ty);
 		else if (e.itm->type->size < ty->size)

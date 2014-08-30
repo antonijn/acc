@@ -410,6 +410,11 @@ struct itm_instr *itm_trunc(struct itm_block *b, struct itm_expr *l, struct ctyp
 	return impl_cast(b, l, to, (void (*)(void))&itm_trunc, "trunc");
 }
 
+struct itm_instr *itm_ftrunc(struct itm_block *b, struct itm_expr *l, struct ctype *to)
+{
+	return impl_cast(b, l, to, (void (*)(void))&itm_ftrunc, "ftrunc");
+}
+
 struct itm_instr *itm_zext(struct itm_block *b, struct itm_expr *l, struct ctype *to)
 {
 	return impl_cast(b, l, to, (void (*)(void))&itm_zext, "zext");
@@ -418,6 +423,11 @@ struct itm_instr *itm_zext(struct itm_block *b, struct itm_expr *l, struct ctype
 struct itm_instr *itm_sext(struct itm_block *b, struct itm_expr *l, struct ctype *to)
 {
 	return impl_cast(b, l, to, (void (*)(void))&itm_sext, "sext");
+}
+
+struct itm_instr *itm_fext(struct itm_block *b, struct itm_expr *l, struct ctype *to)
+{
+	return impl_cast(b, l, to, (void (*)(void))&itm_fext, "fext");
 }
 
 struct itm_instr *itm_itof(struct itm_block *b, struct itm_expr *l, struct ctype *to)

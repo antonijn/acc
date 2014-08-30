@@ -110,8 +110,10 @@ struct itm_instr *itm_cmplte(struct itm_block *b, struct itm_expr *l, struct itm
 
 struct itm_instr *itm_bitcast(struct itm_block *b, struct itm_expr *l, struct ctype *to);
 struct itm_instr *itm_trunc(struct itm_block *b, struct itm_expr *l, struct ctype *to);
+struct itm_instr *itm_ftrunc(struct itm_block *b, struct itm_expr *l, struct ctype *to);
 struct itm_instr *itm_zext(struct itm_block *b, struct itm_expr *l, struct ctype *to);
 struct itm_instr *itm_sext(struct itm_block *b, struct itm_expr *l, struct ctype *to);
+struct itm_instr *itm_fext(struct itm_block *b, struct itm_expr *l, struct ctype *to);
 struct itm_instr *itm_itof(struct itm_block *b, struct itm_expr *l, struct ctype *to);
 struct itm_instr *itm_ftoi(struct itm_block *b, struct itm_expr *l, struct ctype *to);
 
