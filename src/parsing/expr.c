@@ -685,6 +685,7 @@ struct expr cast(struct expr e, struct ctype *ty,
 	assert(e.itm->type != NULL);
 
 	enum typecomp tc = e.itm->type->compare(e.itm->type, ty);
+	enum typeclass tcl = gettc(e.itm->type), tcr = gettc(ty);
 
 	if (tc == TC_EXPLICIT) {
 		report(E_PARSER | E_HIDE_TOKEN, NULL, "no implicit conversion");
@@ -713,23 +714,24 @@ struct expr cast(struct expr e, struct ctype *ty,
 			report(E_ERROR | E_HIDE_TOKEN, NULL, "cannot convert to boolean value");
 
 		res.itm = (struct itm_expr *)itm_cmpneq(b, e.itm, (struct itm_expr *)lit);
-	} else if (hastc(e.itm->type, TC_FLOATING) && hastc(ty, TC_INTEGRAL)) {
+	} else if ((tcl & TC_FLOATING) && (tcr & TC_INTEGRAL)) {
 		res.itm = (struct itm_expr *)itm_ftoi(b, e.itm, ty);
-	} else if (hastc(e.itm->type, TC_INTEGRAL) && hastc(ty, TC_FLOATING)) {
+	} else if ((tcl & TC_INTEGRAL) && (tcr & TC_FLOATING)) {
 		res.itm = (struct itm_expr *)itm_itof(b, e.itm, ty);
-	} else if (hastc(e.itm->type, TC_FLOATING) && hastc(ty, TC_FLOATING)) {
+	} else if ((tcl & TC_FLOATING) && (tcr & TC_FLOATING)) {
 		if (e.itm->type->size > ty->size)
 			res.itm = (struct itm_expr *)itm_ftrunc(b, e.itm, ty);
 		else
 			res.itm = (struct itm_expr *)itm_fext(b, e.itm, ty);
-	} else if (hastc(e.itm->type, TC_POINTER) && hastc(ty, TC_INTEGRAL)) {
+	} else if (((tcl & TC_POINTER) && (tcr & TC_INTEGRAL)) ||
+	           (tcl & TC_INTEGRAL) && (tcr & TC_POINTER)) {
 		if (e.itm->type->size > ty->size)
 			res.itm = (struct itm_expr *)itm_trunc(b, e.itm, ty);
 		else if (e.itm->type->size < ty->size)
 			res.itm = (struct itm_expr *)itm_zext(b, e.itm, ty);
 		else
 			res.itm = (struct itm_expr *)itm_bitcast(b, e.itm, ty);
-	} else if (hastc(e.itm->type, TC_INTEGRAL) && hastc(ty, TC_INTEGRAL)) {
+	} else if ((tcl & TC_INTEGRAL) && (tcr & TC_INTEGRAL)) {
 		if (e.itm->type->size > ty->size)
 			res.itm = (struct itm_expr *)itm_trunc(b, e.itm, ty);
 		else if (e.itm->type->size < ty->size) {
@@ -738,9 +740,11 @@ struct expr cast(struct expr e, struct ctype *ty,
 			else
 				res.itm = (struct itm_expr *)itm_sext(b, e.itm, ty);
 		}
+	} else {
+		// TODO: other casts
+		assert(false);
 	}
 
-	// TODO: other casts
 
 	return res;
 }
