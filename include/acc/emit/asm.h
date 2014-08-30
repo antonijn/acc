@@ -22,15 +22,12 @@
 
 #include <stdio.h>
 
-enum section {
-	SECTION_INVALID,
-	SECTION_TEXT,
-	SECTION_DATA,
-	SECTION_RODATA,
-	SECTION_BSS
-};
+#define ASME_REG		1
+#define ASME_IMM		2
+#define ASME_USER(x)		(3 + (x))
 
 struct asme {
+	int type;
 	int size;
 	void (*to_string)(FILE *f, struct asme *e);
 	void (*to_string_d)(FILE *f, struct asme *e);
@@ -44,8 +41,9 @@ struct asmreg {
 	const struct asmreg *child2;
 };
 
-#define NEW_REG(size, name, parent, ch1, ch2) \
-	{ { size, &asmregtostr, &asmregtostr }, name, parent, ch1, ch2 }
+#define NEW_REG(size, name, parent, ch1, ch2) 				\
+	{ { ASME_REG, size, &asmregtostr, &asmregtostr }, 		\
+		name, parent, ch1, ch2 }
 
 struct asmimm {
 	struct asme base;
@@ -53,6 +51,14 @@ struct asmimm {
 	const char *op;
 	char *label;
 	long value;
+};
+
+enum section {
+	SECTION_INVALID,
+	SECTION_TEXT,
+	SECTION_DATA,
+	SECTION_RODATA,
+	SECTION_BSS
 };
 
 void new_asm_imm(struct asmimm *res, int size, long value);

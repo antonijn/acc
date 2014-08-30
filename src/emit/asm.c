@@ -35,6 +35,7 @@ void new_asm_imm(struct asmimm *res, int size, long value)
 {
 	assert(res != NULL);
 
+	res->base.type = ASME_IMM;
 	res->base.size = size;
 	res->base.to_string = &asmimmtostr;
 	res->base.to_string_d = &asmimmtostrd;
@@ -52,6 +53,7 @@ void new_asm_label(struct asmimm *res, char *value)
 	// I don't know if ISO true values are necessarily 1...
 	int uscorepfix = ((getos() == &oswindows) && value[0] != '.') ? 1 : 0;
 
+	res->base.type = ASME_IMM;
 	res->base.size = getcpu()->bits / 8;
 	res->base.to_string = &asmimmtostr;
 	res->base.to_string_d = &asmimmtostrd;
@@ -74,6 +76,7 @@ void new_asm_cop(struct asmimm *res, const char *op,
 	assert(r != NULL);
 	assert(l->base.size == r->base.size);
 
+	res->base.type = ASME_IMM;
 	res->base.size = l->base.size;
 	res->base.to_string = &asmimmtostr;
 	res->base.to_string_d = &asmimmtostrd;
@@ -149,7 +152,7 @@ void emit_i(FILE *f, const char *instr, int numops, ...)
 		struct asme *e = va_arg(ap, struct asme *);
 		assert(e != NULL);
 		ops[i] = e;
-		reqsuf |= (e->to_string != asmimmtostr);
+		reqsuf |= (e->type != ASME_IMM);
 	}
 
 	fprintf(f, "\t%s", instr);

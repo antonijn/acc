@@ -177,6 +177,7 @@ static void new_x86_ea(struct x86ea *res, int size,
 	assert(res != NULL);
 	assert(getcpu()->offset >= cpui386.offset || mult == 1);
 	
+	res->base.type = ASME_X86_EA;
 	res->base.to_string = &x86eatostr;
 	res->base.to_string_d = &x86eatostr;
 	res->base.size = size;

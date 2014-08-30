@@ -25,6 +25,8 @@
 #include <acc/emit/asm.h>
 #include <acc/parsing/ast.h>
 
+#define ASME_X86_EA		ASME_USER(0)
+
 void x86_emit(FILE *f, struct list *symbols);
 
 #endif
