@@ -456,7 +456,7 @@ struct operator *unoperators[] = {
 	&unop_postinc, &unop_postdec, // order is important
 	&unop_plus, &unop_min,
 	&unop_deref, &unop_ref,
-	&unop_sizeof
+	&unop_not, &unop_sizeof
 };
 
 struct operator *getbop(const char *opname)
@@ -513,6 +513,7 @@ struct operator unop_preinc = { 3, true, "++" };
 struct operator unop_predec = { 3, true, "--" };
 struct operator unop_plus = { 3, true, "+" };
 struct operator unop_min = { 3, true, "-" };
-struct operator unop_deref = { 3, true, "-" };
-struct operator unop_ref = { 3, true, "-" };
-struct operator unop_sizeof = { 3, true, "-" };
+struct operator unop_deref = { 3, true, "*" };
+struct operator unop_ref = { 3, true, "&" };
+struct operator unop_not = { 3, true, "~" };
+struct operator unop_sizeof = { 3, true, "sizeof" };

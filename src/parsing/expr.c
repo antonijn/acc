@@ -404,8 +404,108 @@ static struct expr performpreuop(FILE *f, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty, struct list *operators,
 	struct operator *op, struct token *opt)
 {
-	// TODO: implement
-	assert(false);
+	struct expr nil = { 0 };
+
+	// first we deal with the special cases: ++, --, * and &
+
+	if (op == &unop_preinc || op == &unop_predec) {
+
+		op = (op == &unop_preinc) ? &binop_plus : &binop_min;
+
+		struct expr r = parseexpro(f, flags & EF_CLEAR_MASK,
+			block, initty, operators, nil);
+		if (!r.islvalue)
+			report(E_PARSER, opt, "right-hand side of operator must be an lvalue");
+
+		struct expr rvalue = pack(*block, r, EF_EXPECT_RVALUE);
+
+		struct itm_literal *one = new_itm_literal(rvalue.itm->type);
+		one->value.i = 1;
+
+		struct expr addition;
+		addition.itm = (struct itm_expr *)one;
+		addition.islvalue = false;
+
+		struct expr newval = doaop(op, flags, block, initty,
+			rvalue, addition);
+		itm_store(*block, newval.itm, r.itm);
+
+		return newval;
+	}
+
+	if (op == &unop_deref) {
+		struct expr r = parseexpro(f, flags & EF_CLEAR_MASK,
+			block, initty, operators, nil);
+		r = pack(*block, r, EF_EXPECT_RVALUE);
+		if (!hastc(r.itm->type, TC_POINTER))
+			report(E_PARSER, opt, "right-hand side of operator must be a pointer");
+		r.islvalue = true;
+		return r;
+	}
+
+	if (op == &unop_ref) {
+		struct expr r = parseexpro(f, flags & EF_CLEAR_MASK,
+			block, initty, operators, nil);
+		if (!r.islvalue)
+			report(E_PARSER, opt, "right-hand side of operator must be an lvalue");
+		r.islvalue = false;
+		return r;
+	}
+
+	// now we handle the other unary operators
+	// the all handle rvalues
+
+	struct expr right = parseexpro(f, flags & EF_CLEAR_MASK,
+		block, initty, operators, nil);
+	right = pack(*block, right, EF_EXPECT_RVALUE);
+
+	struct expr res;
+	res.islvalue = false;
+
+	if (op == &unop_plus) {
+		// TODO: promotion for bitfields and enums
+		if (!hastc(right.itm->type, TC_ARITHMETIC))
+			report(E_PARSER, opt, "right-hand side of operator must have arithmetic type");
+		if (hastc(right.itm->type, TC_INTEGRAL) &&
+		    right.itm->type->size < cint.size)
+			right = cast(right, &cint, *block);
+		res = right;
+
+	} else if (op == &unop_min) {
+		struct itm_literal *zero = new_itm_literal(right.itm->type);
+		if (!hastc(right.itm->type, TC_ARITHMETIC))
+			report(E_PARSER, opt, "right-hand side of operator must have arithmetic type");
+		if (right.itm->type == &cfloat)
+			zero->value.f = 0.0f;
+		else if (right.itm->type == &cdouble)
+			zero->value.d = 0.0;
+		else
+			zero->value.i = 0ul;
+
+		struct expr zeroe;
+		zeroe.itm = (struct itm_expr *)zero;
+		zeroe.islvalue = false;
+		res = doaop(&binop_min, flags, block, initty, zeroe, right);
+
+	} else if (op == &unop_not) {
+		struct itm_literal *allbits = new_itm_literal(right.itm->type);
+		if (!hastc(right.itm->type, TC_INTEGRAL))
+			report(E_PARSER, opt, "right-hand side of operator must have integral type");
+		allbits->value.i = 0;
+		for (int i = 0; i < right.itm->type->size; ++i) {
+			allbits->value.i <<= 8;
+			allbits->value.i |= 0xff;
+		}
+		struct expr allbitse;
+		allbitse.itm = (struct itm_expr *)allbits;
+		allbitse.islvalue = false;
+		res = doaop(&binop_xor, flags, block, initty, right, allbitse);
+	} else {
+		// TODO: sizeof
+		assert(false);
+	}
+
+	return res;
 }
 
 static struct expr performpostuop(FILE *f, enum exprflags flags,
@@ -413,7 +513,7 @@ static struct expr performpostuop(FILE *f, enum exprflags flags,
 	struct expr acc, struct operator *op, struct token *opt)
 {
 	if (!acc.islvalue)
-		report(E_ERROR, opt, "left-hand side of operator must be an lvalue");
+		report(E_PARSER, opt, "left-hand side of operator must be an lvalue");
 
 	op = (op == &unop_postinc) ? &binop_plus : &binop_min;
 

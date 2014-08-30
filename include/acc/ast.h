@@ -213,6 +213,7 @@ extern struct operator unop_plus;
 extern struct operator unop_min;
 extern struct operator unop_deref;
 extern struct operator unop_ref;
+extern struct operator unop_not;
 extern struct operator unop_sizeof;
 
 #endif
