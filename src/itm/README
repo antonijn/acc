@@ -1,0 +1,12 @@
+	Finding Your Way Around the src/itm/ Subsystem
+
+The intermediate subsystem forms the bridge between the parsing and emission
+subsystems.
+
+Its features include:
+
+	- Providing an interface for reading and writing the intermediate form
+	  abstract syntax tree for the parsing and emission subsystems
+	  respectively.
+	- Analyse and optimise the intermediate form abstract syntax tree
+	  (unimplemented as of yet).
