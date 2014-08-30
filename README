@@ -4,14 +4,14 @@ acc is a cross-platform multi-target C compiler.
 
 acc is designed with a strong focus on:
 
-	- 100% **self-hosting** ability
+	- 100% self-hosting ability
 	- Readability and documentation
 	- Performance without cutting corners
 	- Full C90 and C99 compliance
 	- A multitude of extensions
 	- Reliability under any circumstances
 	- Portability to any platform
-	- Supporting multiple **CPUs**
+	- Supporting multiple CPUs
 	- Teamwork
 
 I'm currently writing it partially for a school project, and for that reason
