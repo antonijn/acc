@@ -201,13 +201,13 @@ void *list_pop_back(struct list *l)
 
 	--l->length;
 	struct node *nl = l->last->previous;
+	free(l->last);
 	if (!nl) {
 		l->last = NULL;
 		l->head = NULL;
 		return data;
 	}
 	nl->next = NULL;
-	free(l->last);
 	l->last = nl;
 	return data;
 }
@@ -220,6 +220,10 @@ void list_push_front(struct list *l, void *restrict data)
 	n->previous = NULL;
 	n->next = l->head;
 	n->data = data;
+	if (l->head)
+		l->head->previous = n;
+	else
+		l->last = n;
 	l->head = n;
 	++l->length;
 }
@@ -232,13 +236,13 @@ void *list_pop_front(struct list *l)
 
 	--l->length;
 	struct node *nh = l->head->next;
+	free(l->head);
 	if (!nh) {
 		l->last = NULL;
 		l->head = NULL;
 		return data;
 	}
 	nh->previous = NULL;
-	free(l->head);
 	l->head = nh;
 	return data;
 }

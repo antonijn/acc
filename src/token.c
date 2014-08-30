@@ -589,6 +589,7 @@ static struct token readtok(FILE *f)
 	if (nxt == EOF) {
 		res.type = T_EOF;
 		res.lexeme = NULL;
+		free(ssclose(t));
 		goto eofret;
 	} else {
 		ungetc(nxt, f);
@@ -627,6 +628,7 @@ void ungettok(struct token *t, FILE *f)
 {
 	if (isbuffered) {
 		rewritetok(&buffer, f);
+		freetok(&buffer);
 		buffer = clonetok(t);
 	} else {
 		buffer = clonetok(t);
@@ -672,7 +674,8 @@ struct token gettok(FILE *f)
 {
 	validatebuf(f);
 	struct token res = clonetok(&buffer);
-	buffer = readtok(f);
+	freetok(&buffer);
+	isbuffered = false;
 	return res;
 }
 
@@ -719,12 +722,18 @@ bool chktp(FILE *f, const char *t, struct token *nxt)
 {
 	validatebuf(f);
 	*nxt = clonetok(&buffer);
-	return chkt(f, t);
+	bool res = chkt(f, t);
+	if (!res)
+		freetok(nxt);
+	return res;
 }
 
 bool chkttp(FILE *f, enum tokenty tt, struct token *nxt)
 {
 	validatebuf(f);
 	*nxt = clonetok(&buffer);
-	return chktt(f, tt);
+	bool res = chktt(f, tt);
+	if (!res)
+		freetok(nxt);
+	return res;
 }

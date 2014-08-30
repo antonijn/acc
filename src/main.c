@@ -70,6 +70,7 @@ cleanup:
 	ast_destroy();
 }
 
+#ifndef NDEBUG
 static void segvcatcher(int signo)
 {
 	fprintf(stderr, "\n"
@@ -78,15 +79,11 @@ static void segvcatcher(int signo)
                         "\t/_| \\__/ |_\\\n"
 	                "\t   \\__U_/\n\n");
 	fprintf(stderr, "Oops! Received SIGSEGV during compilation!\n");
-#ifdef NDEBUG
-	fprintf(stderr, "You've put the compiler in a situation the developers "
-	                "hadn't quite foreseen.\n");
-#endif
 	fprintf(stderr, "\tFile:\t%s\n", currentfile ? currentfile : "<stdin>");
 	fprintf(stderr, "\tLine:\t%d\n", get_line());
 	fprintf(stderr, "\tColumn:\t%d\n\n", get_column());
 
-#if !defined(NDEBUG) && defined(__GNU_LIBRARY__)
+#ifdef __GNU_LIBRARY__
 	fprintf(stderr, "======= Backtrace: =======\n");
 
 	void *buffer[100];
@@ -97,14 +94,17 @@ static void segvcatcher(int signo)
 
 	abort();
 }
+#endif
 
 int main(int argc, char *argv[])
 {
 	setlocale(LC_ALL, "C");
 
+#ifndef NDEBUG
 	if (signal(SIGSEGV, &segvcatcher) == SIG_ERR)
 		fprintf(stderr, "warning: failed to register"
 		                "segmentation fault handler\n");
+#endif
 
 	if (setjmp(fatal_env))
 		exit(EXIT_FAILURE);

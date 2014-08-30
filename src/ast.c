@@ -25,6 +25,7 @@
 #include <acc/ast.h>
 #include <acc/target.h>
 #include <acc/ext.h>
+#include <acc/itm.h>
 
 struct ctype cbool;
 struct ctype cint;
@@ -43,6 +44,8 @@ static struct list *alltypes;
 static struct list *typescopes;
 static struct list *allsyms;
 static struct list *symscopes;
+
+static void delete_symbol(void *sym);
 
 static void registerty(struct ctype *t)
 {
@@ -136,7 +139,7 @@ void ast_destroy(void)
 	delete_list(alltypes, &destroy_type);
 	delete_list(typescopes, NULL);
 	delete_list(symscopes, NULL);
-	delete_list(allsyms, &free);
+	delete_list(allsyms, &delete_symbol);
 }
 
 void enter_scope(void)
@@ -388,7 +391,7 @@ struct symbol *new_symbol(struct ctype *type, char *id,
 	sym->block = NULL;
 	sym->type = type;
 	if (id) {
-		sym->id = calloc(strlen(id) + 1, sizeof(char));
+		sym->id = malloc((strlen(id) + 1) * sizeof(char));
 		sprintf(sym->id, "%s", id);
 	} else {
 		sym->id = NULL;
@@ -404,6 +407,16 @@ void registersym(struct symbol *sym)
 {
 	struct list *syms = list_last(symscopes);
 	list_push_back(syms, sym);
+}
+
+static void delete_symbol(void *ptr)
+{
+	struct symbol *sym = ptr;
+	if (sym->id)
+		free(sym->id);
+	if (sym->block)
+		delete_itm_block(sym->block);
+	free(sym);
 }
 
 struct ctype *get_typedef(char *id)

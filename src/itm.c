@@ -173,24 +173,25 @@ static void cleanup_instr(struct itm_instr *i)
 	void *it = list_iterator(i->operands);
 	while (iterator_next(&it, (void **)&op))
 		op->free(op);
+	delete_list(i->operands, NULL);
 	
 	if (i->blockoperands)
 		delete_list(i->blockoperands, NULL);
 	
 	if (i->next)
 		cleanup_instr(i->next);
+	free(i);
 }
 
 void delete_itm_block(struct itm_block *block)
 {
-	struct list *blocks = new_list(NULL, 0);
 	if (block->lexnext)
 		delete_itm_block(block->lexnext);
 
 	if (block->first)
 		cleanup_instr(block->first);
-	if (block->previous)
-		delete_list(block->previous, NULL);
+	delete_list(block->previous, NULL);
+	delete_list(block->next, NULL);
 	free(block);
 }
 
