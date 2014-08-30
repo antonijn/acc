@@ -1,5 +1,5 @@
 /*
- * Linker format header
+ * Assembly emission
  * Copyright (C) 2014  Antonie Blom
  *
  * This program is free software; you can redistribute it and/or modify
