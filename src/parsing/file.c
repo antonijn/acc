@@ -30,11 +30,9 @@
 #include <acc/ext.h>
 #include <acc/error.h>
 
-static void addparams(void *fsym)
+static void addparams(struct cfunction *fun)
 {
-	struct symbol *sym = fsym;
-	struct cfunction *fun = (struct cfunction *)sym->type;
-
+	struct symbol *sym;
 	void *it = list_iterator(fun->parameters);
 	while (iterator_next(&it, (void **)&sym))
 		registersym(sym);
@@ -59,10 +57,12 @@ static void processdecls(FILE *f, struct list *decls, struct list *syms)
 	ungettok(&tok, f);
 	freetok(&tok);
 
+	struct symbol *sf = list_head(decls);
+	struct cfunction *cf = (struct cfunction *)sf->type;
+
 	enter_scope();
-	addparams(list_head(decls));
-	bool success = parseblock(f, SF_NORMAL, &block);
-	assert(success);
+	addparams(cf);
+	bool success = parseblock(f, SF_NORMAL, &block, cf->ret);
 	leave_scope();
 
 	if (!block->last || !block->last->isterminal)

@@ -30,9 +30,9 @@ enum statflags {
 	SF_DECLARATION_ONLY = 0x01 /* for C99 for loops */
 };
 
-bool parsestat(FILE *f, enum statflags flags,
-	struct itm_block **block);
-bool parseblock(FILE *f, enum statflags flags,
-	struct itm_block **block);
+bool parsestat(FILE *f, enum statflags flags, struct itm_block **block,
+	struct ctype *fun);
+bool parseblock(FILE *f, enum statflags flags, struct itm_block **block,
+	struct ctype *fun);
 
 #endif
