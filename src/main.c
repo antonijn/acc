@@ -28,6 +28,7 @@
 #include <unistd.h>
 #endif
 
+#include <acc/itm/analyze.h>
 #include <acc/itm/ast.h>
 #include <acc/parsing/file.h>
 #include <acc/parsing/token.h>
@@ -55,9 +56,12 @@ static void compilefile(FILE *f)
 
 		struct symbol *sym;
 		void *it = list_iterator(syms);
-		while (iterator_next(&it, (void **)&sym))
-			if (sym->block)
+		while (iterator_next(&it, (void **)&sym)) {
+			if (sym->block) {
+				analyze(sym->block, A_USED);
 				itm_block_to_string(out, sym->block);
+			}
+		}
 
 		fclose(out);
 	}

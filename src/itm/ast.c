@@ -80,6 +80,19 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 
 	if (i->typeoperand)
 		i->typeoperand->to_string(f, i->typeoperand);
+
+	if (i->base.tags) {
+		struct itm_tag *tag;
+		it = list_iterator(i->base.tags);
+		while (iterator_next(&it, (void **)&tag)) {
+			fprintf(f, " #%s(", itm_tag_name(tag));
+			fprintf(f, "%s,%d", itm_tag_getb(tag) ?
+				"true" : "false", itm_tag_geti(tag));
+			if (itm_tag_gets(tag))
+				fprintf(f, ",%s", itm_tag_gets(tag));
+			fprintf(f, ")");
+		}
+	}
 	
 	fprintf(f, "\n");
 	if (i->next)
@@ -130,6 +143,7 @@ struct itm_literal *new_itm_literal(struct ctype *ty)
 {
 	struct itm_literal *lit = malloc(sizeof(struct itm_literal));
 	assert(ty != NULL);
+	lit->base.tags = NULL;
 	lit->base.etype = ITME_LITERAL;
 	lit->base.type = ty;
 	lit->base.free = (void (*)(struct itm_expr *))&free;
@@ -195,6 +209,29 @@ void delete_itm_block(struct itm_block *block)
 	free(block);
 }
 
+void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag)
+{
+	assert(tag != NULL);
+
+	if (!e->tags)
+		e->tags = new_list(NULL, 0);
+	list_push_back(e->tags, tag);
+}
+
+struct itm_tag *itm_get_tag(struct itm_expr *e, enum itm_tag_type ty)
+{
+	if (!e->tags)
+		return NULL;
+
+	struct itm_tag *tag;
+	void *it = list_iterator(e->tags);
+	while (iterator_next(&it, (void **)&tag))
+		if (itm_tag_type(tag) == ty)
+			return tag;
+
+	return NULL;
+}
+
 static void free_dummy(struct itm_expr *e)
 {
 }
@@ -213,6 +250,7 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 
 	assert(type != NULL);
 
+	res->base.tags = NULL;
 	res->base.etype = ITME_INSTRUCTION;
 	res->base.type = type;
 	res->base.free = &free_dummy;
@@ -288,113 +326,113 @@ static struct itm_instr *impl_cast(struct itm_block *b, struct itm_expr *l, stru
 
 struct itm_instr *itm_add(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_add, "add");
+	return impl_aop(b, l, r, ITM_ID(itm_add), "add");
 }
 
 struct itm_instr *itm_sub(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_sub, "sub");
+	return impl_aop(b, l, r, ITM_ID(itm_sub), "sub");
 }
 
 struct itm_instr *itm_mul(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_mul, "mul");
+	return impl_aop(b, l, r, ITM_ID(itm_mul), "mul");
 }
 
 struct itm_instr *itm_imul(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_imul, "imul");
+	return impl_aop(b, l, r, ITM_ID(itm_imul), "imul");
 }
 
 struct itm_instr *itm_div(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_div, "div");
+	return impl_aop(b, l, r, ITM_ID(itm_div), "div");
 }
 
 struct itm_instr *itm_idiv(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_idiv, "idiv");
+	return impl_aop(b, l, r, ITM_ID(itm_idiv), "idiv");
 }
 
 struct itm_instr *itm_rem(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_rem, "rem");
+	return impl_aop(b, l, r, ITM_ID(itm_rem), "rem");
 }
 
 struct itm_instr *itm_shl(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_shl, "shl");
+	return impl_aop(b, l, r, ITM_ID(itm_shl), "shl");
 }
 
 struct itm_instr *itm_shr(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_shr, "shr");
+	return impl_aop(b, l, r, ITM_ID(itm_shr), "shr");
 }
 
 struct itm_instr *itm_sal(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_sal, "sal");
+	return impl_aop(b, l, r, ITM_ID(itm_sal), "sal");
 }
 
 struct itm_instr *itm_sar(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_sar, "sar");
+	return impl_aop(b, l, r, ITM_ID(itm_sar), "sar");
 }
 
 struct itm_instr *itm_or(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_or, "or");
+	return impl_aop(b, l, r, ITM_ID(itm_or), "or");
 }
 
 struct itm_instr *itm_and(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_and, "and");
+	return impl_aop(b, l, r, ITM_ID(itm_and), "and");
 }
 
 struct itm_instr *itm_xor(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_xor, "xor");
+	return impl_aop(b, l, r, ITM_ID(itm_xor), "xor");
 }
 
 
 struct itm_instr *itm_cmpeq(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmpeq, "cmp eq");
+	struct itm_instr * i = impl_aop(b, l, r, ITM_ID(itm_cmpeq), "cmp eq");
 	i->base.type = &cbool;
 	return i;
 }
 
 struct itm_instr *itm_cmpneq(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmpneq, "cmp neq");
+	struct itm_instr * i = impl_aop(b, l, r, ITM_ID(itm_cmpneq), "cmp neq");
 	i->base.type = &cbool;
 	return i;
 }
 
 struct itm_instr *itm_cmpgt(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmpgt, "cmp gt");
+	struct itm_instr * i = impl_aop(b, l, r, ITM_ID(itm_cmpgt), "cmp gt");
 	i->base.type = &cbool;
 	return i;
 }
 
 struct itm_instr *itm_cmpgte(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmpgte, "cmp gte");
+	struct itm_instr * i = impl_aop(b, l, r, ITM_ID(itm_cmpgte), "cmp gte");
 	i->base.type = &cbool;
 	return i;
 }
 
 struct itm_instr *itm_cmplt(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmplt, "cmp lt");
+	struct itm_instr * i = impl_aop(b, l, r, ITM_ID(itm_cmplt), "cmp lt");
 	i->base.type = &cbool;
 	return i;
 }
 
 struct itm_instr *itm_cmplte(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	struct itm_instr * i = impl_aop(b, l, r, (void (*)(void))&itm_cmplte, "cmp lte");
+	struct itm_instr * i = impl_aop(b, l, r, ITM_ID(itm_cmplte), "cmp lte");
 	i->base.type = &cbool;
 	return i;
 }
@@ -402,48 +440,48 @@ struct itm_instr *itm_cmplte(struct itm_block *b, struct itm_expr *l, struct itm
 
 struct itm_instr *itm_bitcast(struct itm_block *b, struct itm_expr *l, struct ctype *to)
 {
-	return impl_cast(b, l, to, (void (*)(void))&itm_bitcast, "bitcast");
+	return impl_cast(b, l, to, ITM_ID(itm_bitcast), "bitcast");
 }
 
 struct itm_instr *itm_trunc(struct itm_block *b, struct itm_expr *l, struct ctype *to)
 {
-	return impl_cast(b, l, to, (void (*)(void))&itm_trunc, "trunc");
+	return impl_cast(b, l, to, ITM_ID(itm_trunc), "trunc");
 }
 
 struct itm_instr *itm_ftrunc(struct itm_block *b, struct itm_expr *l, struct ctype *to)
 {
-	return impl_cast(b, l, to, (void (*)(void))&itm_ftrunc, "ftrunc");
+	return impl_cast(b, l, to, ITM_ID(itm_ftrunc), "ftrunc");
 }
 
 struct itm_instr *itm_zext(struct itm_block *b, struct itm_expr *l, struct ctype *to)
 {
-	return impl_cast(b, l, to, (void (*)(void))&itm_zext, "zext");
+	return impl_cast(b, l, to, ITM_ID(itm_zext), "zext");
 }
 
 struct itm_instr *itm_sext(struct itm_block *b, struct itm_expr *l, struct ctype *to)
 {
-	return impl_cast(b, l, to, (void (*)(void))&itm_sext, "sext");
+	return impl_cast(b, l, to, ITM_ID(itm_sext), "sext");
 }
 
 struct itm_instr *itm_fext(struct itm_block *b, struct itm_expr *l, struct ctype *to)
 {
-	return impl_cast(b, l, to, (void (*)(void))&itm_fext, "fext");
+	return impl_cast(b, l, to, ITM_ID(itm_fext), "fext");
 }
 
 struct itm_instr *itm_itof(struct itm_block *b, struct itm_expr *l, struct ctype *to)
 {
-	return impl_cast(b, l, to, (void (*)(void))&itm_itof, "itof");
+	return impl_cast(b, l, to, ITM_ID(itm_itof), "itof");
 }
 
 struct itm_instr *itm_ftoi(struct itm_block *b, struct itm_expr *l, struct ctype *to)
 {
-	return impl_cast(b, l, to, (void (*)(void))&itm_ftoi, "ftoi");
+	return impl_cast(b, l, to, ITM_ID(itm_ftoi), "ftoi");
 }
 
 
 struct itm_instr *itm_getptr(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
-	return impl_aop(b, l, r, (void (*)(void))&itm_getptr, "getptr");
+	return impl_aop(b, l, r, ITM_ID(itm_getptr), "getptr");
 }
 
 struct itm_instr *itm_deepptr(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
@@ -467,7 +505,7 @@ struct itm_instr *itm_deepptr(struct itm_block *b, struct itm_expr *l, struct it
 		break;
 	}
 	deeptype = new_pointer(deeptype);
-	res = impl_op(b, deeptype, (void (*)(void))&itm_deepptr, "deepptr", OF_NONE);
+	res = impl_op(b, deeptype, ITM_ID(itm_deepptr), "deepptr", OF_NONE);
 	list_push_back(res->operands, l);
 	list_push_back(res->operands, r);
 	return res;
@@ -476,7 +514,7 @@ struct itm_instr *itm_deepptr(struct itm_block *b, struct itm_expr *l, struct it
 struct itm_instr *itm_alloca(struct itm_block *b, struct ctype *ty)
 {
 	struct itm_instr *res;
-	res = impl_op(b, new_pointer(ty), (void (*)(void))&itm_alloca, "alloca", OF_START);
+	res = impl_op(b, new_pointer(ty), ITM_ID(itm_alloca), "alloca", OF_START);
 	res->typeoperand = ty;
 	return res;
 }
@@ -486,7 +524,7 @@ struct itm_instr *itm_load(struct itm_block *b, struct itm_expr *l)
 	struct itm_instr *res;
 	assert(l->type->type == POINTER);
 	res = impl_op(b, ((struct cpointer *)l->type)->pointsto,
-		(void (*)(void))&itm_load, "load", OF_NONE);
+		ITM_ID(itm_load), "load", OF_NONE);
 
 	list_push_back(res->operands, l);
 
@@ -496,7 +534,7 @@ struct itm_instr *itm_load(struct itm_block *b, struct itm_expr *l)
 struct itm_instr *itm_store(struct itm_block *b, struct itm_expr *l, struct itm_expr *r)
 {
 	struct itm_instr *res;
-	res = impl_op(b, &cvoid, (void (*)(void))&itm_store, "store", OF_NONE);
+	res = impl_op(b, &cvoid, ITM_ID(itm_store), "store", OF_NONE);
 
 	list_push_back(res->operands, l);
 	list_push_back(res->operands, r);
@@ -507,7 +545,7 @@ struct itm_instr *itm_store(struct itm_block *b, struct itm_expr *l, struct itm_
 struct itm_instr *itm_jmp(struct itm_block *b, struct itm_block *to)
 {
 	struct itm_instr *res;
-	res = impl_op(b, &cvoid, (void (*)(void))&itm_jmp, "jmp", OF_TERMINAL);
+	res = impl_op(b, &cvoid, ITM_ID(itm_jmp), "jmp", OF_TERMINAL);
 
 	res->blockoperands = new_list(NULL, 0);
 	list_push_back(res->blockoperands, to);
@@ -518,7 +556,7 @@ struct itm_instr *itm_jmp(struct itm_block *b, struct itm_block *to)
 struct itm_instr *itm_split(struct itm_block *b, struct itm_expr *c, struct itm_block *t, struct itm_block *e)
 {
 	struct itm_instr *res;
-	res = impl_op(b, &cvoid, (void (*)(void))&itm_split, "split", OF_TERMINAL);
+	res = impl_op(b, &cvoid, ITM_ID(itm_split), "split", OF_TERMINAL);
 
 	list_push_back(res->operands, c);
 
@@ -532,7 +570,7 @@ struct itm_instr *itm_split(struct itm_block *b, struct itm_expr *c, struct itm_
 struct itm_instr *itm_ret(struct itm_block *b, struct itm_expr *l)
 {
 	struct itm_instr *res;
-	res = impl_op(b, &cvoid, (void (*)(void))&itm_ret, "ret", OF_TERMINAL);
+	res = impl_op(b, &cvoid, ITM_ID(itm_ret), "ret", OF_TERMINAL);
 	list_push_back(res->operands, l);
 	return res;
 }
@@ -540,6 +578,6 @@ struct itm_instr *itm_ret(struct itm_block *b, struct itm_expr *l)
 struct itm_instr *itm_leave(struct itm_block *b)
 {
 	struct itm_instr *res;
-	res = impl_op(b, &cvoid, (void (*)(void))&itm_ret, "leave", OF_TERMINAL);
+	res = impl_op(b, &cvoid, ITM_ID(itm_leave), "leave", OF_TERMINAL);
 	return res;
 }

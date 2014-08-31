@@ -22,6 +22,7 @@
 
 #include <stdint.h>
 
+#include <acc/itm/tag.h>
 #include <acc/parsing/ast.h>
 #include <acc/list.h>
 
@@ -33,16 +34,21 @@ enum itm_expr_type {
 struct itm_expr {
 	enum itm_expr_type etype;
 	struct ctype *type;
+	struct list *tags;
 	void (*free)(struct itm_expr *e);
 #ifndef NDEBUG
 	void (*to_string)(FILE *f, struct itm_expr *e);
 #endif
 };
 
+#define ITM_ID(x)		((instr_id_t)&(x))
+
+typedef void (*instr_id_t)(void);
+
 struct itm_instr {
 	struct itm_expr base;
 	
-	void (*id)(void);
+	instr_id_t id;
 	const char *operation;
 	int isterminal;
 
@@ -85,6 +91,9 @@ void delete_itm_block(struct itm_block *block);
 #ifndef NDEBUG
 void itm_block_to_string(FILE *f, struct itm_block *block);
 #endif
+
+void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag);
+struct itm_tag *itm_get_tag(struct itm_expr *e, enum itm_tag_type ty);
 
 struct itm_instr *itm_add(struct itm_block *b, struct itm_expr *l, struct itm_expr *r);
 struct itm_instr *itm_sub(struct itm_block *b, struct itm_expr *l, struct itm_expr *r);
