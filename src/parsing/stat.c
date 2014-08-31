@@ -453,8 +453,13 @@ static bool parseblockx(FILE *f, enum statflags flags, struct itm_block **block,
 		if (chkt(f, "}"))
 			return true;
 
-	while (!chkt(f, "}"))
-		parsestatx(f, flags, block, tobreak, tocont);
+	while (!chkt(f, "}")) {
+		if (!parsestatx(f, flags, block, tobreak, tocont)) {
+			struct token tok = gettok(f);
+			report(E_PARSER, &tok, "unexpected token");
+			freetok(&tok);
+		}
+	}
 
 	return true;
 }

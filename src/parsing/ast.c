@@ -369,9 +369,12 @@ struct symbol *get_symbol(char *id)
 	while (rev_iterator_next(&revit, (void **)&l)) {
 		struct symbol *sym;
 		void *it = list_iterator(l);
-		while (iterator_next(&it, (void **)&sym))
+		while (iterator_next(&it, (void **)&sym)) {
+			if (!sym->id)
+				continue;
 			if (!strcmp(sym->id, id) && sym->storage != SC_TYPEDEF)
 				return sym;
+		}
 	}
 	return NULL;
 }
@@ -389,9 +392,12 @@ struct cstruct *get_struct(char *name)
 	while (rev_iterator_next(&revit, (void **)&l)) {
 		struct ctype *sym;
 		void *it = list_iterator(l);
-		while (iterator_next(&it, (void **)&sym))
+		while (iterator_next(&it, (void **)&sym)) {
+			if (!sym->name)
+				continue;
 			if (sym->type == STRUCTURE && !strcmp(sym->name, name))
 				return (struct cstruct *)sym;
+		}
 	}
 	return NULL;
 }
@@ -403,9 +409,12 @@ struct cstruct *get_union(char *name)
 	while (rev_iterator_next(&revit, (void **)&l)) {
 		struct ctype *sym;
 		void *it = list_iterator(l);
-		while (iterator_next(&it, (void **)&sym))
+		while (iterator_next(&it, (void **)&sym)) {
+			if (!sym->name)
+				continue;
 			if (sym->type == UNION && !strcmp(sym->name, name))
 				return (struct cstruct *)sym;
+		}
 	}
 	return NULL;
 }

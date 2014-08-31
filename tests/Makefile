@@ -19,4 +19,3 @@
 
 build:
 	make -C expect_success
-	make
