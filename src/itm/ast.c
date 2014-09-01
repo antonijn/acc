@@ -23,6 +23,8 @@
 #include <acc/itm/ast.h>
 #include <acc/error.h>
 
+static void free_dummy(struct itm_expr *e);
+
 // to_string functions
 #ifndef NDEBUG
 static int itm_block_number(struct itm_block *block);
@@ -63,19 +65,8 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 	for (int j = 0; iterator_next(&it, (void **)&ex); ++j) {
 		ex->to_string(f, ex);
 		if (j != list_length(i->operands) - 1 ||
-		   (i->blockoperands && list_length(i->blockoperands) > 0) ||
 		    i->typeoperand)
 			fprintf(f, ", ");
-	}
-	
-	if (i->blockoperands) {
-		struct itm_block *lbl;
-		it = list_iterator(i->blockoperands);
-		for (int j = 0; iterator_next(&it, (void **)&lbl); ++j) {
-			fprintf(f, "block %%%d", itm_block_number(lbl));
-			if (j != list_length(i->blockoperands) - 1 || i->typeoperand)
-				fprintf(f, ", ");
-		}
 	}
 
 	if (i->typeoperand)
@@ -126,6 +117,14 @@ static void itm_literal_to_string(FILE *f, struct itm_expr *e)
 		fprintf(f, " %lu", li->value.i);
 }
 
+static void itm_blocke_to_string(FILE *f, struct itm_expr *e)
+{
+	assert(e != NULL);
+
+	struct itm_block *b = (struct itm_block *)e;
+	fprintf(f, "block %%%d", itm_block_number(b));
+}
+
 void itm_block_to_string(FILE *f, struct itm_block *block)
 {
 	fprintf(f, "\n%%%d:\n", itm_block_number(block));
@@ -156,6 +155,13 @@ struct itm_literal *new_itm_literal(struct ctype *ty)
 struct itm_block *new_itm_block(void)
 {
 	struct itm_block *res = malloc(sizeof(struct itm_block));
+	res->base.type = NULL;
+	res->base.etype = ITME_BLOCK;
+	res->base.tags = NULL;
+	res->base.free = &free_dummy;
+#ifndef NDEBUG
+	res->base.to_string = &itm_blocke_to_string;
+#endif
 	res->previous = new_list(NULL, 0);
 	res->next = new_list(NULL, 0);
 	res->lexnext = NULL;
@@ -188,9 +194,6 @@ static void cleanup_instr(struct itm_instr *i)
 	while (iterator_next(&it, (void **)&op))
 		op->free(op);
 	delete_list(i->operands, NULL);
-	
-	if (i->blockoperands)
-		delete_list(i->blockoperands, NULL);
 	
 	if (i->next)
 		cleanup_instr(i->next);
@@ -264,7 +267,6 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 
 	res->operands = new_list(NULL, 0);
 	res->typeoperand = NULL;
-	res->blockoperands = NULL;
 	res->next = NULL;
 	if (opflags & OF_START) {
 		struct itm_instr *before = NULL;
@@ -547,8 +549,7 @@ struct itm_instr *itm_jmp(struct itm_block *b, struct itm_block *to)
 	struct itm_instr *res;
 	res = impl_op(b, &cvoid, ITM_ID(itm_jmp), "jmp", OF_TERMINAL);
 
-	res->blockoperands = new_list(NULL, 0);
-	list_push_back(res->blockoperands, to);
+	list_push_back(res->operands, &to->base);
 
 	return res;
 }
@@ -559,10 +560,8 @@ struct itm_instr *itm_split(struct itm_block *b, struct itm_expr *c, struct itm_
 	res = impl_op(b, &cvoid, ITM_ID(itm_split), "split", OF_TERMINAL);
 
 	list_push_back(res->operands, c);
-
-	res->blockoperands = new_list(NULL, 0);
-	list_push_back(res->blockoperands, t);
-	list_push_back(res->blockoperands, e);
+	list_push_back(res->operands, &t->base);
+	list_push_back(res->operands, &e->base);
 
 	return res;
 }

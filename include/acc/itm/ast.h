@@ -28,7 +28,8 @@
 
 enum itm_expr_type {
 	ITME_LITERAL,
-	ITME_INSTRUCTION
+	ITME_INSTRUCTION,
+	ITME_BLOCK
 };
 
 struct itm_expr {
@@ -54,7 +55,6 @@ struct itm_instr {
 
 	struct list *operands;
 	struct ctype *typeoperand;
-	struct list *blockoperands;
 
 	struct itm_instr *next;
 	struct itm_instr *previous;
@@ -74,6 +74,8 @@ struct itm_literal {
 struct itm_literal *new_itm_literal(struct ctype *type);
 
 struct itm_block {
+	struct itm_expr base;
+
 	struct itm_block *lexnext;
 	struct itm_block *lexprev;
 	struct list *previous;
