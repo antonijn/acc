@@ -26,12 +26,18 @@
 
 static void force_analyze(struct itm_block *strt, enum analysis a);
 
+static void canalias(struct itm_expr *l, struct itm_expr *r);
+
 static void a_used(struct itm_instr *strt);
+static void a_acc(struct itm_instr *strt);
 
 static void force_analyze(struct itm_block *strt, enum analysis a)
 {
 	if (a & A_USED)
 		a_used(strt->first);
+
+	if ((a & A_ACC) == A_ACC)
+		a_acc(strt->first);
 }
 
 static void a_used(struct itm_instr *i)
@@ -65,6 +71,37 @@ static void a_used(struct itm_instr *i)
 
 	if (i->block->lexnext)
 		a_used(i->block->lexnext->first);
+}
+
+static void a_acc(struct itm_instr *i)
+{
+	if (!i)
+		return;
+
+	struct itm_tag *t = itm_get_tag((struct itm_expr *)i, TT_USED);
+
+	if (!t || !i->next || itm_tag_geti(t) != 1)
+		goto exit;
+
+	struct itm_expr *e;
+	void *it = list_iterator(i->next->operands);
+	while (iterator_next(&it, (void **)&e)) {
+		if (e == &i->base) {
+			struct itm_tag *acc = malloc(sizeof(struct itm_tag));
+			new_itm_tag(acc, TT_ACC, "acc");
+			itm_tag_expr((struct itm_expr *)i, acc);
+			break;
+		}
+	}
+
+exit:
+	if (i->next) {
+		a_acc(i->next);
+		return;
+	}
+
+	if (i->block->lexnext)
+		a_acc(i->block->lexnext->first);
 }
 
 void analyze(struct itm_block *strt, enum analysis a)
