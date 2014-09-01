@@ -111,9 +111,9 @@ static struct expr parseexpro(FILE *f, enum exprflags flags,
 	
 	if ((res = parselit(f, flags, block, initty, operators, acc), res.itm) ||
 	    (res = parseid(f, flags, block, initty, operators, acc), res.itm) ||
+	    (res = parseparents(f, flags, block, initty, operators, acc), res.itm) ||
 	    (res = parsebop(f, flags, block, initty, operators, acc), res.itm) ||
 	    (res = parseuop(f, flags, block, initty, operators, acc), res.itm) ||
-	    (res = parseparents(f, flags, block, initty, operators, acc), res.itm) ||
 	    (res = parsefcall(f, flags, block, initty, operators, acc), res.itm))
 		return pack(*block, res, flags);
 	return res;
@@ -222,6 +222,14 @@ static struct expr performasnop(FILE *f, struct operator *op, enum exprflags fla
 	return r;
 }
 
+static struct itm_instr *getnptr(struct itm_block *b,
+	struct itm_expr *l, struct itm_expr *r)
+{
+	struct itm_literal *lit = new_itm_literal(r->type);
+	lit->value.i = 0;
+	return itm_getptr(b, l, &itm_sub(b, &lit->base, r)->base);
+}
+
 static struct expr doaop(struct operator *op, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty,
 	struct expr l, struct expr r)
@@ -241,14 +249,14 @@ static struct expr doaop(struct operator *op, enum exprflags flags,
 		if (hastc(lt, TC_ARITHMETIC))
 			ifunc = &itm_add;
 		else if (hastc(lt, TC_POINTER))
-			/* TODO */ assert(false);
+			ifunc = &itm_getptr;
 		else
 			goto invalid;
 	} else if (op == &binop_min) {
 		if (hastc(lt, TC_ARITHMETIC))
 			ifunc = &itm_sub;
 		else if (hastc(lt, TC_POINTER))
-			/* TODO */ assert(false);
+			ifunc = &getnptr;
 		else
 			goto invalid;
 	} else if (op == &binop_div) {
@@ -305,7 +313,9 @@ static struct expr doaop(struct operator *op, enum exprflags flags,
 		assert(false); // operator not yet implemented
 
 	struct ctype *et = NULL;
-	if (lt == &cdouble || rt == &cdouble)
+	if (hastc(lt, TC_POINTER))
+		et = lt;
+	else if (lt == &cdouble || rt == &cdouble)
 		et = &cdouble;
 	else if (lt == &cfloat || rt == &cfloat)
 		et = &cfloat;
@@ -321,7 +331,8 @@ static struct expr doaop(struct operator *op, enum exprflags flags,
 	assert(et != NULL);
 
 	l = cast(l, et, *block);
-	r = cast(r, et, *block);
+	if (!hastc(lt, TC_POINTER))
+		r = cast(r, et, *block);
 
 	struct expr res;
 	res.itm = (struct itm_expr *)ifunc(*block, l.itm, r.itm);
@@ -540,7 +551,7 @@ static struct expr parseparents(FILE *f, enum exprflags flags,
 	struct expr nil = { 0 };
 	if (acc.itm)
 		return nil;
-	
+
 	if (!chkt(f, "("))
 		return nil;
 	
@@ -687,10 +698,14 @@ struct expr cast(struct expr e, struct ctype *ty,
 	enum typecomp tc = e.itm->type->compare(e.itm->type, ty);
 	enum typeclass tcl = gettc(e.itm->type), tcr = gettc(ty);
 
-	if (tc == TC_EXPLICIT) {
+	switch (tc) {
+	case TC_EXPLICIT:
 		report(E_PARSER | E_HIDE_TOKEN, NULL, "no implicit conversion");
-	} else if (tc == TC_INCOMPATIBLE) {
+		break;
+	case TC_INCOMPATIBLE:
 		report(E_PARSER | E_HIDE_TOKEN, NULL, "no conversion exists");
+		return e;
+	case TC_EQUAL:
 		return e;
 	}
 
