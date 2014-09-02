@@ -234,6 +234,13 @@ static struct lchar fgetlc(FILE *f)
 		res.ch = '~';
 		res.len = 3;
 		return res;
+	case '?':
+		ungetc('?', f);
+		ungetc('?', f);
+		column -= 2;
+		res.ch = '?';
+		res.len = 1;
+		return res;
 	}
 	report(E_TOKENIZER, NULL, "invalid trigraph sequence: \"\?\?%c\"", res.chars[2]);
 	ungetc(res.chars[2], f);
