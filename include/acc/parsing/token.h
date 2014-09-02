@@ -41,6 +41,7 @@ enum tokenty {
 struct token {
 	enum tokenty type;
 	char *lexeme;
+	char *linestr;
 	int column;
 	int line;
 };

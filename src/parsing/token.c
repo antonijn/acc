@@ -62,6 +62,8 @@ struct lchar {
 	size_t len;
 };
 
+static void readline(FILE *f);
+
 static struct lchar fgetlc(FILE *f);
 static void ungetlc(struct lchar *lc, FILE *f);
 
@@ -82,6 +84,7 @@ static struct token clonetok(struct token *tok);
 
 static int line = 1;
 static int column = 1;
+static char *linestr = NULL;
 
 static struct token buffer = { 0 };
 static bool isbuffered = false;
@@ -149,6 +152,25 @@ static void ssunputc(SFILE *ss)
 	ss->buf[--ss->count] = '\0';
 }
 
+static void readline(FILE *f)
+{
+	if (linestr)
+		free(linestr);
+
+	SFILE *sf = ssopen();
+
+	int i = 0, nxt;
+	while ((nxt = fgetc(f)) != '\n' && nxt != EOF) {
+		ssputc(sf, nxt);
+		++i;
+	}
+	ungetc(nxt, f);
+
+	linestr = ssclose(sf);
+	for (; i > 0; --i)
+		ungetc(linestr[i - 1], f);
+}
+
 /*
  * Get logical C character
  * Filters out trigraphs.
@@ -160,6 +182,7 @@ static struct lchar fgetlc(FILE *f)
 	++column;
 	if (res.chars[0] != '?') {
 		if (res.chars[0] == '\n') {
+			readline(f);
 			++line;
 			column = 1;
 		}
@@ -577,11 +600,15 @@ static bool chkstr(FILE *f, SFILE *t, enum tokenty *tt)
 
 static struct token readtok(FILE *f)
 {
+	if (!linestr)
+		readline(f);
+
 	skipf(f);
 
 	struct token res;
 	res.line = line;
 	res.column = column;
+	res.linestr = NULL;
 
 	SFILE *t = ssopen();
 
@@ -610,6 +637,8 @@ static struct token readtok(FILE *f)
 
 ret:
 	res.lexeme = ssclose(t);
+	res.linestr = malloc((strlen(linestr) + 1) * sizeof(char));
+	sprintf(res.linestr, "%s", linestr);
 eofret:
 	return res;
 }
@@ -640,6 +669,8 @@ void freetok(struct token *t)
 {
 	if (t->lexeme)
 		free(t->lexeme);
+	if (t->linestr)
+		free(t->linestr);
 }
 
 static void validatebuf(FILE *f)
@@ -656,6 +687,9 @@ void resettok(void)
 	line = 1;
 	column = 1;
 	isbuffered = false;
+	if (linestr)
+		free(linestr);
+	linestr = NULL;
 }
 
 static struct token clonetok(struct token *tok)
@@ -666,6 +700,12 @@ static struct token clonetok(struct token *tok)
 		sprintf(res.lexeme, "%s", tok->lexeme);
 	} else {
 		res.lexeme = NULL;
+	}
+	if (tok->linestr) {
+		res.linestr = malloc((strlen(tok->linestr) + 1) * sizeof(char));
+		sprintf(res.linestr, "%s", tok->linestr);
+	} else {
+		res.linestr = NULL;
 	}
 	return res;
 }
