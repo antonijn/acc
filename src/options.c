@@ -102,6 +102,9 @@ void options_init(int argc, char *argv[])
 			setcversion(C99);
 		} else if (arg[0] == '-' && arg[1] == 'f') {
 			enableext(&arg[2]);
+		} else if (arg[0] == '-') {
+			report(E_OPTIONS, NULL,
+				"invalid command-line option: %s", arg);
 		} else {
 			list_push_back(input, arg);
 		}
