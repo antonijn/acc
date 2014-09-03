@@ -24,6 +24,9 @@
 #include <acc/itm/tag.h>
 #include <acc/parsing/ast.h>
 
+itm_tag_type_t tt_used;
+itm_tag_type_t tt_acc;
+
 static void force_analyze(struct itm_block *strt, enum analysis a);
 
 static void canalias(struct itm_expr *l, struct itm_expr *r);
@@ -46,19 +49,19 @@ static void a_used(struct itm_instr *i)
 		return;
 
 	if (i->base.type != &cvoid &&
-	   !itm_get_tag((struct itm_expr *)i, TT_USED)) {
+	   !itm_get_tag((struct itm_expr *)i, &tt_used)) {
 		struct itm_tag *tag = malloc(sizeof(struct itm_tag));
-		new_itm_tag(tag, TT_USED, "used");
+		new_itm_tag(tag, &tt_used, "used");
 		itm_tag_expr((struct itm_expr *)i, tag);
 	}
 
 	struct itm_expr *e;
 	void *it = list_iterator(i->operands);
 	while (iterator_next(&it, (void **)&e)) {
-		struct itm_tag *tag = itm_get_tag(e, TT_USED);
+		struct itm_tag *tag = itm_get_tag(e, &tt_used);
 		if (!tag) {
 			tag = malloc(sizeof(struct itm_tag));
-			new_itm_tag(tag, TT_USED, "used");
+			new_itm_tag(tag, &tt_used, "used");
 			itm_tag_expr(e, tag);
 		}
 		itm_tag_seti(tag, itm_tag_geti(tag) + 1);
@@ -78,7 +81,7 @@ static void a_acc(struct itm_instr *i)
 	if (!i)
 		return;
 
-	struct itm_tag *t = itm_get_tag((struct itm_expr *)i, TT_USED);
+	struct itm_tag *t = itm_get_tag((struct itm_expr *)i, &tt_used);
 
 	if (!t || !i->next || itm_tag_geti(t) != 1)
 		goto exit;
@@ -88,7 +91,7 @@ static void a_acc(struct itm_instr *i)
 	while (iterator_next(&it, (void **)&e)) {
 		if (e == &i->base) {
 			struct itm_tag *acc = malloc(sizeof(struct itm_tag));
-			new_itm_tag(acc, TT_ACC, "acc");
+			new_itm_tag(acc, &tt_acc, "acc");
 			itm_tag_expr((struct itm_expr *)i, acc);
 			break;
 		}

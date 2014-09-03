@@ -24,7 +24,7 @@
 
 #include <acc/itm/tag.h>
 
-void new_itm_tag(struct itm_tag *tag, enum itm_tag_type type, const char *name)
+void new_itm_tag(struct itm_tag *tag, itm_tag_type_t *type, const char *name)
 {
 	assert(tag != NULL);
 	assert(name != NULL);
@@ -43,7 +43,7 @@ void delete_itm_tag(struct itm_tag *tag)
 		free(tag->strval);
 }
 
-enum itm_tag_type itm_tag_type(struct itm_tag *tag)
+itm_tag_type_t *itm_tag_type(struct itm_tag *tag)
 {
 	return tag->type;
 }
