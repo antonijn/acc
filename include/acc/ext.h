@@ -46,6 +46,7 @@ enum exno {
 enum exno getex(const char *ext);
 void enableext(const char *ext);
 void disableext(const char *ext);
+void orext(enum exno ext);
 bool isext(enum exno ext);
 
 #endif

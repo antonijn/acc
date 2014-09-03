@@ -81,6 +81,11 @@ void disableext(const char *ext)
 		enabled &= ~getex(ext);
 }
 
+void orext(enum exno ext)
+{
+	enabled |= ext;
+}
+
 bool isext(enum exno ext)
 {
 	return (enabled & ext) == ext;
