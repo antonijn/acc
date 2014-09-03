@@ -67,18 +67,9 @@ struct ctype {
 	enum typecomp (*compare)(struct ctype *t, struct ctype *r);
 };
 
-extern struct ctype cbool;
-extern struct ctype cint;
-extern struct ctype cshort;
-extern struct ctype cchar;
-extern struct ctype clong;
-extern struct ctype cuint;
-extern struct ctype cushort;
-extern struct ctype cuchar;
-extern struct ctype culong;
-extern struct ctype cfloat;
-extern struct ctype cdouble;
-extern struct ctype cvoid;
+extern struct ctype cint, cshort, clong, cuint, cushort, culong,
+	clonglong, culonglong, cchar, cuchar,
+	cfloat, cdouble, cvoid, clongdouble, cbool;
 
 struct field {
 	struct ctype *type;
