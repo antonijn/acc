@@ -47,7 +47,8 @@ static struct extension extensions[] = {
 	{ "universal-character-names", EX_UNIVERSAL_CHARACTER_NAMES },
 	{ "unicode-strings", EX_UNICODE_STRINGS },
 	{ "unsigned-char", EX_UNSIGNED_CHAR },
-	{ "binary-literals", EX_BINARY_LITERALS }
+	{ "binary-literals", EX_BINARY_LITERALS },
+	{ "digraphs", EX_DIGRAPHS }
 };
 
 static enum exno enabled = 0;

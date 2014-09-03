@@ -341,6 +341,14 @@ static void skipf(FILE *f)
 		while (!chks(f, NULL, "*/"))
 			chkc(f, NULL, NULL);
 		skipf(f);
+		return;
+	}
+
+	if (isext(EX_ONE_LINE_COMMENTS) && chks(f, NULL, "//")) {
+		while (!chkc(f, NULL, "\n"))
+			chkc(f, NULL, NULL);
+		skipf(f);
+		return;
 	}
 }
 
@@ -348,15 +356,12 @@ static void skipf(FILE *f)
  * Check for preprocessor directive
  * Returns 1 if a preprocessor directive was read
  */
-static bool chkppdir(FILE *f, SFILE *t, enum tokenty *tt)
+static void readppdir(FILE *f, SFILE *t, enum tokenty *tt)
 {
-	if (chkc(f, t, "#")) {
-		while (!(!chkc(f, NULL, "\\") && chkc(f, NULL, "\n")))
-			chkc(f, t, NULL);
-		*tt = T_PREPROC;
-		return true;
-	}
-	return false;
+	skipf(f);
+	while (!chkc(f, NULL, "\n"))
+		chkc(f, t, NULL);
+	*tt = T_PREPROC;
 }
 
 /*
@@ -365,6 +370,41 @@ static bool chkppdir(FILE *f, SFILE *t, enum tokenty *tt)
  */
 static bool chkop(FILE *f, SFILE *t, enum tokenty *tt)
 {
+	if (!isext(EX_DIGRAPHS))
+		goto skipdi;
+
+	if (chks(f, NULL, "%:%:")) {
+		ssputc(t, '#');
+		ssputc(t, '#');
+		goto ret;
+	}
+
+	if (chks(f, NULL, "<:")) {
+		ssputc(t, '[');
+		goto ret;
+	}
+
+	if (chks(f, NULL, ":>")) {
+		ssputc(t, ']');
+		goto ret;
+	}
+
+	if (chks(f, NULL, "<%")) {
+		ssputc(t, '{');
+		goto ret;
+	}
+
+	if (chks(f, NULL, "%>")) {
+		ssputc(t, '}');
+		goto ret;
+	}
+
+	if (chks(f, NULL, "%:")) {
+		ssputc(t, '#');
+		goto ret;
+	}
+
+skipdi:
 	if (chkc(f, t, "*/%^!=~")) {
 		chkc(f, t, "=");
 		goto ret;
@@ -397,6 +437,11 @@ static bool chkop(FILE *f, SFILE *t, enum tokenty *tt)
 
 	if (chkc(f, t, "|")) {
 		chkc(f, t, "|=");
+		goto ret;
+	}
+
+	if (chkc(f, t, "#")) {
+		chkc(f, t, "#");
 		goto ret;
 	}
 
@@ -631,13 +676,12 @@ static struct token readtok(FILE *f)
 
 	if (chkop(f, t, &res.type))
 		goto ret;
-	if (chkid(f, t, &res.type))
+	if (chkid(f, t, &res.type)) {
 		goto ret;
+	}
 	if (chknum(f, t, &res.type))
 		goto ret;
 	if (chkstr(f, t, &res.type))
-		goto ret;
-	if (chkppdir(f, t, &res.type))
 		goto ret;
 
 	report(E_TOKENIZER, NULL, "character out of place: '%c'", fgetc(f));
