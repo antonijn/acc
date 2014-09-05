@@ -29,54 +29,69 @@
 #include <acc/ext.h>
 #include <acc/error.h>
 
+struct exprops {
+	struct operator *first;
+	struct operator *last;
+};
+
+static struct exprops nexprops(struct exprops ops, struct operator *push);
+
 static struct expr pack(struct itm_block *b, struct expr e,
 	enum exprflags flags);
 
 static struct expr parseexpro(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc);
 static struct expr parsefcall(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc);
 static struct expr parseid(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc);
 
 static struct expr parsebop(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc);
 static struct expr doaop(struct operator *op, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty,
 	struct expr l, struct expr r);
 static struct expr performaop(FILE *f, struct operator *op, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc);
 static struct expr performasnop(FILE *f, struct operator *op, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc);
 
 static struct expr parseuop(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc);
 static struct expr performpreuop(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct operator *op, struct token *opt);
 static struct expr performpostuop(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc, struct operator *op, struct token *opt);
 
 static struct expr parseparents(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc);
 static struct expr parselit(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc);
 static struct expr parseintlit(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc);
 static struct expr parsefloatlit(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc);
+
+static struct exprops nexprops(struct exprops ops, struct operator *push)
+{
+	if (!ops.first)
+		ops.first = push;
+	ops.last = push;
+	return ops;
+}
 
 static struct expr pack(struct itm_block *b, struct expr e, enum exprflags flags)
 {
@@ -94,7 +109,7 @@ static struct expr pack(struct itm_block *b, struct expr e, enum exprflags flags
 }
 
 static struct expr parseexpro(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc)
 {
 	struct expr res = { 0 };
@@ -109,18 +124,18 @@ static struct expr parseexpro(FILE *f, enum exprflags flags,
 		return pack(*block, acc, flags);
 	}
 	
-	if ((res = parselit(f, flags, block, initty, operators, acc), res.itm) ||
-	    (res = parseid(f, flags, block, initty, operators, acc), res.itm) ||
-	    (res = parsebop(f, flags, block, initty, operators, acc), res.itm) ||
-	    (res = parseuop(f, flags, block, initty, operators, acc), res.itm) ||
-	    (res = parseparents(f, flags, block, initty, operators, acc), res.itm) ||
-	    (res = parsefcall(f, flags, block, initty, operators, acc), res.itm))
+	if ((res = parselit(f, flags, block, initty, ops, acc), res.itm) ||
+	    (res = parseid(f, flags, block, initty, ops, acc), res.itm) ||
+	    (res = parseparents(f, flags, block, initty, ops, acc), res.itm) ||
+	    (res = parsebop(f, flags, block, initty, ops, acc), res.itm) ||
+	    (res = parseuop(f, flags, block, initty, ops, acc), res.itm) ||
+	    (res = parsefcall(f, flags, block, initty, ops, acc), res.itm))
 		return pack(*block, res, flags);
 	return res;
 }
 
 static struct expr parsefcall(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc)
 {
 	// TODO: implement
@@ -129,7 +144,7 @@ static struct expr parsefcall(FILE *f, enum exprflags flags,
 }
 
 static struct expr parseid(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc)
 {
 	struct token id;
@@ -149,11 +164,11 @@ static struct expr parseid(FILE *f, enum exprflags flags,
 	acc.itm = sym->value;
 	acc.islvalue = true;
 
-	return parseexpro(f, flags, block, initty, operators, acc);
+	return parseexpro(f, flags, block, initty, ops, acc);
 }
 
 static struct expr parsebop(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc)
 {
 	struct expr nil = { 0 };
@@ -173,29 +188,26 @@ static struct expr parsebop(FILE *f, enum exprflags flags,
 	}
 	
 	if (op->rtol) {
-		if (list_length(operators) > 0 &&
-		   ((struct operator *)list_head(operators))->prec < op->prec)
+		if (ops.first && ops.first->prec < op->prec)
 			goto opbreak;
 	} else {
-		if (list_length(operators) > 0 &&
-		   ((struct operator *)list_last(operators))->prec <= op->prec)
+		if (ops.last && ops.last->prec <= op->prec)
 			goto opbreak;
 	}
 	
-	list_push_back(operators, op);
+	struct exprops nops = nexprops(ops, op);
 	
-	struct expr e = performasnop(f, op, flags, block, initty, operators, acc);
+	struct expr e = performasnop(f, op, flags, block, initty, nops, acc);
 	if (e.itm)
 		goto ret;
-	e = performaop(f, op, flags, block, initty, operators, acc);
+	e = performaop(f, op, flags, block, initty, nops, acc);
 	if (e.itm)
 		goto ret;
 	
 ret:
-	list_pop_back(operators);
 
 	freetok(&tok);
-	return parseexpro(f, flags, block, initty, operators, e);
+	return parseexpro(f, flags, block, initty, ops, e);
 	
 opbreak:
 	ungettok(&tok, f);
@@ -204,7 +216,7 @@ opbreak:
 }
 
 static struct expr performasnop(FILE *f, struct operator *op, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc)
 {
 	// TODO: compound assignment operators
@@ -215,7 +227,7 @@ static struct expr performasnop(FILE *f, struct operator *op, enum exprflags fla
 	acc = pack(*block, acc, EF_EXPECT_LVALUE);
 
 	struct expr r = parseexpro(f, (flags & EF_CLEAR_MASK) | EF_EXPECT_RVALUE,
-		block, initty, operators, nil);
+		block, initty, ops, nil);
 	r = cast(r, ((struct cpointer *)acc.itm->type)->pointsto, *block);
 
 	itm_store(*block, r.itm, acc.itm);
@@ -226,6 +238,8 @@ static struct expr doaop(struct operator *op, enum exprflags flags,
 	struct itm_block **block, struct ctype *initty,
 	struct expr l, struct expr r)
 {
+	assert(l.itm != NULL);
+	assert(r.itm != NULL);
 	assert(l.islvalue == 0);
 	assert(r.islvalue == 0);
 
@@ -334,7 +348,7 @@ invalid:
 }
 
 static struct expr performaop(FILE *f, struct operator *op, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc)
 {
 	struct expr nil = { 0 };
@@ -342,13 +356,13 @@ static struct expr performaop(FILE *f, struct operator *op, enum exprflags flags
 	acc = pack(*block, acc, EF_EXPECT_RVALUE);
 
 	struct expr r = parseexpro(f, (flags & EF_CLEAR_MASK) | EF_EXPECT_RVALUE,
-		block, initty, operators, nil);
+		block, initty, ops, nil);
 
 	return doaop(op, flags, block, initty, acc, r);
 }
 
 static struct expr parseuop(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc)
 {
 	struct expr nil = { 0 };
@@ -371,28 +385,25 @@ static struct expr parseuop(FILE *f, enum exprflags flags,
 	}
 
 	if (op->rtol) {
-		if (list_length(operators) > 0 &&
-		   ((struct operator *)list_head(operators))->prec < op->prec)
+		if (ops.first && ops.first->prec < op->prec)
 			goto opbreak;
 	} else {
-		if (list_length(operators) > 0 &&
-		   ((struct operator *)list_last(operators))->prec <= op->prec)
+		if (ops.last && ops.last->prec <= op->prec)
 			goto opbreak;
 	}
 
 	struct expr res;
 
 	if (op == &unop_postdec || op == &unop_postinc) {
-		res = performpostuop(f, flags, block, initty, operators, acc,
+		res = performpostuop(f, flags, block, initty, ops, acc,
 			op, &opt);
 	} else {
-		list_push_back(operators, op);
-		res = performpreuop(f, flags, block, initty, operators, op, &opt);
-		list_pop_back(operators);
+		struct exprops nops = nexprops(ops, op);
+		res = performpreuop(f, flags, block, initty, nops, op, &opt);
 	}
 
 	freetok(&opt);
-	return parseexpro(f, flags, block, initty, operators, res);
+	return parseexpro(f, flags, block, initty, ops, res);
 
 opbreak:
 	ungettok(&opt, f);
@@ -401,7 +412,7 @@ opbreak:
 }
 
 static struct expr performpreuop(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct operator *op, struct token *opt)
 {
 	struct expr nil = { 0 };
@@ -413,7 +424,7 @@ static struct expr performpreuop(FILE *f, enum exprflags flags,
 		op = (op == &unop_preinc) ? &binop_plus : &binop_min;
 
 		struct expr r = parseexpro(f, flags & EF_CLEAR_MASK,
-			block, initty, operators, nil);
+			block, initty, ops, nil);
 		if (!r.islvalue)
 			report(E_PARSER, opt, "right-hand side of operator must be an lvalue");
 
@@ -435,7 +446,7 @@ static struct expr performpreuop(FILE *f, enum exprflags flags,
 
 	if (op == &unop_deref) {
 		struct expr r = parseexpro(f, flags & EF_CLEAR_MASK,
-			block, initty, operators, nil);
+			block, initty, ops, nil);
 		r = pack(*block, r, EF_EXPECT_RVALUE);
 		if (!hastc(r.itm->type, TC_POINTER))
 			report(E_PARSER, opt, "right-hand side of operator must be a pointer");
@@ -445,7 +456,7 @@ static struct expr performpreuop(FILE *f, enum exprflags flags,
 
 	if (op == &unop_ref) {
 		struct expr r = parseexpro(f, flags & EF_CLEAR_MASK,
-			block, initty, operators, nil);
+			block, initty, ops, nil);
 		if (!r.islvalue)
 			report(E_PARSER, opt, "right-hand side of operator must be an lvalue");
 		r.islvalue = false;
@@ -456,7 +467,7 @@ static struct expr performpreuop(FILE *f, enum exprflags flags,
 	// the all handle rvalues
 
 	struct expr right = parseexpro(f, flags & EF_CLEAR_MASK,
-		block, initty, operators, nil);
+		block, initty, ops, nil);
 	right = pack(*block, right, EF_EXPECT_RVALUE);
 
 	struct expr res;
@@ -509,7 +520,7 @@ static struct expr performpreuop(FILE *f, enum exprflags flags,
 }
 
 static struct expr performpostuop(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc, struct operator *op, struct token *opt)
 {
 	if (!acc.islvalue)
@@ -534,7 +545,7 @@ static struct expr performpostuop(FILE *f, enum exprflags flags,
 }
 
 static struct expr parseparents(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc)
 {
 	struct expr nil = { 0 };
@@ -546,33 +557,32 @@ static struct expr parseparents(FILE *f, enum exprflags flags,
 	
 	/* TODO: check for type cast */
 	
-	struct list *noperators = new_list(NULL, 0);
+	struct exprops nops = { NULL, NULL };
 	acc = parseexpro(f, EF_NORMAL | EF_FINISH_BRACKET,
-		block, initty, noperators, nil);
-	delete_list(noperators, NULL);
+		block, initty, nops, nil);
 	
 	/* remove closing ) from the stream */
 	struct token close = gettok(f);
 	freetok(&close);
 	
-	return parseexpro(f, flags, block, initty, operators, acc);
+	return parseexpro(f, flags, block, initty, ops, acc);
 }
 
 static struct expr parselit(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc)
 {
-	struct expr res = parseintlit(f, flags, block, initty, operators, acc);
+	struct expr res = parseintlit(f, flags, block, initty, ops, acc);
 	if (res.itm)
 		return res;
-	res = parsefloatlit(f, flags, block, initty, operators, acc);
+	res = parsefloatlit(f, flags, block, initty, ops, acc);
 	if (res.itm)
 		return res;
 	return res;
 }
 
 static struct expr parseintlit(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc)
 {
 	uint64_t ul;
@@ -632,11 +642,11 @@ static struct expr parseintlit(FILE *f, enum exprflags flags,
 
 	acc.itm = (struct itm_expr *)lit;
 	acc.islvalue = false;
-	return parseexpro(f, flags, block, initty, operators, acc);
+	return parseexpro(f, flags, block, initty, ops, acc);
 }
 
 static struct expr parsefloatlit(FILE *f, enum exprflags flags,
-	struct itm_block **block, struct ctype *initty, struct list *operators,
+	struct itm_block **block, struct ctype *initty, struct exprops ops,
 	struct expr acc)
 {
 	struct expr nil = { 0 };
@@ -660,7 +670,7 @@ static struct expr parsefloatlit(FILE *f, enum exprflags flags,
 	
 	acc.itm = (struct itm_expr *)lit;
 	acc.islvalue = false;
-	return parseexpro(f, flags, block, initty, operators, acc);
+	return parseexpro(f, flags, block, initty, ops, acc);
 }
 
 struct expr parseexpr(FILE *f, enum exprflags flags,
@@ -669,11 +679,11 @@ struct expr parseexpr(FILE *f, enum exprflags flags,
 	assert(block != NULL);
 	assert(*block != NULL);
 
-	struct list *operators = new_list(NULL, 0);
 	struct expr e = { 0 };
+	struct exprops ops = { NULL, NULL };
 
-	e = parseexpro(f, flags, block, initty, operators, e);
-	delete_list(operators, NULL);
+	e = parseexpro(f, flags, block, initty, ops, e);
+
 	return e;
 }
 
