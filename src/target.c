@@ -141,14 +141,6 @@ int gettypesize(struct ctype *ty)
 		return 4;
 	if (ty == &cdouble)
 		return 8;
-	if (ty == &clonglong)
-		return 8;
-
-	if (ty == &clongdouble) {
-		if (cpu->arch == &archx86)
-			return 10;
-		return 16;
-	}
 	
 	switch (cpu->bits) {
 	case 16:

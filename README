@@ -14,5 +14,5 @@ acc is designed with a strong focus on:
 	- Supporting multiple CPUs
 	- Teamwork
 
-An explanation of source code and subsystems can be found in the README files in
-the src/ subdirectory.
+I'm currently writing it partially for a school project, and for that reason
+pull-requests will only be accepted after January 1st 2015.

@@ -4,26 +4,25 @@ The parsing subsystem provides tools for, and implementation of the file
 parsers, statements parsers and expression parsers.
 
 	- src/parsing/token.c
-	Provides a buffered interface for tokenisation of C files. A lot of the
-	preprocessor is also implemented cheekily as part of the tokeniser.
+		Provides a buffered interface for tokenisation of C files. A lot
+		of the preprocessor is also implemented cheekily as part of the
+		tokeniser.
 
-	It provides functions chkt() to check if the next token has a specific
-	lexeme, chktt() to check if the next token has a specific type. chktp()
-	and chkttp() provide the same basic idea but output the token if chkt()
-	and chktt() would return true.
+		It provides functions chkt() to check if the next token has
+		a specific lexeme, chktt() to check if the next token has a
+		specific type. chktp() and chkttp() provide the same basic idea
+		but output the token if chkt() and chktt() would return true.
 
-	gettok() gets the next token from the stream, and ungettok() puts it
-	back.
+		gettok() gets the next token from the stream, and ungettok()
+		puts it back.
 
-	freetok() frees a token after it's been returned by gettok(), chktp() or
-	chkttp().
-
+		freetok() frees a token after it's been returned by gettok(),
+		chktp() or chkttp().
 
 	- src/parsing/decl.c
-	Provides tools for parsing declarations, or anything that looks and acts
-	vaguely like a declaration (basically anything that has to do with
-	parsing typenames).
-
+		Provides tools for parsing declarations, or anything that looks
+		and acts vaguely like a declaration (basically anything that has
+		to do with parsing typenames).
 
 	- src/parsing/file.c, stat.c, expr.c
-	Provide the parsers for files, statements and expressions.
+		Provide the parsers for files, statements and expressions.

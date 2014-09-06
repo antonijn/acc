@@ -22,10 +22,14 @@
 
 #include <stdbool.h>
 
-typedef void *itm_tag_type_t;
+enum itm_tag_type {
+	TT_ACC,
+	TT_USED,
+	TT_VALUE
+};
 
 struct itm_tag {
-	itm_tag_type_t *type;
+	enum itm_tag_type type;
 	const char *name;
 
 	int ival;
@@ -33,10 +37,10 @@ struct itm_tag {
 	char *strval;
 };
 
-void new_itm_tag(struct itm_tag *tag, itm_tag_type_t *type, const char *name);
+void new_itm_tag(struct itm_tag *tag, enum itm_tag_type type, const char *name);
 void delete_itm_tag(struct itm_tag *tag);
 
-itm_tag_type_t *itm_tag_type(struct itm_tag *tag);
+enum itm_tag_type itm_tag_type(struct itm_tag *tag);
 const char *itm_tag_name(struct itm_tag *tag);
 void itm_tag_setb(struct itm_tag *tag, bool b);
 bool itm_tag_getb(struct itm_tag *tag);

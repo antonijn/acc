@@ -40,3 +40,7 @@ $(TARGET): $(OBJECTS)
 
 clean:
 	rm $(TARGET) $(OBJECTS)
+
+tests:
+	make -C tests
+	make

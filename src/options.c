@@ -37,37 +37,6 @@ static enum asmflavor flavor =
 	-1;
 #endif
 
-enum cversion {
-	C89,
-	C95,
-	C99
-};
-
-static void setcversion(enum cversion version)
-{
-	switch (version) {
-	case C99:
-		orext(EX_MIXED_DECLARATIONS);
-		orext(EX_BOOL);
-		orext(EX_INLINE);
-		orext(EX_LONG_LONG);
-		orext(EX_VLAS);
-		orext(EX_COMPLEX);
-		orext(EX_ONE_LINE_COMMENTS);
-		orext(EX_HEX_FLOAT);
-		orext(EX_LONG_DOUBLE);
-		orext(EX_DESIGNATED_INITIALIZERS);
-		orext(EX_COMPOUND_LITERALS);
-		orext(EX_VARIADIC_MACROS);
-		orext(EX_RESTRICT);
-		orext(EX_UNIVERSAL_CHARACTER_NAMES);
-		orext(EX_DIGRAPHS);
-	case C95:
-		orext(EX_DIGRAPHS);
-		orext(EX_UNIVERSAL_CHARACTER_NAMES);
-	}
-}
-
 void options_init(int argc, char *argv[])
 {
 	input = new_list(NULL, 0);
@@ -94,17 +63,8 @@ void options_init(int argc, char *argv[])
 			flavor = AF_NASM;
 		} else if (!strcmp(arg, "-masm=intel") || !strcmp(arg, "-masm=masm")) {
 			flavor = AF_MASM;
-		} else if (!strcmp(arg, "-std=c89")) {
-			setcversion(C89);
-		} else if (!strcmp(arg, "-std=c95")) {
-			setcversion(C95);
-		} else if (!strcmp(arg, "-std=c99")) {
-			setcversion(C99);
 		} else if (arg[0] == '-' && arg[1] == 'f') {
 			enableext(&arg[2]);
-		} else if (arg[0] == '-' && arg[1] != '\0') {
-			report(E_OPTIONS, NULL,
-				"invalid command-line option: %s", arg);
 		} else {
 			list_push_back(input, arg);
 		}

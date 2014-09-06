@@ -23,9 +23,6 @@
 #include <acc/itm/ast.h>
 #include <acc/itm/tag.h>
 
-extern itm_tag_type_t tt_used;
-extern itm_tag_type_t tt_acc;
-
 enum analysis {
 	A_ACC = 0x1,
 	A_USED = 0x2

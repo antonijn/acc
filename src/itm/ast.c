@@ -221,7 +221,7 @@ void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag)
 	list_push_back(e->tags, tag);
 }
 
-struct itm_tag *itm_get_tag(struct itm_expr *e, itm_tag_type_t *ty)
+struct itm_tag *itm_get_tag(struct itm_expr *e, enum itm_tag_type ty)
 {
 	if (!e->tags)
 		return NULL;

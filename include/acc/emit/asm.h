@@ -22,13 +22,12 @@
 
 #include <stdio.h>
 
-typedef void *asme_type_t;
-
-extern asme_type_t asme_reg;
-extern asme_type_t asme_imm;
+#define ASME_REG		1
+#define ASME_IMM		2
+#define ASME_USER(x)		(3 + (x))
 
 struct asme {
-	asme_type_t *type;
+	int type;
 	int size;
 	void (*to_string)(FILE *f, struct asme *e);
 	void (*to_string_d)(FILE *f, struct asme *e);
@@ -43,7 +42,7 @@ struct asmreg {
 };
 
 #define NEW_REG(size, name, parent, ch1, ch2) 				\
-	{ { &asme_reg, size, &asmregtostr, &asmregtostr }, 		\
+	{ { ASME_REG, size, &asmregtostr, &asmregtostr }, 		\
 		name, parent, ch1, ch2 }
 
 struct asmimm {

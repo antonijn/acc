@@ -47,8 +47,7 @@ static struct extension extensions[] = {
 	{ "universal-character-names", EX_UNIVERSAL_CHARACTER_NAMES },
 	{ "unicode-strings", EX_UNICODE_STRINGS },
 	{ "unsigned-char", EX_UNSIGNED_CHAR },
-	{ "binary-literals", EX_BINARY_LITERALS },
-	{ "digraphs", EX_DIGRAPHS }
+	{ "binary-literals", EX_BINARY_LITERALS }
 };
 
 static enum exno enabled = 0;
@@ -79,11 +78,6 @@ void disableext(const char *ext)
 		enabled |= getex(&ext[3]);
 	else
 		enabled &= ~getex(ext);
-}
-
-void orext(enum exno ext)
-{
-	enabled |= ext;
 }
 
 bool isext(enum exno ext)

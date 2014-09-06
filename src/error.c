@@ -35,7 +35,7 @@ void report(enum errorty ty, struct token *tok, const char *frmt, ...)
 	if (!option_warnings() && (ty & E_WARNING))
 		return;
 
-	if (!(ty & E_HIDE_LOCATION))
+	if ((ty & E_HIDE_LOCATION) == 0)
 		fprintf(stderr, "%s:%d:%d: ", currentfile ?
 			currentfile : "<stdin>", get_line(), get_column());
 
@@ -51,16 +51,8 @@ void report(enum errorty ty, struct token *tok, const char *frmt, ...)
 	va_end(ap);
 
 	fprintf(stderr, "\n");
-	if (!(ty & E_HIDE_TOKEN) && tok->linestr) {
-		fprintf(stderr, "%s\n", tok->linestr);
-		for (int i = 0; i < tok->column - 1; ++i) {
-			if (tok->linestr[i] == '\t')
-				fprintf(stderr, "\t");
-			else
-				fprintf(stderr, " ");
-		}
-		fprintf(stderr, "^\n");
-	}
+	if ((ty & E_HIDE_TOKEN) == 0)
+		fprintf(stderr, "\t%s\n", tok->lexeme);
 
 	if (ty & E_FATAL)
 		longjmp(fatal_env, 1);

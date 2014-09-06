@@ -151,9 +151,6 @@ static void checkmods(struct token *tok, enum primmod new, enum primmod prev)
 	if (prev == PM_NONE)
 		return;
 
-	if (aremods(prev, new, PM_LONG, PM_DOUBLE) && isext(EX_LONG_DOUBLE))
-		return;
-
 	if ((prev & new) == new)
 		report(E_PARSER, tok, "duplicate modifier");
 
@@ -218,10 +215,7 @@ static bool parsemod(FILE *f, enum declflags flags, enum qualifier *quals,
 		freetok(&nxt);
 		return true;
 	} else if (pm && chktp(f, "long", &nxt)) {
-		if (isext(EX_LONG_LONG) && (*pm & PM_LONG) == PM_LONG)
-			*pm |= PM_LONG_LONG;
-		else
-			checkmods(&nxt, PM_LONG, *pm);
+		checkmods(&nxt, PM_LONG, *pm);
 		*pm |= PM_LONG;
 		freetok(&nxt);
 		return true;
@@ -401,13 +395,7 @@ static struct ctype *getfullty(struct ctype *incomp, struct ctype *ty)
 
 static struct ctype *getprimitive(enum primmod mods)
 {
-	if ((mods & PM_LONG_LONG) == PM_LONG_LONG) {
-		if ((mods & PM_UNSIGNED) == PM_UNSIGNED)
-			return &culonglong;
-		return &clonglong;
-	} else if ((mods & PM_LONG) == PM_LONG) {
-		if ((mods & PM_DOUBLE) == PM_DOUBLE)
-			return &clongdouble;
+	if ((mods & PM_LONG) == PM_LONG) {
 		if ((mods & PM_UNSIGNED) == PM_UNSIGNED)
 			return &culong;
 		return &clong;
@@ -425,13 +413,12 @@ static struct ctype *getprimitive(enum primmod mods)
 		if ((mods & PM_UNSIGNED) == PM_UNSIGNED)
 			return &cuint;
 		return &cint;
-	} else if (mods & PM_FLOAT) {
+	} else if (mods & PM_FLOAT)
 		return &cfloat;
-	} else if (mods & PM_DOUBLE) {
+	else if (mods & PM_DOUBLE)
 		return &cdouble;
-	} else if (mods & PM_VOID) {
+	else if (mods & PM_VOID)
 		return &cvoid;
-	}
 
 	// unreachable
 	return NULL;

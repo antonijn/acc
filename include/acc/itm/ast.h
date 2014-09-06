@@ -95,7 +95,7 @@ void itm_block_to_string(FILE *f, struct itm_block *block);
 #endif
 
 void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag);
-struct itm_tag *itm_get_tag(struct itm_expr *e, itm_tag_type_t *ty);
+struct itm_tag *itm_get_tag(struct itm_expr *e, enum itm_tag_type ty);
 
 struct itm_instr *itm_add(struct itm_block *b, struct itm_expr *l, struct itm_expr *r);
 struct itm_instr *itm_sub(struct itm_block *b, struct itm_expr *l, struct itm_expr *r);
