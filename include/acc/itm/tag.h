@@ -24,25 +24,23 @@
 
 typedef void *itm_tag_type_t;
 
-struct itm_tag {
-	itm_tag_type_t *type;
-	const char *name;
-
-	int ival;
-	bool bval;
-	char *strval;
+enum itm_tag_object {
+	TO_INT,
+	TO_EXPR_LIST
 };
 
-void new_itm_tag(struct itm_tag *tag, itm_tag_type_t *type, const char *name);
+struct itm_tag;
+
+struct itm_tag *new_itm_tag(itm_tag_type_t type, const char *name,
+	enum itm_tag_object obj);
 void delete_itm_tag(struct itm_tag *tag);
 
-itm_tag_type_t *itm_tag_type(struct itm_tag *tag);
+itm_tag_type_t itm_tag_type(struct itm_tag *tag);
 const char *itm_tag_name(struct itm_tag *tag);
-void itm_tag_setb(struct itm_tag *tag, bool b);
-bool itm_tag_getb(struct itm_tag *tag);
+enum itm_tag_object itm_tag_object(struct itm_tag *tag);
 void itm_tag_seti(struct itm_tag *tag, int i);
 int itm_tag_geti(struct itm_tag *tag);
-void itm_tag_sets(struct itm_tag *tag, char *str);
-char *itm_tag_gets(struct itm_tag *tag);
+void itm_tag_add_item(struct itm_tag *tag, void *expr);
+struct list *itm_tag_get_list(struct itm_tag *tag);
 
 #endif
