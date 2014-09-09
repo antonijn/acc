@@ -58,7 +58,7 @@ static void compilefile(FILE *f)
 		void *it = list_iterator(syms);
 		while (iterator_next(&it, (void **)&sym)) {
 			if (sym->block) {
-				analyze(sym->block, A_USED | A_ACC);
+				analyze(sym->block, A_USED | A_ACC | A_LIFETIME);
 				itm_block_to_string(out, sym->block);
 			}
 		}
