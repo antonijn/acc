@@ -29,6 +29,7 @@
 #endif
 
 #include <acc/itm/analyze.h>
+#include <acc/itm/opt.h>
 #include <acc/itm/ast.h>
 #include <acc/parsing/file.h>
 #include <acc/parsing/token.h>
@@ -58,7 +59,8 @@ static void compilefile(FILE *f)
 		void *it = list_iterator(syms);
 		while (iterator_next(&it, (void **)&sym)) {
 			if (sym->block) {
-				analyze(sym->block, A_USED | A_ACC | A_LIFETIME);
+				analyze(sym->block, A_PHIABLE);
+				optimize(sym->block, OPT_PHIABLE);
 				itm_block_to_string(out, sym->block);
 			}
 		}

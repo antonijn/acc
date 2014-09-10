@@ -165,6 +165,17 @@ void itm_block_to_string(FILE *f, struct itm_block *block)
 
 #endif
 
+struct itm_expr *clone_itm_expr(struct itm_expr *e)
+{
+	if (e->etype == ITME_LITERAL) {
+		struct itm_literal *litold = (struct itm_literal *)e;
+		struct itm_literal *litnew = new_itm_literal(e->type);
+		litnew->value.i = litold->value.i;
+		return &litnew->base;
+	}
+	return e;
+}
+
 // literal and block initializers/destructors
 struct itm_literal *new_itm_literal(struct ctype *ty)
 {
@@ -215,7 +226,7 @@ void itm_lex_progress(struct itm_block *before, struct itm_block *after)
 	after->lexprev = before;
 }
 
-static void cleanup_instr(struct itm_instr *i)
+void cleanup_instr(struct itm_instr *i)
 {
 	struct itm_expr *op;
 	void *it = list_iterator(i->operands);
@@ -271,7 +282,8 @@ static void free_dummy(struct itm_expr *e)
 enum opflags {
 	OF_NONE = 0x0,
 	OF_TERMINAL = 0x1,
-	OF_START = 0x2 // only really used for alloca
+	OF_START = 0x2, // only really used for alloca
+	OF_START_OF_BLOCK = 0x4 // only really used for phi
 };
 
 static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (*id)(void),
@@ -280,6 +292,7 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 	struct itm_instr *res = malloc(sizeof(struct itm_instr));
 
 	assert(type != NULL);
+	assert(b != NULL);
 
 	res->base.tags = NULL;
 	res->base.etype = ITME_INSTRUCTION;
@@ -296,11 +309,12 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 	res->operands = new_list(NULL, 0);
 	res->typeoperand = NULL;
 	res->next = NULL;
-	if (opflags & OF_START) {
+	if ((opflags & OF_START) || (opflags & OF_START_OF_BLOCK)) {
 		struct itm_instr *before = NULL;
 		struct itm_instr *after;
-		while (b->lexprev)
-			b = b->lexprev;
+		if (opflags & OF_START)
+			while (b->lexprev)
+				b = b->lexprev;
 		
 		// find first non-id instruction
 		after = b->first;
@@ -572,10 +586,10 @@ struct itm_instr *itm_store(struct itm_block *b, struct itm_expr *l, struct itm_
 	return res;
 }
 
-struct itm_instr *itm_phi(struct itm_block *b, struct list *dict)
+struct itm_instr *itm_phi(struct itm_block *b, struct ctype *ty, struct list *dict)
 {
 	struct itm_instr *res;
-	res = impl_op(b, &cvoid, ITM_ID(itm_phi), "phi", OF_NONE);
+	res = impl_op(b, ty, ITM_ID(itm_phi), "phi", OF_START_OF_BLOCK);
 
 	struct itm_expr *ex;
 	void *it = list_iterator(dict);
