@@ -133,7 +133,7 @@ struct itm_instr *itm_deepptr(struct itm_block *b, struct itm_expr *l, struct it
 struct itm_instr *itm_alloca(struct itm_block *b, struct ctype *ty);
 struct itm_instr *itm_load(struct itm_block *b, struct itm_expr *l);
 struct itm_instr *itm_store(struct itm_block *b, struct itm_expr *l, struct itm_expr *r);
-struct itm_instr *itm_phi(struct itm_block *b, size_t num, ...);
+struct itm_instr *itm_phi(struct itm_block *b, struct list *dict);
 
 struct itm_instr *itm_jmp(struct itm_block *b, struct itm_block *to);
 struct itm_instr *itm_split(struct itm_block *b, struct itm_expr *c, struct itm_block *t, struct itm_block *e);
