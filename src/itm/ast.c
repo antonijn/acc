@@ -48,6 +48,40 @@ static int itm_block_number(struct itm_block *block)
 	return itm_instr_number(block->lexprev->last) + 1;
 }
 
+static void print_expr_list(FILE *f, void *it)
+{
+	struct itm_expr *e;
+	bool first = true;
+	while (iterator_next(&it, (void **)&e)) {
+		if (!first)
+			fprintf(f, ", ");
+		else
+			first = false;
+		e->to_string(f, e);
+	}
+}
+
+static void print_tags(FILE *f, struct itm_expr *expr)
+{
+	if (!expr->tags)
+		return;
+
+	struct itm_tag *tag;
+	void *it = list_iterator(expr->tags);
+	while (iterator_next(&it, (void **)&tag)) {
+		fprintf(f, " #%s(", itm_tag_name(tag));
+		switch (itm_tag_object(tag)) {
+		case TO_INT:
+			fprintf(f, "%d", itm_tag_geti(tag));
+			break;
+		case TO_EXPR_LIST:
+			print_expr_list(f, list_iterator(itm_tag_get_list(tag)));
+			break;
+		}
+		fprintf(f, ")");
+	}
+}
+
 static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 {
 
@@ -73,18 +107,8 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 	if (i->typeoperand)
 		i->typeoperand->to_string(f, i->typeoperand);
 
-	if (i->base.tags) {
-		struct itm_tag *tag;
-		it = list_iterator(i->base.tags);
-		while (iterator_next(&it, (void **)&tag)) {
-			fprintf(f, " #%s(", itm_tag_name(tag));
-			fprintf(f, "%s,%d", itm_tag_getb(tag) ?
-				"true" : "false", itm_tag_geti(tag));
-			if (itm_tag_gets(tag))
-				fprintf(f, ",%s", itm_tag_gets(tag));
-			fprintf(f, ")");
-		}
-	}
+	if (i->base.tags)
+		print_tags(f, &i->base);
 	
 	fprintf(f, "\n");
 	if (i->next)
@@ -128,7 +152,10 @@ static void itm_blocke_to_string(FILE *f, struct itm_expr *e)
 
 void itm_block_to_string(FILE *f, struct itm_block *block)
 {
-	fprintf(f, "\n%%%d:\n", itm_block_number(block));
+	fprintf(f, "\n%%%d:", itm_block_number(block));
+	print_tags(f, &block->base);
+	fprintf(f, "\n");
+
 	if (block->first)
 		itm_instr_to_string(f, block->first);
 	
