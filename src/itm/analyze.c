@@ -25,7 +25,7 @@
 #include <acc/itm/tag.h>
 #include <acc/parsing/ast.h>
 
-itm_tag_type_t tt_used, tt_acc, tt_alive, tt_endlife;
+itm_tag_type_t tt_used, tt_acc, tt_alive, tt_endlife, tt_startlife;
 
 static void force_analyze(struct itm_block *strt, enum analysis a);
 
@@ -35,7 +35,8 @@ static void a_used(struct itm_instr *strt);
 static void a_acc(struct itm_instr *strt);
 static void a_lifetime(struct itm_instr *instr);
 
-static bool lifetime(struct itm_instr *instr, struct itm_block *block, struct list *done);
+static bool lifetime(struct itm_instr *instr, struct itm_block *block,
+	struct list *done, bool prevused);
 
 static void force_analyze(struct itm_block *strt, enum analysis a)
 {
@@ -119,7 +120,7 @@ static void a_lifetime(struct itm_instr *instr)
 	struct itm_instr *i = instr;
 	do {
 		struct list *li = new_list(NULL, 0);
-		lifetime(i, i->block, li);
+		lifetime(i, i->block, li, false);
 		delete_list(li, NULL);
 		i = i->next;
 	} while (i);
@@ -128,11 +129,10 @@ static void a_lifetime(struct itm_instr *instr)
 		a_lifetime(instr->block->lexnext->first);
 }
 
-static bool lifetime(struct itm_instr *instr, struct itm_block *block, struct list *done)
+static bool lifetime(struct itm_instr *instr, struct itm_block *block,
+	struct list *done, bool prevused)
 {
 	assert(done != NULL);
-
-	list_push_back(done, block);
 
 	struct itm_tag *alive = itm_get_tag(&block->base, &tt_alive);
 	if (!alive) {
@@ -142,30 +142,37 @@ static bool lifetime(struct itm_instr *instr, struct itm_block *block, struct li
 
 	bool localuse = false;
 	bool orf = false;
-	struct itm_instr *blocki = block->last;
+	struct itm_instr *blocki = prevused ? block->last : block->first;
 	struct itm_block *baft;
-	if (!blocki)
-		goto exit;
 
 	void *it;
 	while (blocki) {
 		struct itm_expr *e;
 		it = list_iterator(blocki->operands);
 		while (iterator_next(&it, (void **)&e)) {
-			if (e == &instr->base) {
-				localuse = true;
+			if (e != &instr->base)
+				continue;
+			localuse = true;
+			if (prevused)
 				goto exit;
-			}
+			
+			struct itm_tag *sol = new_itm_tag(
+				&tt_startlife, "startlife", TO_EXPR_LIST);
+			itm_tag_add_item(sol, instr);
+			itm_tag_expr(&blocki->base, sol);
+			return lifetime(instr, block, done, true);
 		}
-		blocki = blocki->previous;
+		blocki = prevused ? blocki->previous : blocki->next;
 	}
 
 exit:
+	list_push_back(done, block);
+
 	it = list_iterator(block->next);
 	while (iterator_next(&it, (void **)&baft))
 		if (!list_contains(done, baft))
-			orf |= lifetime(instr, baft, done);
-	
+			orf |= lifetime(instr, baft, done, localuse || prevused);
+
 	// used in block only
 	if (localuse && !orf) {
 		struct itm_tag *endlife = new_itm_tag(&tt_endlife, "endlife", TO_EXPR_LIST);
