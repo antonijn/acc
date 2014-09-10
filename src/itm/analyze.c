@@ -25,7 +25,7 @@
 #include <acc/itm/tag.h>
 #include <acc/parsing/ast.h>
 
-itm_tag_type_t tt_used, tt_acc, tt_alive;
+itm_tag_type_t tt_used, tt_acc, tt_alive, tt_endlife;
 
 static void force_analyze(struct itm_block *strt, enum analysis a);
 
@@ -140,8 +140,9 @@ static bool lifetime(struct itm_instr *instr, struct itm_block *block, struct li
 		itm_tag_expr(&block->base, alive);
 	}
 
+	bool localuse = false;
 	bool orf = false;
-	struct itm_instr *blocki = block->first;
+	struct itm_instr *blocki = block->last;
 	struct itm_block *baft;
 	if (!blocki)
 		goto exit;
@@ -152,24 +153,30 @@ static bool lifetime(struct itm_instr *instr, struct itm_block *block, struct li
 		it = list_iterator(blocki->operands);
 		while (iterator_next(&it, (void **)&e)) {
 			if (e == &instr->base) {
-				orf = true;
+				localuse = true;
 				goto exit;
 			}
 		}
-		blocki = blocki->next;
+		blocki = blocki->previous;
 	}
 
 exit:
 	it = list_iterator(block->next);
-	while (iterator_next(&it, (void **)&baft)) {
+	while (iterator_next(&it, (void **)&baft))
 		if (!list_contains(done, baft))
 			orf |= lifetime(instr, baft, done);
+	
+	// used in block only
+	if (localuse && !orf) {
+		struct itm_tag *endlife = new_itm_tag(&tt_endlife, "endlife", TO_EXPR_LIST);
+		itm_tag_add_item(endlife, instr);
+		itm_tag_expr(&blocki->base, endlife);
 	}
 
-	if (orf)
+	if (orf || localuse)
 		itm_tag_add_item(alive, &instr->base);
 
-	return orf;
+	return orf || localuse;
 }
 
 void analyze(struct itm_block *strt, enum analysis a)
