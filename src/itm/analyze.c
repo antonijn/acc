@@ -119,11 +119,20 @@ static void a_lifetime(struct itm_instr *instr)
 
 	struct itm_instr *i = instr;
 	do {
+		if (i->base.type == &cvoid)
+			continue;
 		struct list *li = new_list(NULL, 0);
-		lifetime(i, i->block, li, false);
+
+		// non-alloca instructions start their life at the instruction
+		if (i->id != ITM_ID(itm_alloca)) {
+			struct itm_tag *sol = new_itm_tag(
+				&tt_startlife, "startlife", TO_EXPR_LIST);
+			itm_tag_add_item(sol, i);
+			itm_tag_expr(&i->base, sol);
+		}
+		lifetime(i, i->block, li, i->id != ITM_ID(itm_alloca));
 		delete_list(li, NULL);
-		i = i->next;
-	} while (i);
+	} while (i = i->next);
 
 	if (instr->block->lexnext)
 		a_lifetime(instr->block->lexnext->first);
