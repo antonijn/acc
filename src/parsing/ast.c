@@ -27,18 +27,9 @@
 #include <acc/target.h>
 #include <acc/ext.h>
 
-struct ctype cbool;
-struct ctype cint;
-struct ctype cshort;
-struct ctype cchar;
-struct ctype clong;
-struct ctype cuint;
-struct ctype cushort;
-struct ctype cuchar;
-struct ctype culong;
-struct ctype cfloat;
-struct ctype cdouble;
-struct ctype cvoid;
+struct ctype cint, cshort, clong, cuint, cushort, culong,
+	clonglong, culonglong, cchar, cuchar,
+	cfloat, cdouble, cvoid, clongdouble, cbool;
 
 static struct list *alltypes;
 static struct list *typescopes;
@@ -82,7 +73,10 @@ static void initprimitive(struct ctype *p, const char *name)
 	p->name = name;
 	p->to_string = &primitive_to_string;
 	p->compare = &primitive_compare;
-	if (p != &cbool || isext(EX_BOOL))
+	if ((p != &cbool || isext(EX_BOOL)) &&
+	    (p != &clonglong || isext(EX_LONG_LONG)) &&
+	    (p != &culonglong || isext(EX_LONG_LONG)) &&
+	    (p != &clongdouble || isext(EX_LONG_DOUBLE)))
 		registerty(p);
 }
 
@@ -97,12 +91,14 @@ enum typeclass gettc(struct ctype *ty)
 		return gettc(((struct cqualified *)ty)->type);
 
 	if (ty == &cfloat ||
-	    ty == &cdouble)
+	    ty == &cdouble ||
+	    ty == &clongdouble)
 		return TC_ARITHMETIC | TC_FLOATING;
 	if (ty == &cuchar ||
 	    ty == &cushort ||
 	    ty == &cuint ||
-	    ty == &culong)
+	    ty == &culong ||
+	    ty == &culonglong)
 		return TC_ARITHMETIC | TC_INTEGRAL | TC_UNSIGNED;
 	if (ty->type == PRIMITIVE)
 		return TC_ARITHMETIC | TC_INTEGRAL | TC_SIGNED;
@@ -131,6 +127,9 @@ void ast_init(void)
 	initprimitive(&cfloat, "float");
 	initprimitive(&cdouble, "double");
 	initprimitive(&cvoid, "void");
+	initprimitive(&clonglong, "long long");
+	initprimitive(&culonglong, "unsigned long long");
+	initprimitive(&clongdouble, "long double");
 	enter_scope();
 }
 

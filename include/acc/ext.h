@@ -39,12 +39,14 @@ enum exno {
 	EX_UNIVERSAL_CHARACTER_NAMES = 0x8000,
 	EX_UNICODE_STRINGS = 0x10000,
 	EX_UNSIGNED_CHAR = 0x20000,
-	EX_BINARY_LITERALS = 0x40000
+	EX_BINARY_LITERALS = 0x40000,
+	EX_DIGRAPHS = 0x80000
 };
 
 enum exno getex(const char *ext);
 void enableext(const char *ext);
 void disableext(const char *ext);
+void orext(enum exno ext);
 bool isext(enum exno ext);
 
 #endif

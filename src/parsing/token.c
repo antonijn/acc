@@ -62,6 +62,8 @@ struct lchar {
 	size_t len;
 };
 
+static void readline(FILE *f);
+
 static struct lchar fgetlc(FILE *f);
 static void ungetlc(struct lchar *lc, FILE *f);
 
@@ -82,6 +84,7 @@ static struct token clonetok(struct token *tok);
 
 static int line = 1;
 static int column = 1;
+static char *linestr = NULL;
 
 static struct token buffer = { 0 };
 static bool isbuffered = false;
@@ -149,6 +152,25 @@ static void ssunputc(SFILE *ss)
 	ss->buf[--ss->count] = '\0';
 }
 
+static void readline(FILE *f)
+{
+	if (linestr)
+		free(linestr);
+
+	SFILE *sf = ssopen();
+
+	int i = 0, nxt;
+	while ((nxt = fgetc(f)) != '\n' && nxt != EOF) {
+		ssputc(sf, nxt);
+		++i;
+	}
+	ungetc(nxt, f);
+
+	linestr = ssclose(sf);
+	for (; i > 0; --i)
+		ungetc(linestr[i - 1], f);
+}
+
 /*
  * Get logical C character
  * Filters out trigraphs.
@@ -160,6 +182,7 @@ static struct lchar fgetlc(FILE *f)
 	++column;
 	if (res.chars[0] != '?') {
 		if (res.chars[0] == '\n') {
+			readline(f);
 			++line;
 			column = 1;
 		}
@@ -210,6 +233,13 @@ static struct lchar fgetlc(FILE *f)
 	case '-':
 		res.ch = '~';
 		res.len = 3;
+		return res;
+	case '?':
+		ungetc('?', f);
+		ungetc('?', f);
+		column -= 2;
+		res.ch = '?';
+		res.len = 1;
 		return res;
 	}
 	report(E_TOKENIZER, NULL, "invalid trigraph sequence: \"\?\?%c\"", res.chars[2]);
@@ -311,6 +341,14 @@ static void skipf(FILE *f)
 		while (!chks(f, NULL, "*/"))
 			chkc(f, NULL, NULL);
 		skipf(f);
+		return;
+	}
+
+	if (isext(EX_ONE_LINE_COMMENTS) && chks(f, NULL, "//")) {
+		while (!chkc(f, NULL, "\n"))
+			chkc(f, NULL, NULL);
+		skipf(f);
+		return;
 	}
 }
 
@@ -318,15 +356,12 @@ static void skipf(FILE *f)
  * Check for preprocessor directive
  * Returns 1 if a preprocessor directive was read
  */
-static bool chkppdir(FILE *f, SFILE *t, enum tokenty *tt)
+static void readppdir(FILE *f, SFILE *t, enum tokenty *tt)
 {
-	if (chkc(f, t, "#")) {
-		while (!(!chkc(f, NULL, "\\") && chkc(f, NULL, "\n")))
-			chkc(f, t, NULL);
-		*tt = T_PREPROC;
-		return true;
-	}
-	return false;
+	skipf(f);
+	while (!chkc(f, NULL, "\n"))
+		chkc(f, t, NULL);
+	*tt = T_PREPROC;
 }
 
 /*
@@ -335,6 +370,41 @@ static bool chkppdir(FILE *f, SFILE *t, enum tokenty *tt)
  */
 static bool chkop(FILE *f, SFILE *t, enum tokenty *tt)
 {
+	if (!isext(EX_DIGRAPHS))
+		goto skipdi;
+
+	if (chks(f, NULL, "%:%:")) {
+		ssputc(t, '#');
+		ssputc(t, '#');
+		goto ret;
+	}
+
+	if (chks(f, NULL, "<:")) {
+		ssputc(t, '[');
+		goto ret;
+	}
+
+	if (chks(f, NULL, ":>")) {
+		ssputc(t, ']');
+		goto ret;
+	}
+
+	if (chks(f, NULL, "<%")) {
+		ssputc(t, '{');
+		goto ret;
+	}
+
+	if (chks(f, NULL, "%>")) {
+		ssputc(t, '}');
+		goto ret;
+	}
+
+	if (chks(f, NULL, "%:")) {
+		ssputc(t, '#');
+		goto ret;
+	}
+
+skipdi:
 	if (chkc(f, t, "*/%^!=~")) {
 		chkc(f, t, "=");
 		goto ret;
@@ -367,6 +437,11 @@ static bool chkop(FILE *f, SFILE *t, enum tokenty *tt)
 
 	if (chkc(f, t, "|")) {
 		chkc(f, t, "|=");
+		goto ret;
+	}
+
+	if (chkc(f, t, "#")) {
+		chkc(f, t, "#");
 		goto ret;
 	}
 
@@ -577,11 +652,15 @@ static bool chkstr(FILE *f, SFILE *t, enum tokenty *tt)
 
 static struct token readtok(FILE *f)
 {
+	if (!linestr)
+		readline(f);
+
 	skipf(f);
 
 	struct token res;
 	res.line = line;
 	res.column = column;
+	res.linestr = NULL;
 
 	SFILE *t = ssopen();
 
@@ -597,19 +676,20 @@ static struct token readtok(FILE *f)
 
 	if (chkop(f, t, &res.type))
 		goto ret;
-	if (chkid(f, t, &res.type))
+	if (chkid(f, t, &res.type)) {
 		goto ret;
+	}
 	if (chknum(f, t, &res.type))
 		goto ret;
 	if (chkstr(f, t, &res.type))
-		goto ret;
-	if (chkppdir(f, t, &res.type))
 		goto ret;
 
 	report(E_TOKENIZER, NULL, "character out of place: '%c'", fgetc(f));
 
 ret:
 	res.lexeme = ssclose(t);
+	res.linestr = malloc((strlen(linestr) + 1) * sizeof(char));
+	sprintf(res.linestr, "%s", linestr);
 eofret:
 	return res;
 }
@@ -640,6 +720,8 @@ void freetok(struct token *t)
 {
 	if (t->lexeme)
 		free(t->lexeme);
+	if (t->linestr)
+		free(t->linestr);
 }
 
 static void validatebuf(FILE *f)
@@ -656,6 +738,9 @@ void resettok(void)
 	line = 1;
 	column = 1;
 	isbuffered = false;
+	if (linestr)
+		free(linestr);
+	linestr = NULL;
 }
 
 static struct token clonetok(struct token *tok)
@@ -666,6 +751,12 @@ static struct token clonetok(struct token *tok)
 		sprintf(res.lexeme, "%s", tok->lexeme);
 	} else {
 		res.lexeme = NULL;
+	}
+	if (tok->linestr) {
+		res.linestr = malloc((strlen(tok->linestr) + 1) * sizeof(char));
+		sprintf(res.linestr, "%s", tok->linestr);
+	} else {
+		res.linestr = NULL;
 	}
 	return res;
 }
