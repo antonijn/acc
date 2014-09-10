@@ -25,6 +25,13 @@
 #include <acc/parsing/token.h>
 #include <acc/error.h>
 #include <acc/options.h>
+#include <acc/ext.h>
+
+#define ANSI_RESET	"\033[0m"
+#define ANSI_BOLD	"\033[1m"
+#define ANSI_MAGENTA	"\033[35m"
+#define ANSI_RED	"\033[31m"
+#define ANSI_LIME	"\033[32m"
 
 const char *currentfile = NULL;
 jmp_buf fatal_env;
@@ -35,16 +42,36 @@ void report(enum errorty ty, struct token *tok, const char *frmt, ...)
 	if (!option_warnings() && (ty & E_WARNING))
 		return;
 
+	bool colors =
+#ifndef BUILDFOR_WINDOWS
+		isext(EX_DIAGNOSTICS_COLOR) || getenv("ACC_COLORS");
+#else
+		false;
+#endif
+
+	if (colors)
+		fprintf(stderr, ANSI_BOLD);
+
 	if (!(ty & E_HIDE_LOCATION))
 		fprintf(stderr, "%s:%d:%d: ", currentfile ?
 			currentfile : "<stdin>", get_line(), get_column());
 
-	if (ty & E_FATAL)
+	if (ty & E_FATAL) {
+		if (colors)
+			fprintf(stderr, ANSI_RED);
 		fprintf(stderr, "FATAL: ");
-	else if (ty & E_WARNING)
+	} else if (ty & E_WARNING) {
+		if (colors)
+			fprintf(stderr, ANSI_MAGENTA);
 		fprintf(stderr, "warning: ");
-	else
+	} else {
+		if (colors)
+			fprintf(stderr, ANSI_RED);
 		fprintf(stderr, "error: ");
+	}
+
+	if (colors)
+		fprintf(stderr, ANSI_RESET);
 
 	va_start(ap, frmt);
 	vfprintf(stderr, frmt, ap);
@@ -59,7 +86,12 @@ void report(enum errorty ty, struct token *tok, const char *frmt, ...)
 			else
 				fprintf(stderr, " ");
 		}
-		fprintf(stderr, "^\n");
+		if (colors)
+			fprintf(stderr, ANSI_BOLD ANSI_LIME);
+		fprintf(stderr, "^");
+		if (colors)
+			fprintf(stderr, ANSI_RESET);
+		fprintf(stderr, "\n");
 	}
 
 	if (ty & E_FATAL)

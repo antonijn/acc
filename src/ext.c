@@ -48,7 +48,8 @@ static struct extension extensions[] = {
 	{ "unicode-strings", EX_UNICODE_STRINGS },
 	{ "unsigned-char", EX_UNSIGNED_CHAR },
 	{ "binary-literals", EX_BINARY_LITERALS },
-	{ "digraphs", EX_DIGRAPHS }
+	{ "digraphs", EX_DIGRAPHS },
+	{ "diagnostics-color", EX_DIAGNOSTICS_COLOR }
 };
 
 static enum exno enabled = 0;
