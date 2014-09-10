@@ -18,6 +18,7 @@
  */
 
 #include <stdlib.h>
+#include <stdarg.h>
 #include <assert.h>
 
 #include <acc/itm/ast.h>
@@ -541,6 +542,23 @@ struct itm_instr *itm_store(struct itm_block *b, struct itm_expr *l, struct itm_
 	list_push_back(res->operands, l);
 	list_push_back(res->operands, r);
 
+	return res;
+}
+
+struct itm_instr *itm_phi(struct itm_block *b, size_t num, ...)
+{
+	va_list ap;
+	va_start(ap, num);
+
+	struct itm_instr *res;
+	res = impl_op(b, &cvoid, ITM_ID(itm_phi), "phi", OF_NONE);
+
+	for (int i = 0; i < num; ++i) {
+		list_push_back(res->operands, va_arg(ap, struct itm_expr *));
+		list_push_back(res->operands, va_arg(ap, struct itm_expr *));
+	}
+
+	va_end(ap);
 	return res;
 }
 
