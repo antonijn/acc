@@ -23,7 +23,7 @@
 #include <acc/itm/ast.h>
 #include <acc/itm/tag.h>
 
-extern itm_tag_type_t tt_used, tt_acc, tt_alive;
+extern itm_tag_type_t tt_used, tt_acc, tt_alive, tt_endlife, tt_startlife;
 
 enum analysis {
 	A_ACC = 0x1,
