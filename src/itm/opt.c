@@ -115,7 +115,10 @@ static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 		if (i->id == ITM_ID(itm_store) &&
 		    ptr == list_last(i->operands)) {
 			struct itm_expr *res = list_head(i->operands);
-			remi(i);
+			/* the store instructions are all removed at a later
+			 * time, so they all get removed, even if traceload is
+			 * never called */
+			//remi(i);
 			return clone_itm_expr(res);
 		}
 
@@ -154,10 +157,32 @@ static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 
 static void remphiables(struct itm_instr *strt)
 {
+	/*
+	 * Removes all stores to phiables, and then all allocas
+	 */
 	struct itm_block *first = strt->block;
 	while (first->lexprev)
 		first = first->lexprev;
 
+	strt = first->first;
+	while (strt) {
+		struct itm_instr *nnxt;
+		if (!strt->next) {
+			if (strt->block->lexnext)
+				nnxt = strt->block->lexnext->first;
+			else
+				nnxt = NULL;
+		} else {
+			nnxt = strt->next;
+		}
+
+		if (strt->id == ITM_ID(itm_store) &&
+		    itm_get_tag(list_last(strt->operands), &tt_phiable))
+			remi(strt);
+
+		strt = nnxt;
+	}
+	
 	strt = first->first;
 	while (strt) {
 		struct itm_instr *nnxt = strt->next;
