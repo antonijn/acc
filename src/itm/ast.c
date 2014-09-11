@@ -376,8 +376,7 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 		struct itm_instr *before = NULL;
 		struct itm_instr *after;
 		if (opflags & OF_START)
-			while (b->lexprev)
-				b = b->lexprev;
+			b = b->container->block;
 		
 		// find first non-id instruction
 		after = b->first;
