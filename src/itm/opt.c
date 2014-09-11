@@ -100,14 +100,8 @@ static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 	struct itm_expr *ptr = list_head(ld->operands);
 	if (ld != i) {
 		if (i->id == ITM_ID(itm_store) &&
-		    ptr == list_last(i->operands)) {
-			struct itm_expr *res = list_head(i->operands);
-			/* the store instructions are all removed at a later
-			 * time, so they all get removed, even if traceload is
-			 * never called */
-			//remi(i);
-			return clone_itm_expr(res);
-		}
+		    ptr == list_last(i->operands))
+			return list_head(i->operands);
 
 		if (i->id == ITM_ID(itm_load) &&
 		    ptr == list_head(i->operands)) {

@@ -225,7 +225,7 @@ static struct expr performasnop(FILE *f, struct operator *op, enum exprflags fla
 static struct itm_instr *getnptr(struct itm_block *b,
 	struct itm_expr *l, struct itm_expr *r)
 {
-	struct itm_literal *lit = new_itm_literal(r->type);
+	struct itm_literal *lit = new_itm_literal(b->container, r->type);
 	lit->value.i = 0;
 	return itm_getptr(b, l, &itm_sub(b, &lit->base, r)->base);
 }
@@ -430,7 +430,7 @@ static struct expr performpreuop(FILE *f, enum exprflags flags,
 
 		struct expr rvalue = pack(*block, r, EF_EXPECT_RVALUE);
 
-		struct itm_literal *one = new_itm_literal(rvalue.itm->type);
+		struct itm_literal *one = new_itm_literal((*block)->container, rvalue.itm->type);
 		one->value.i = 1;
 
 		struct expr addition;
@@ -483,7 +483,7 @@ static struct expr performpreuop(FILE *f, enum exprflags flags,
 		res = right;
 
 	} else if (op == &unop_min) {
-		struct itm_literal *zero = new_itm_literal(right.itm->type);
+		struct itm_literal *zero = new_itm_literal((*block)->container, right.itm->type);
 		if (!hastc(right.itm->type, TC_ARITHMETIC))
 			report(E_PARSER, opt, "right-hand side of operator must have arithmetic type");
 		if (right.itm->type == &cfloat)
@@ -499,7 +499,7 @@ static struct expr performpreuop(FILE *f, enum exprflags flags,
 		res = doaop(&binop_min, flags, block, initty, zeroe, right);
 
 	} else if (op == &unop_not) {
-		struct itm_literal *allbits = new_itm_literal(right.itm->type);
+		struct itm_literal *allbits = new_itm_literal((*block)->container, right.itm->type);
 		if (!hastc(right.itm->type, TC_INTEGRAL))
 			report(E_PARSER, opt, "right-hand side of operator must have integral type");
 		allbits->value.i = 0;
@@ -531,7 +531,7 @@ static struct expr performpostuop(FILE *f, enum exprflags flags,
 	// old (r)value of acc
 	struct expr left = pack(*block, acc, EF_EXPECT_RVALUE);
 
-	struct itm_literal *one = new_itm_literal(left.itm->type);
+	struct itm_literal *one = new_itm_literal((*block)->container, left.itm->type);
 	one->value.i = 1;
 
 	struct expr right;
@@ -638,7 +638,7 @@ static struct expr parseintlit(FILE *f, enum exprflags flags,
 			break;
 	}
 
-	struct itm_literal *lit = new_itm_literal(type);
+	struct itm_literal *lit = new_itm_literal((*block)->container, type);
 	lit->value.i = ul;
 
 	acc.itm = (struct itm_expr *)lit;
@@ -656,12 +656,12 @@ static struct expr parsefloatlit(FILE *f, enum exprflags flags,
 	if (chkttp(f, T_FLOAT, &tok)) {
 		float f;
 		sscanf(tok.lexeme, "%ff", &f);
-		lit = new_itm_literal(&cfloat);
+		lit = new_itm_literal((*block)->container, &cfloat);
 		lit->value.f = f;
 	} else if (chkttp(f, T_DOUBLE, &tok)) {
 		double d;
 		sscanf(tok.lexeme, "%lf", &d);
-		lit = new_itm_literal(&cdouble);
+		lit = new_itm_literal((*block)->container, &cdouble);
 		lit->value.d = d;
 	} else {
 		return nil;
@@ -717,13 +717,13 @@ struct expr cast(struct expr e, struct ctype *ty,
 	if (ty == &cbool) {
 		struct itm_literal *lit;
 		if (hastc(e.itm->type, TC_INTEGRAL) || hastc(e.itm->type, TC_POINTER)) {
-			lit = new_itm_literal(e.itm->type);
+			lit = new_itm_literal(b->container, e.itm->type);
 			lit->value.i = 0ul;
 		} else if (e.itm->type == &cfloat) {
-			lit = new_itm_literal(&cfloat);
+			lit = new_itm_literal(b->container, &cfloat);
 			lit->value.f = 0.0f;
 		} else if (e.itm->type == &cdouble) {
-			lit = new_itm_literal(&cdouble);
+			lit = new_itm_literal(b->container, &cdouble);
 			lit->value.d = 0.0;
 		} else
 			report(E_ERROR | E_HIDE_TOKEN, NULL, "cannot convert to boolean value");

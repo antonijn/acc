@@ -26,10 +26,13 @@
 #include <acc/parsing/ast.h>
 #include <acc/list.h>
 
+struct itm_block;
+
 enum itm_expr_type {
 	ITME_LITERAL,
 	ITME_INSTRUCTION,
-	ITME_BLOCK
+	ITME_BLOCK,
+	ITME_CONTAINER
 };
 
 struct itm_expr {
@@ -71,7 +74,19 @@ struct itm_literal {
 	} value;
 };
 
-struct itm_literal *new_itm_literal(struct ctype *type);
+enum itm_linkage {
+	IL_GLOBAL,
+	IL_STATIC,
+	IL_EXTERN
+};
+
+struct itm_container {
+	struct itm_expr base;
+	enum itm_linkage linkage;
+	char *id;
+	struct itm_block *block;
+	struct list *literals;
+};
 
 struct itm_block {
 	struct itm_expr base;
@@ -82,10 +97,17 @@ struct itm_block {
 	struct list *next;
 	struct itm_instr *first;
 	struct itm_instr *last;
+
+	struct itm_container *container;
 };
 
-struct itm_expr *clone_itm_expr(struct itm_expr *e);
-struct itm_block *new_itm_block(void);
+struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *type);
+
+struct itm_container *new_itm_container(enum itm_linkage linkage, char *id,
+	struct ctype *ty);
+void delete_itm_container(struct itm_container *c);
+
+struct itm_block *new_itm_block(struct itm_container *container);
 void itm_progress(struct itm_block *before, struct itm_block *after);
 void itm_lex_progress(struct itm_block *before, struct itm_block *after);
 struct itm_block *add_itm_block_previous(struct itm_block *block,
@@ -93,7 +115,7 @@ struct itm_block *add_itm_block_previous(struct itm_block *block,
 void delete_itm_block(struct itm_block *block);
 void cleanup_instr(struct itm_instr *i);
 #ifndef NDEBUG
-void itm_block_to_string(FILE *f, struct itm_block *block);
+void itm_container_to_string(FILE *f, struct itm_container *c);
 #endif
 
 void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag);

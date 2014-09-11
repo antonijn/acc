@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <stdarg.h>
+#include <string.h>
 #include <assert.h>
 
 #include <acc/itm/ast.h>
@@ -150,7 +151,7 @@ static void itm_blocke_to_string(FILE *f, struct itm_expr *e)
 	fprintf(f, "block %%%d", itm_block_number(b));
 }
 
-void itm_block_to_string(FILE *f, struct itm_block *block)
+static void itm_block_to_string(FILE *f, struct itm_block *block)
 {
 	fprintf(f, "\n%%%d:", itm_block_number(block));
 	print_tags(f, &block->base);
@@ -163,21 +164,81 @@ void itm_block_to_string(FILE *f, struct itm_block *block)
 		itm_block_to_string(f, block->lexnext);
 }
 
+void itm_containere_to_string(FILE *f, struct itm_expr *e)
+{
+	assert(e != NULL);
+
+	struct itm_container *b = (struct itm_container *)e;
+	e->to_string(f, e);
+	fprintf(f, " @%d", b->id);
+}
+
+void itm_container_to_string(FILE *f, struct itm_container *c)
+{
+	switch (c->linkage) {
+	case IL_GLOBAL:
+		fprintf(f, "global ");
+		break;
+	case IL_STATIC:
+		fprintf(f, "static ");
+		break;
+	case IL_EXTERN:
+		fprintf(f, "extern ");
+		break;
+	}
+
+	c->base.type->to_string(f, c->base.type);
+
+	fprintf(f, " %s", c->id);
+	if (c->block) {
+		fprintf(f, " {");
+		itm_block_to_string(f, c->block);
+		fprintf(f, "}\n");
+	}
+	fprintf(f, "\n");
+}
+
 #endif
 
-struct itm_expr *clone_itm_expr(struct itm_expr *e)
+struct itm_container *new_itm_container(enum itm_linkage linkage, char *id,
+	struct ctype *ty)
 {
-	if (e->etype == ITME_LITERAL) {
-		struct itm_literal *litold = (struct itm_literal *)e;
-		struct itm_literal *litnew = new_itm_literal(e->type);
-		litnew->value.i = litold->value.i;
-		return &litnew->base;
-	}
-	return e;
+	assert(id != NULL);
+	assert(ty != NULL);
+
+	struct itm_container *c = malloc(sizeof(struct itm_container));
+	c->base.tags = NULL;
+	c->base.etype = ITME_CONTAINER;
+	c->base.type = new_pointer(ty);
+	c->base.free = (void (*)(struct itm_expr *))&delete_itm_container;
+#ifndef NDEBUG
+	c->base.to_string = &itm_containere_to_string;
+#endif
+	c->block = NULL;
+	c->id = malloc((strlen(id) + 1) * sizeof(char));
+	sprintf(c->id, "%s", id);
+	c->linkage = linkage;
+	c->literals = new_list(NULL, 0);
+	return c;
+}
+
+void delete_itm_container(struct itm_container *c)
+{
+	free(c->id);
+
+	struct itm_expr *lit;
+	void *it = list_iterator(c->literals);
+	while (iterator_next(&it, (void **)&lit))
+		lit->free(lit);
+	delete_list(c->literals, NULL);
+
+	if (c->block)
+		delete_itm_block(c->block);
+	free(c);
 }
 
 // literal and block initializers/destructors
-struct itm_literal *new_itm_literal(struct ctype *ty)
+struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *ty)
 {
 	struct itm_literal *lit = malloc(sizeof(struct itm_literal));
 	assert(ty != NULL);
@@ -188,16 +249,17 @@ struct itm_literal *new_itm_literal(struct ctype *ty)
 #ifndef NDEBUG
 	lit->base.to_string = &itm_literal_to_string;
 #endif
+	list_push_back(c->literals, lit);
 	return lit;
 }
 
-struct itm_block *new_itm_block(void)
+struct itm_block *new_itm_block(struct itm_container *container)
 {
 	struct itm_block *res = malloc(sizeof(struct itm_block));
 	res->base.type = NULL;
 	res->base.etype = ITME_BLOCK;
 	res->base.tags = NULL;
-	res->base.free = &free_dummy;
+	res->base.free = (void (*)(struct itm_expr *))&delete_itm_block;
 #ifndef NDEBUG
 	res->base.to_string = &itm_blocke_to_string;
 #endif
@@ -207,6 +269,7 @@ struct itm_block *new_itm_block(void)
 	res->lexprev = NULL;
 	res->first = NULL;
 	res->last = NULL;
+	res->container = container;
 	return res;
 }
 
@@ -228,10 +291,10 @@ void itm_lex_progress(struct itm_block *before, struct itm_block *after)
 
 void cleanup_instr(struct itm_instr *i)
 {
-	struct itm_expr *op;
+	/*struct itm_expr *op;
 	void *it = list_iterator(i->operands);
 	while (iterator_next(&it, (void **)&op))
-		op->free(op);
+		op->free(op);*/
 	delete_list(i->operands, NULL);
 	
 	if (i->next)

@@ -85,6 +85,10 @@ bool parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_bloc
 			assert(b != NULL);
 			assert(sym != NULL);
 			sym->value = (struct itm_expr *)itm_alloca(*b, sym->type);
+		} else if (sym->id) {
+			// TODO: not just IL_GLOBAL
+			sym->value = &new_itm_container(IL_GLOBAL, sym->id,
+				sym->type)->base;
 		}
 		
 		if ((flags & DF_INIT) && chkt(f, "=") &&

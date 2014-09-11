@@ -422,7 +422,7 @@ struct symbol *new_symbol(struct ctype *type, char *id,
 	enum storageclass sc, bool reg)
 {
 	struct symbol *sym = malloc(sizeof(struct symbol));
-	sym->block = NULL;
+	sym->value = NULL;
 	sym->type = type;
 	if (id) {
 		sym->id = malloc((strlen(id) + 1) * sizeof(char));
@@ -448,8 +448,8 @@ static void delete_symbol(void *ptr)
 	struct symbol *sym = ptr;
 	if (sym->id)
 		free(sym->id);
-	if (sym->block)
-		delete_itm_block(sym->block);
+	if (sym->value && sym->value->etype == ITME_CONTAINER)
+		delete_itm_container((struct itm_container *)sym->value);
 	free(sym);
 }
 

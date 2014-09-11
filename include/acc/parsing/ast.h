@@ -130,9 +130,7 @@ enum typeclass gettc(struct ctype *ty);
 struct symbol {
 	struct ctype *type;
 	char *id;
-	int implemented;
 	enum storageclass storage;
-	struct itm_block *block;
 	struct itm_expr *value;
 };
 

@@ -43,7 +43,8 @@ static void processdecls(FILE *f, struct list *decls, struct list *syms)
 	struct symbol *sym;
 	void *it = list_iterator(decls);
 	while (iterator_next(&it, (void **)&sym))
-		list_push_back(syms, sym);
+		if (sym->value)
+			list_push_back(syms, sym->value);
 
 	struct token tok;
 	if (list_length(decls) != 1 ||
@@ -51,14 +52,17 @@ static void processdecls(FILE *f, struct list *decls, struct list *syms)
 	   !chktp(f, "{", &tok))
 		return;
 
-	struct itm_block *block = new_itm_block();
-	struct itm_block *bb = block;
 
 	ungettok(&tok, f);
 	freetok(&tok);
 
 	struct symbol *sf = list_head(decls);
 	struct cfunction *cf = (struct cfunction *)sf->type;
+	// TODO: retrieve correct linkage, not just IL_GLOBAL
+	struct symbol *last = list_last(decls);
+	struct itm_container *cont = (struct itm_container *)last->value;
+	struct itm_block *block = new_itm_block(cont);
+	cont->block = block;
 
 	enter_scope();
 	addparams(cf);
@@ -67,9 +71,6 @@ static void processdecls(FILE *f, struct list *decls, struct list *syms)
 
 	if (!block->last || !block->last->isterminal)
 		itm_leave(block);
-
-	struct symbol *last = list_last(syms);
-	last->block = bb;
 }
 
 void parsefile(FILE *f, struct list *syms)
