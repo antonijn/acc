@@ -26,6 +26,7 @@
 #include <acc/list.h>
 
 static void repli(struct itm_instr *a, struct itm_expr *b);
+static void replocc(struct itm_instr *a, struct itm_expr *b);
 
 static void o_phiable(struct itm_instr *strt, struct list *dict);
 
@@ -54,7 +55,7 @@ static void remi(struct itm_instr *a)
 	cleanup_instr(a);
 }
 
-static void repli(struct itm_instr *a, struct itm_expr *b)
+static void replocc(struct itm_instr *a, struct itm_expr *b)
 {
 	struct itm_block *first = a->block;
 	while (first->lexprev)
@@ -82,30 +83,16 @@ static void repli(struct itm_instr *a, struct itm_expr *b)
 			instr = instr->next;
 		}
 	}
+}
 
+static void repli(struct itm_instr *a, struct itm_expr *b)
+{
+	replocc(a, b);
 	remi(a);
 }
 
 static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 	struct list *dict);
-
-static struct itm_expr *replload(struct itm_instr *ld, struct list *dict)
-{
-	struct itm_instr *key;
-	struct itm_expr *value = NULL;
-	void *iter = list_iterator(dict);
-	while (iterator_next(&iter, (void **)&key)) {
-		iterator_next(&iter, (void **)&value);
-		if (key == ld)
-			break;
-	}
-
-	if (!value)
-		value = traceload(ld, ld, dict);
-
-	repli(ld, value);
-	return value;
-}
 
 static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 	struct list *dict)
@@ -123,11 +110,14 @@ static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 		}
 
 		if (i->id == ITM_ID(itm_load) &&
-		    ptr == list_head(i->operands))
-			return replload(i, dict);
+		    ptr == list_head(i->operands)) {
+			struct itm_expr *repl = traceload(i, i, dict);
+			replocc(i, repl);
+			return repl;
+		}
 	}
 
-	if (i->previous)
+	if (i->previous && i->previous->id != ITM_ID(itm_phi))
 		return traceload(ld, i->previous, dict);
 
 	switch (list_length(i->block->previous)) {
@@ -139,11 +129,22 @@ static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 			dict);
 	}
 
+	struct itm_block *bkey;
+	struct itm_expr *pkey, *dval;
+	void *iter = list_iterator(dict);
+	while (iterator_next(&iter, (void **)&bkey)) {
+		iterator_next(&iter, (void **)&pkey);
+		iterator_next(&iter, (void **)&dval);
+		if (bkey == i->block && pkey == ptr)
+			return dval;
+	}
+
 	struct list *li = new_list(NULL, 0);
 	struct itm_instr *phi = itm_phi(i->block, ld->base.type, li);
 	delete_list(li, NULL);
 
-	list_push_back(dict, ld);
+	list_push_back(dict, i->block);
+	list_push_back(dict, ptr);
 	list_push_back(dict, phi);
 
 	struct itm_block *pb;
@@ -179,6 +180,9 @@ static void remphiables(struct itm_instr *strt)
 		if (strt->id == ITM_ID(itm_store) &&
 		    itm_get_tag(list_last(strt->operands), &tt_phiable))
 			remi(strt);
+		else if (strt->id == ITM_ID(itm_load) &&
+		         itm_get_tag(list_head(strt->operands), &tt_phiable))
+			remi(strt);
 
 		strt = nnxt;
 	}
@@ -199,7 +203,7 @@ static void o_phiable(struct itm_instr *strt, struct list *dict)
 
 	if (strt->id == ITM_ID(itm_load) &&
 	    itm_get_tag(list_head(strt->operands), &tt_phiable))
-		replload(strt, dict);
+		replocc(strt, traceload(strt, strt, dict));
 
 	if (nxt)
 		o_phiable(nxt, dict);
