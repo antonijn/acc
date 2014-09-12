@@ -32,7 +32,8 @@ enum itm_expr_type {
 	ITME_LITERAL,
 	ITME_INSTRUCTION,
 	ITME_BLOCK,
-	ITME_CONTAINER
+	ITME_CONTAINER,
+	ITME_UNDEF
 };
 
 struct itm_expr {
@@ -102,6 +103,7 @@ struct itm_block {
 };
 
 struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *type);
+struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *type);
 
 struct itm_container *new_itm_container(enum itm_linkage linkage, char *id,
 	struct ctype *ty);

@@ -143,6 +143,14 @@ static void itm_literal_to_string(FILE *f, struct itm_expr *e)
 		fprintf(f, " %lu", li->value.i);
 }
 
+static void itm_undef_to_string(FILE *f, struct itm_expr *e)
+{
+	assert(e != NULL);
+
+	e->type->to_string(f, e->type);
+	fprintf(f, " undef");
+}
+
 static void itm_blocke_to_string(FILE *f, struct itm_expr *e)
 {
 	assert(e != NULL);
@@ -240,14 +248,29 @@ void delete_itm_container(struct itm_container *c)
 // literal and block initializers/destructors
 struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *ty)
 {
-	struct itm_literal *lit = malloc(sizeof(struct itm_literal));
 	assert(ty != NULL);
+	struct itm_literal *lit = malloc(sizeof(struct itm_literal));
 	lit->base.tags = NULL;
 	lit->base.etype = ITME_LITERAL;
 	lit->base.type = ty;
 	lit->base.free = (void (*)(struct itm_expr *))&free;
 #ifndef NDEBUG
 	lit->base.to_string = &itm_literal_to_string;
+#endif
+	list_push_back(c->literals, lit);
+	return lit;
+}
+
+struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *ty)
+{
+	assert(ty != NULL);
+	struct itm_expr *lit = malloc(sizeof(struct itm_expr));
+	lit->tags = NULL;
+	lit->etype = ITME_UNDEF;
+	lit->type = ty;
+	lit->free = (void (*)(struct itm_expr *))&free;
+#ifndef NDEBUG
+	lit->to_string = &itm_undef_to_string;
 #endif
 	list_push_back(c->literals, lit);
 	return lit;
