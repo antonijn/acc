@@ -36,7 +36,7 @@ static int itm_instr_number(struct itm_instr *i)
 	assert(i != NULL);
 
 	if (!i->previous)
-		return itm_block_number(i->block) + 1;
+		return itm_block_number(i->block) + (i->base.type == &cvoid ? 0 : 1);
 	if (i->base.type == &cvoid)
 		return itm_instr_number(i->previous);
 	return itm_instr_number(i->previous) + 1;
@@ -70,7 +70,7 @@ static void print_tags(FILE *f, struct itm_expr *expr)
 	struct itm_tag *tag;
 	void *it = list_iterator(expr->tags);
 	while (iterator_next(&it, (void **)&tag)) {
-		fprintf(f, " #%s(", itm_tag_name(tag));
+		fprintf(f, " /* %s(", itm_tag_name(tag));
 		switch (itm_tag_object(tag)) {
 		case TO_INT:
 			fprintf(f, "%d", itm_tag_geti(tag));
@@ -79,7 +79,7 @@ static void print_tags(FILE *f, struct itm_expr *expr)
 			print_expr_list(f, list_iterator(itm_tag_get_list(tag)));
 			break;
 		}
-		fprintf(f, ")");
+		fprintf(f, ") */");
 	}
 }
 
@@ -90,11 +90,10 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 
 	fprintf(f, "\t");
 	if (i->base.type != &cvoid) {
-		fprintf(f, "%%%d = ", itm_instr_number(i));
 		i->base.type->to_string(f, i->base.type);
-		fprintf(f, " ");
+		fprintf(f, " t%d = ", itm_instr_number(i));
 	}
-	fprintf(f, "%s ", i->operation);
+	fprintf(f, "%s(", i->operation);
 
 	struct itm_expr *ex;
 	void *it = list_iterator(i->operands);
@@ -108,6 +107,8 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 	if (i->typeoperand)
 		i->typeoperand->to_string(f, i->typeoperand);
 
+	fprintf(f, ");");
+
 	if (i->base.tags)
 		print_tags(f, &i->base);
 	
@@ -118,14 +119,13 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 
 static void itm_instr_expr_to_string(FILE *f, struct itm_expr *e)
 {
+	assert(e != NULL);
+
 	int inum = itm_instr_number((struct itm_instr *)e);
 	char buf[32] = { 0 };
 
-	assert(e != NULL);
-
-	sprintf(buf, "%%%d", inum);
-	e->type->to_string(f, e->type);
-	fprintf(f, " %s", buf);
+	/*e->type->to_string(f, e->type);*/
+	fprintf(f, "t%d", inum);
 }
 
 static void itm_literal_to_string(FILE *f, struct itm_expr *e)
@@ -134,13 +134,15 @@ static void itm_literal_to_string(FILE *f, struct itm_expr *e)
 
 	assert(li != NULL);
 
+	fprintf(f, "(");
 	e->type->to_string(f, e->type);
+	fprintf(f, ")");
 	if (e->type == &cdouble)
-		fprintf(f, " %f", li->value.d);
+		fprintf(f, "%f", li->value.d);
 	else if (e->type == &cfloat)
-		fprintf(f, " %f", (double)li->value.f);
+		fprintf(f, "%f", (double)li->value.f);
 	else
-		fprintf(f, " %lu", li->value.i);
+		fprintf(f, "%lu", li->value.i);
 }
 
 static void itm_undef_to_string(FILE *f, struct itm_expr *e)
@@ -148,7 +150,7 @@ static void itm_undef_to_string(FILE *f, struct itm_expr *e)
 	assert(e != NULL);
 
 	e->type->to_string(f, e->type);
-	fprintf(f, " undef");
+	fprintf(f, "(undef)");
 }
 
 static void itm_blocke_to_string(FILE *f, struct itm_expr *e)
@@ -156,12 +158,12 @@ static void itm_blocke_to_string(FILE *f, struct itm_expr *e)
 	assert(e != NULL);
 
 	struct itm_block *b = (struct itm_block *)e;
-	fprintf(f, "block %%%d", itm_block_number(b));
+	fprintf(f, "L%d", itm_block_number(b));
 }
 
 static void itm_block_to_string(FILE *f, struct itm_block *block)
 {
-	fprintf(f, "\n%%%d:", itm_block_number(block));
+	fprintf(f, "\nL%d:", itm_block_number(block));
 	print_tags(f, &block->base);
 	fprintf(f, "\n");
 
