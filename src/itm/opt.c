@@ -23,22 +23,20 @@
 #include <acc/itm/ast.h>
 #include <acc/itm/analyze.h>
 #include <acc/itm/tag.h>
+#include <acc/options.h>
 #include <acc/list.h>
 
 static void o_phiable(struct itm_instr *strt, struct list *dict);
 
-void optimize(struct itm_block *strt, enum optimization o)
+void optimize(struct itm_block *strt)
 {
-	if (o & OPT_PHIABLE) {
+	if (option_optimize() > 0) {
 		analyze(strt, A_PHIABLE);
 		struct list *dict = new_list(NULL, 0);
 		o_phiable(strt->first, dict);
 		delete_list(dict, NULL);
 	}
 }
-
-static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
-	struct list *dict);
 
 static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 	struct list *dict)

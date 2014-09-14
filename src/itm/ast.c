@@ -29,7 +29,6 @@
 static void free_dummy(struct itm_expr *e);
 
 // to_string functions
-#ifndef NDEBUG
 static int itm_block_number(struct itm_block *block);
 
 static int itm_instr_number(struct itm_instr *i)
@@ -229,7 +228,6 @@ void itm_container_to_string(FILE *f, struct itm_container *c)
 	fprintf(f, "\n");
 }
 
-#endif
 
 struct itm_container *new_itm_container(enum itm_linkage linkage, char *id,
 	struct ctype *ty)
@@ -242,9 +240,7 @@ struct itm_container *new_itm_container(enum itm_linkage linkage, char *id,
 	c->base.etype = ITME_CONTAINER;
 	c->base.type = new_pointer(ty);
 	c->base.free = (void (*)(struct itm_expr *))&delete_itm_container;
-#ifndef NDEBUG
 	c->base.to_string = &itm_containere_to_string;
-#endif
 	c->block = NULL;
 	c->id = malloc((strlen(id) + 1) * sizeof(char));
 	sprintf(c->id, "%s", id);
@@ -277,9 +273,7 @@ struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *ty)
 	lit->base.etype = ITME_LITERAL;
 	lit->base.type = ty;
 	lit->base.free = (void (*)(struct itm_expr *))&free;
-#ifndef NDEBUG
 	lit->base.to_string = &itm_literal_to_string;
-#endif
 	list_push_back(c->literals, lit);
 	return lit;
 }
@@ -292,9 +286,7 @@ struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *ty)
 	lit->etype = ITME_UNDEF;
 	lit->type = ty;
 	lit->free = (void (*)(struct itm_expr *))&free;
-#ifndef NDEBUG
 	lit->to_string = &itm_undef_to_string;
-#endif
 	list_push_back(c->literals, lit);
 	return lit;
 }
@@ -306,9 +298,7 @@ struct itm_block *new_itm_block(struct itm_container *container)
 	res->base.etype = ITME_BLOCK;
 	res->base.tags = NULL;
 	res->base.free = (void (*)(struct itm_expr *))&delete_itm_block;
-#ifndef NDEBUG
 	res->base.to_string = &itm_blocke_to_string;
-#endif
 	res->previous = new_list(NULL, 0);
 	res->next = new_list(NULL, 0);
 	res->lexnext = NULL;
@@ -476,9 +466,7 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 	res->base.etype = ITME_INSTRUCTION;
 	res->base.type = type;
 	res->base.free = &free_dummy;
-#ifndef NDEBUG
 	res->base.to_string = &itm_instr_expr_to_string;
-#endif
 
 	res->id = id;
 	res->operation = operation;
