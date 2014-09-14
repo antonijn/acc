@@ -26,6 +26,10 @@
 #include <acc/parsing/ast.h>
 #include <acc/list.h>
 
+#ifndef ITM_COLORS
+#define ITM_COLORS 0
+#endif
+
 struct itm_block;
 
 enum itm_expr_type {

@@ -26,6 +26,7 @@
 #include <acc/parsing/ast.h>
 #include <acc/target.h>
 #include <acc/ext.h>
+#include <acc/term.h>
 
 struct ctype cint, cshort, clong, cuint, cushort, culong,
 	clonglong, culonglong, cchar, cuchar,
@@ -51,7 +52,10 @@ static void primitive_free(struct ctype *p)
 
 static void primitive_to_string(FILE *f, struct ctype *p)
 {
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, ANSI_BLUE(ITM_COLORS));
 	fprintf(f, "%s", p->name);
+	fprintf(f, ANSI_RESET(ITM_COLORS));
 }
 
 static enum typecomp primitive_compare(struct ctype *l, struct ctype *r)
@@ -167,9 +171,8 @@ void leave_scope(void)
 static void pointer_to_string(FILE *f, struct ctype *p)
 {
 	struct cpointer *ptr = (struct cpointer *)p;
-	fprintf(f, "(ptr ");
 	ptr->pointsto->to_string(f, ptr->pointsto);
-	fprintf(f, ")");
+	fprintf(f, "*");
 }
 
 static enum typecomp pointer_compare(struct ctype *l, struct ctype *r)
@@ -210,7 +213,11 @@ struct ctype *new_pointer(struct ctype *base)
 static void struct_to_string(FILE *f, struct ctype *p)
 {
 	struct cstruct *cs = (struct cstruct *)p;
-	fprintf(f, "(struct %s)", cs->base.name ? cs->base.name : "{ ... }");
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, ANSI_BLUE(ITM_COLORS));
+	fprintf(f, "struct");
+	fprintf(f, ANSI_RESET(ITM_COLORS));
+	fprintf(f, " %s", cs->base.name ? cs->base.name : "{ ... }");
 }
 
 static enum typecomp struct_compare(struct ctype *l, struct ctype *r)
@@ -283,13 +290,14 @@ struct ctype *new_array(struct ctype *etype, int length)
 static void qualified_to_string(FILE *f, struct ctype *ty)
 {
 	struct cqualified *cq = (struct cqualified *)ty;
-	fprintf(f, "(");
+	cq->type->to_string(f, cq->type);
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, ANSI_BLUE(ITM_COLORS));
 	if (cq->qualifiers & Q_CONST)
 		fprintf(f, "const ");
 	if (cq->qualifiers & Q_VOLATILE)
 		fprintf(f, "volatile ");
-	cq->type->to_string(f, cq->type);
-	fprintf(f, ")");
+	fprintf(f, ANSI_RESET(ITM_COLORS));
 }
 
 static enum typecomp qualified_compare(struct ctype *l, struct ctype *r)
@@ -324,9 +332,8 @@ static void free_function(struct ctype *ty)
 static void function_to_string(FILE *f, struct ctype *ty)
 {
 	struct cfunction *cf = (struct cfunction *)ty;
-	fprintf(f, "(function ");
 	cf->ret->to_string(f, cf->ret);
-	fprintf(f, " (taking ");
+	fprintf(f, " (");
 
 	int i = 0;
 	struct symbol *sym;
@@ -337,7 +344,7 @@ static void function_to_string(FILE *f, struct ctype *ty)
 		if (i++ != list_length(cf->parameters) - 1)
 			fprintf(f, ", ");
 	}
-	fprintf(f, "))");
+	fprintf(f, ")");
 }
 
 static enum typecomp function_compare(struct ctype *l, struct ctype *r)

@@ -26,12 +26,7 @@
 #include <acc/error.h>
 #include <acc/options.h>
 #include <acc/ext.h>
-
-#define ANSI_RESET	"\033[0m"
-#define ANSI_BOLD	"\033[1m"
-#define ANSI_MAGENTA	"\033[35m"
-#define ANSI_RED	"\033[31m"
-#define ANSI_LIME	"\033[32m"
+#include <acc/term.h>
 
 const char *currentfile = NULL;
 jmp_buf fatal_env;
@@ -49,29 +44,24 @@ void report(enum errorty ty, struct token *tok, const char *frmt, ...)
 		false;
 #endif
 
-	if (colors)
-		fprintf(stderr, ANSI_BOLD);
+	fprintf(stderr, ANSI_BOLD(colors));
 
 	if (!(ty & E_HIDE_LOCATION))
 		fprintf(stderr, "%s:%d:%d: ", currentfile ?
 			currentfile : "<stdin>", get_line(), get_column());
 
 	if (ty & E_FATAL) {
-		if (colors)
-			fprintf(stderr, ANSI_RED);
+		fprintf(stderr, ANSI_RED(colors));
 		fprintf(stderr, "FATAL: ");
 	} else if (ty & E_WARNING) {
-		if (colors)
-			fprintf(stderr, ANSI_MAGENTA);
+		fprintf(stderr, ANSI_MAGENTA(colors));
 		fprintf(stderr, "warning: ");
 	} else {
-		if (colors)
-			fprintf(stderr, ANSI_RED);
+		fprintf(stderr, ANSI_RED(colors));
 		fprintf(stderr, "error: ");
 	}
 
-	if (colors)
-		fprintf(stderr, ANSI_RESET);
+	fprintf(stderr, ANSI_RESET(colors));
 
 	va_start(ap, frmt);
 	vfprintf(stderr, frmt, ap);
@@ -86,11 +76,10 @@ void report(enum errorty ty, struct token *tok, const char *frmt, ...)
 			else
 				fprintf(stderr, " ");
 		}
-		if (colors)
-			fprintf(stderr, ANSI_BOLD ANSI_LIME);
+		fprintf(stderr, ANSI_BOLD(colors));
+		fprintf(stderr, ANSI_GREEN(colors));
 		fprintf(stderr, "^");
-		if (colors)
-			fprintf(stderr, ANSI_RESET);
+		fprintf(stderr, ANSI_RESET(colors));
 		fprintf(stderr, "\n");
 	}
 

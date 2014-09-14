@@ -24,6 +24,7 @@
 
 #include <acc/itm/ast.h>
 #include <acc/error.h>
+#include <acc/term.h>
 
 static void free_dummy(struct itm_expr *e);
 
@@ -70,6 +71,7 @@ static void print_tags(FILE *f, struct itm_expr *expr)
 	struct itm_tag *tag;
 	void *it = list_iterator(expr->tags);
 	while (iterator_next(&it, (void **)&tag)) {
+		fprintf(f, ANSI_GREEN(ITM_COLORS));
 		fprintf(f, " /* %s(", itm_tag_name(tag));
 		switch (itm_tag_object(tag)) {
 		case TO_INT:
@@ -80,6 +82,7 @@ static void print_tags(FILE *f, struct itm_expr *expr)
 			break;
 		}
 		fprintf(f, ") */");
+		fprintf(f, ANSI_RESET(ITM_COLORS));
 	}
 }
 
@@ -93,7 +96,11 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 		i->base.type->to_string(f, i->base.type);
 		fprintf(f, " t%d = ", itm_instr_number(i));
 	}
-	fprintf(f, "%s(", i->operation);
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, ANSI_BLUE(ITM_COLORS));
+	fprintf(f, "%s", i->operation);
+	fprintf(f, ANSI_RESET(ITM_COLORS));
+	fprintf(f, "(");
 
 	struct itm_expr *ex;
 	void *it = list_iterator(i->operands);
@@ -137,20 +144,27 @@ static void itm_literal_to_string(FILE *f, struct itm_expr *e)
 	fprintf(f, "(");
 	e->type->to_string(f, e->type);
 	fprintf(f, ")");
+	fprintf(f, ANSI_MAGENTA(ITM_COLORS));
 	if (e->type == &cdouble)
 		fprintf(f, "%f", li->value.d);
 	else if (e->type == &cfloat)
 		fprintf(f, "%f", (double)li->value.f);
 	else
 		fprintf(f, "%lu", li->value.i);
+	fprintf(f, ANSI_RESET(ITM_COLORS));
 }
 
 static void itm_undef_to_string(FILE *f, struct itm_expr *e)
 {
 	assert(e != NULL);
 
+	fprintf(f, "(");
 	e->type->to_string(f, e->type);
-	fprintf(f, "(undef)");
+	fprintf(f, ")");
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, ANSI_BLUE(ITM_COLORS));
+	fprintf(f, "undef");
+	fprintf(f, ANSI_RESET(ITM_COLORS));
 }
 
 static void itm_blocke_to_string(FILE *f, struct itm_expr *e)
@@ -180,11 +194,15 @@ void itm_containere_to_string(FILE *f, struct itm_expr *e)
 
 	struct itm_container *b = (struct itm_container *)e;
 	e->to_string(f, e);
-	fprintf(f, " @%d", b->id);
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, " @%s", b->id);
+	fprintf(f, ANSI_RESET(ITM_COLORS));
 }
 
 void itm_container_to_string(FILE *f, struct itm_container *c)
 {
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, ANSI_BLUE(ITM_COLORS));
 	switch (c->linkage) {
 	case IL_GLOBAL:
 		fprintf(f, "global ");
@@ -196,10 +214,13 @@ void itm_container_to_string(FILE *f, struct itm_container *c)
 		fprintf(f, "extern ");
 		break;
 	}
+	fprintf(f, ANSI_RESET(ITM_COLORS));
 
 	c->base.type->to_string(f, c->base.type);
 
-	fprintf(f, " %s", c->id);
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, " @%s", c->id);
+	fprintf(f, ANSI_RESET(ITM_COLORS));
 	if (c->block) {
 		fprintf(f, " {");
 		itm_block_to_string(f, c->block);
