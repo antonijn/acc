@@ -26,10 +26,18 @@
 #include <acc/parsing/ast.h>
 #include <acc/list.h>
 
+#ifndef ITM_COLORS
+#define ITM_COLORS 0
+#endif
+
+struct itm_block;
+
 enum itm_expr_type {
 	ITME_LITERAL,
 	ITME_INSTRUCTION,
-	ITME_BLOCK
+	ITME_BLOCK,
+	ITME_CONTAINER,
+	ITME_UNDEF
 };
 
 struct itm_expr {
@@ -71,7 +79,19 @@ struct itm_literal {
 	} value;
 };
 
-struct itm_literal *new_itm_literal(struct ctype *type);
+enum itm_linkage {
+	IL_GLOBAL,
+	IL_STATIC,
+	IL_EXTERN
+};
+
+struct itm_container {
+	struct itm_expr base;
+	enum itm_linkage linkage;
+	char *id;
+	struct itm_block *block;
+	struct list *literals;
+};
 
 struct itm_block {
 	struct itm_expr base;
@@ -82,16 +102,26 @@ struct itm_block {
 	struct list *next;
 	struct itm_instr *first;
 	struct itm_instr *last;
+
+	struct itm_container *container;
 };
 
-struct itm_block *new_itm_block(void);
+struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *type);
+struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *type);
+
+struct itm_container *new_itm_container(enum itm_linkage linkage, char *id,
+	struct ctype *ty);
+void delete_itm_container(struct itm_container *c);
+
+struct itm_block *new_itm_block(struct itm_container *container);
 void itm_progress(struct itm_block *before, struct itm_block *after);
 void itm_lex_progress(struct itm_block *before, struct itm_block *after);
 struct itm_block *add_itm_block_previous(struct itm_block *block,
 	struct list *previous);
 void delete_itm_block(struct itm_block *block);
+void cleanup_instr(struct itm_instr *i);
 #ifndef NDEBUG
-void itm_block_to_string(FILE *f, struct itm_block *block);
+void itm_container_to_string(FILE *f, struct itm_container *c);
 #endif
 
 void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag);
@@ -133,6 +163,7 @@ struct itm_instr *itm_deepptr(struct itm_block *b, struct itm_expr *l, struct it
 struct itm_instr *itm_alloca(struct itm_block *b, struct ctype *ty);
 struct itm_instr *itm_load(struct itm_block *b, struct itm_expr *l);
 struct itm_instr *itm_store(struct itm_block *b, struct itm_expr *l, struct itm_expr *r);
+struct itm_instr *itm_phi(struct itm_block *b, struct ctype *ty, struct list *dict);
 
 struct itm_instr *itm_jmp(struct itm_block *b, struct itm_block *to);
 struct itm_instr *itm_split(struct itm_block *b, struct itm_expr *c, struct itm_block *t, struct itm_block *e);

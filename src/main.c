@@ -29,6 +29,7 @@
 #endif
 
 #include <acc/itm/analyze.h>
+#include <acc/itm/opt.h>
 #include <acc/itm/ast.h>
 #include <acc/parsing/file.h>
 #include <acc/parsing/token.h>
@@ -50,20 +51,26 @@ static void compilefile(FILE *f)
 
 #ifndef NDEBUG
 	{
-		char ofname[strlen(currentfile ? currentfile : "-") + 5];
+		char ofname[strlen(currentfile ? currentfile : "-") + 9];
 		sprintf(&ofname[0], "%s.itm", currentfile ? currentfile : "-");
 		FILE *out = fopen(&ofname[0], "wb");
+		strcat(ofname, ".opt");
+		FILE *opt = fopen(&ofname[0], "wb");
 
-		struct symbol *sym;
+		struct itm_container *sym;
 		void *it = list_iterator(syms);
 		while (iterator_next(&it, (void **)&sym)) {
-			if (sym->block) {
-				analyze(sym->block, A_USED | A_ACC | A_LIFETIME);
-				itm_block_to_string(out, sym->block);
-			}
+			if (!sym->block)
+				continue;
+
+			analyze(sym->block, A_PHIABLE);
+			itm_container_to_string(out, sym);
+			optimize(sym->block, OPT_PHIABLE);
+			itm_container_to_string(opt, sym);
 		}
 
 		fclose(out);
+		fclose(opt);
 	}
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Intermediate tagging tools
+ * Intermediate code optimization
  * Copyright (C) 2014  Antonie Blom
  *
  * This program is free software; you can redistribute it and/or modify
@@ -17,31 +17,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef ITM_TAG_H
-#define ITM_TAG_H
+#ifndef ITM_OPT_H
+#define ITM_OPT_H
 
-#include <stdbool.h>
+#include <acc/itm/ast.h>
 
-typedef void *itm_tag_type_t;
-
-enum itm_tag_object {
-	TO_NONE,
-	TO_INT,
-	TO_EXPR_LIST
+enum optimization {
+	OPT_PHIABLE = 0x1
 };
 
-struct itm_tag;
-
-struct itm_tag *new_itm_tag(itm_tag_type_t type, const char *name,
-	enum itm_tag_object obj);
-void delete_itm_tag(struct itm_tag *tag);
-
-itm_tag_type_t itm_tag_type(struct itm_tag *tag);
-const char *itm_tag_name(struct itm_tag *tag);
-enum itm_tag_object itm_tag_object(struct itm_tag *tag);
-void itm_tag_seti(struct itm_tag *tag, int i);
-int itm_tag_geti(struct itm_tag *tag);
-void itm_tag_add_item(struct itm_tag *tag, void *expr);
-struct list *itm_tag_get_list(struct itm_tag *tag);
+void optimize(struct itm_block *strt, enum optimization o);
 
 #endif

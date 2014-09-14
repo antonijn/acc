@@ -18,10 +18,13 @@
  */
 
 #include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
 #include <assert.h>
 
 #include <acc/itm/ast.h>
 #include <acc/error.h>
+#include <acc/term.h>
 
 static void free_dummy(struct itm_expr *e);
 
@@ -34,7 +37,7 @@ static int itm_instr_number(struct itm_instr *i)
 	assert(i != NULL);
 
 	if (!i->previous)
-		return itm_block_number(i->block) + 1;
+		return itm_block_number(i->block) + (i->base.type == &cvoid ? 0 : 1);
 	if (i->base.type == &cvoid)
 		return itm_instr_number(i->previous);
 	return itm_instr_number(i->previous) + 1;
@@ -68,7 +71,8 @@ static void print_tags(FILE *f, struct itm_expr *expr)
 	struct itm_tag *tag;
 	void *it = list_iterator(expr->tags);
 	while (iterator_next(&it, (void **)&tag)) {
-		fprintf(f, " #%s(", itm_tag_name(tag));
+		fprintf(f, ANSI_GREEN(ITM_COLORS));
+		fprintf(f, " /* %s(", itm_tag_name(tag));
 		switch (itm_tag_object(tag)) {
 		case TO_INT:
 			fprintf(f, "%d", itm_tag_geti(tag));
@@ -77,7 +81,8 @@ static void print_tags(FILE *f, struct itm_expr *expr)
 			print_expr_list(f, list_iterator(itm_tag_get_list(tag)));
 			break;
 		}
-		fprintf(f, ")");
+		fprintf(f, ") */");
+		fprintf(f, ANSI_RESET(ITM_COLORS));
 	}
 }
 
@@ -88,11 +93,14 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 
 	fprintf(f, "\t");
 	if (i->base.type != &cvoid) {
-		fprintf(f, "%%%d = ", itm_instr_number(i));
 		i->base.type->to_string(f, i->base.type);
-		fprintf(f, " ");
+		fprintf(f, " t%d = ", itm_instr_number(i));
 	}
-	fprintf(f, "%s ", i->operation);
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, ANSI_BLUE(ITM_COLORS));
+	fprintf(f, "%s", i->operation);
+	fprintf(f, ANSI_RESET(ITM_COLORS));
+	fprintf(f, "(");
 
 	struct itm_expr *ex;
 	void *it = list_iterator(i->operands);
@@ -106,6 +114,8 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 	if (i->typeoperand)
 		i->typeoperand->to_string(f, i->typeoperand);
 
+	fprintf(f, ");");
+
 	if (i->base.tags)
 		print_tags(f, &i->base);
 	
@@ -116,14 +126,13 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 
 static void itm_instr_expr_to_string(FILE *f, struct itm_expr *e)
 {
+	assert(e != NULL);
+
 	int inum = itm_instr_number((struct itm_instr *)e);
 	char buf[32] = { 0 };
 
-	assert(e != NULL);
-
-	sprintf(buf, "%%%d", inum);
-	e->type->to_string(f, e->type);
-	fprintf(f, " %s", buf);
+	/*e->type->to_string(f, e->type);*/
+	fprintf(f, "t%d", inum);
 }
 
 static void itm_literal_to_string(FILE *f, struct itm_expr *e)
@@ -132,13 +141,30 @@ static void itm_literal_to_string(FILE *f, struct itm_expr *e)
 
 	assert(li != NULL);
 
+	fprintf(f, "(");
 	e->type->to_string(f, e->type);
+	fprintf(f, ")");
+	fprintf(f, ANSI_MAGENTA(ITM_COLORS));
 	if (e->type == &cdouble)
-		fprintf(f, " %f", li->value.d);
+		fprintf(f, "%f", li->value.d);
 	else if (e->type == &cfloat)
-		fprintf(f, " %f", (double)li->value.f);
+		fprintf(f, "%f", (double)li->value.f);
 	else
-		fprintf(f, " %lu", li->value.i);
+		fprintf(f, "%lu", li->value.i);
+	fprintf(f, ANSI_RESET(ITM_COLORS));
+}
+
+static void itm_undef_to_string(FILE *f, struct itm_expr *e)
+{
+	assert(e != NULL);
+
+	fprintf(f, "(");
+	e->type->to_string(f, e->type);
+	fprintf(f, ")");
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, ANSI_BLUE(ITM_COLORS));
+	fprintf(f, "undef");
+	fprintf(f, ANSI_RESET(ITM_COLORS));
 }
 
 static void itm_blocke_to_string(FILE *f, struct itm_expr *e)
@@ -146,12 +172,12 @@ static void itm_blocke_to_string(FILE *f, struct itm_expr *e)
 	assert(e != NULL);
 
 	struct itm_block *b = (struct itm_block *)e;
-	fprintf(f, "block %%%d", itm_block_number(b));
+	fprintf(f, "L%d", itm_block_number(b));
 }
 
-void itm_block_to_string(FILE *f, struct itm_block *block)
+static void itm_block_to_string(FILE *f, struct itm_block *block)
 {
-	fprintf(f, "\n%%%d:", itm_block_number(block));
+	fprintf(f, "\nL%d:", itm_block_number(block));
 	print_tags(f, &block->base);
 	fprintf(f, "\n");
 
@@ -162,13 +188,91 @@ void itm_block_to_string(FILE *f, struct itm_block *block)
 		itm_block_to_string(f, block->lexnext);
 }
 
+void itm_containere_to_string(FILE *f, struct itm_expr *e)
+{
+	assert(e != NULL);
+
+	struct itm_container *b = (struct itm_container *)e;
+	e->to_string(f, e);
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, " @%s", b->id);
+	fprintf(f, ANSI_RESET(ITM_COLORS));
+}
+
+void itm_container_to_string(FILE *f, struct itm_container *c)
+{
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, ANSI_BLUE(ITM_COLORS));
+	switch (c->linkage) {
+	case IL_GLOBAL:
+		fprintf(f, "global ");
+		break;
+	case IL_STATIC:
+		fprintf(f, "static ");
+		break;
+	case IL_EXTERN:
+		fprintf(f, "extern ");
+		break;
+	}
+	fprintf(f, ANSI_RESET(ITM_COLORS));
+
+	c->base.type->to_string(f, c->base.type);
+
+	fprintf(f, ANSI_BOLD(ITM_COLORS));
+	fprintf(f, " @%s", c->id);
+	fprintf(f, ANSI_RESET(ITM_COLORS));
+	if (c->block) {
+		fprintf(f, " {");
+		itm_block_to_string(f, c->block);
+		fprintf(f, "}\n");
+	}
+	fprintf(f, "\n");
+}
+
 #endif
 
-// literal and block initializers/destructors
-struct itm_literal *new_itm_literal(struct ctype *ty)
+struct itm_container *new_itm_container(enum itm_linkage linkage, char *id,
+	struct ctype *ty)
 {
-	struct itm_literal *lit = malloc(sizeof(struct itm_literal));
+	assert(id != NULL);
 	assert(ty != NULL);
+
+	struct itm_container *c = malloc(sizeof(struct itm_container));
+	c->base.tags = NULL;
+	c->base.etype = ITME_CONTAINER;
+	c->base.type = new_pointer(ty);
+	c->base.free = (void (*)(struct itm_expr *))&delete_itm_container;
+#ifndef NDEBUG
+	c->base.to_string = &itm_containere_to_string;
+#endif
+	c->block = NULL;
+	c->id = malloc((strlen(id) + 1) * sizeof(char));
+	sprintf(c->id, "%s", id);
+	c->linkage = linkage;
+	c->literals = new_list(NULL, 0);
+	return c;
+}
+
+void delete_itm_container(struct itm_container *c)
+{
+	free(c->id);
+
+	struct itm_expr *lit;
+	void *it = list_iterator(c->literals);
+	while (iterator_next(&it, (void **)&lit))
+		lit->free(lit);
+	delete_list(c->literals, NULL);
+
+	if (c->block)
+		delete_itm_block(c->block);
+	free(c);
+}
+
+// literal and block initializers/destructors
+struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *ty)
+{
+	assert(ty != NULL);
+	struct itm_literal *lit = malloc(sizeof(struct itm_literal));
 	lit->base.tags = NULL;
 	lit->base.etype = ITME_LITERAL;
 	lit->base.type = ty;
@@ -176,16 +280,32 @@ struct itm_literal *new_itm_literal(struct ctype *ty)
 #ifndef NDEBUG
 	lit->base.to_string = &itm_literal_to_string;
 #endif
+	list_push_back(c->literals, lit);
 	return lit;
 }
 
-struct itm_block *new_itm_block(void)
+struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *ty)
+{
+	assert(ty != NULL);
+	struct itm_expr *lit = malloc(sizeof(struct itm_expr));
+	lit->tags = NULL;
+	lit->etype = ITME_UNDEF;
+	lit->type = ty;
+	lit->free = (void (*)(struct itm_expr *))&free;
+#ifndef NDEBUG
+	lit->to_string = &itm_undef_to_string;
+#endif
+	list_push_back(c->literals, lit);
+	return lit;
+}
+
+struct itm_block *new_itm_block(struct itm_container *container)
 {
 	struct itm_block *res = malloc(sizeof(struct itm_block));
 	res->base.type = NULL;
 	res->base.etype = ITME_BLOCK;
 	res->base.tags = NULL;
-	res->base.free = &free_dummy;
+	res->base.free = (void (*)(struct itm_expr *))&delete_itm_block;
 #ifndef NDEBUG
 	res->base.to_string = &itm_blocke_to_string;
 #endif
@@ -195,6 +315,7 @@ struct itm_block *new_itm_block(void)
 	res->lexprev = NULL;
 	res->first = NULL;
 	res->last = NULL;
+	res->container = container;
 	return res;
 }
 
@@ -214,12 +335,12 @@ void itm_lex_progress(struct itm_block *before, struct itm_block *after)
 	after->lexprev = before;
 }
 
-static void cleanup_instr(struct itm_instr *i)
+void cleanup_instr(struct itm_instr *i)
 {
-	struct itm_expr *op;
+	/*struct itm_expr *op;
 	void *it = list_iterator(i->operands);
 	while (iterator_next(&it, (void **)&op))
-		op->free(op);
+		op->free(op);*/
 	delete_list(i->operands, NULL);
 	
 	if (i->next)
@@ -270,7 +391,8 @@ static void free_dummy(struct itm_expr *e)
 enum opflags {
 	OF_NONE = 0x0,
 	OF_TERMINAL = 0x1,
-	OF_START = 0x2 // only really used for alloca
+	OF_START = 0x2, // only really used for alloca
+	OF_START_OF_BLOCK = 0x4 // only really used for phi
 };
 
 static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (*id)(void),
@@ -279,6 +401,7 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 	struct itm_instr *res = malloc(sizeof(struct itm_instr));
 
 	assert(type != NULL);
+	assert(b != NULL);
 
 	res->base.tags = NULL;
 	res->base.etype = ITME_INSTRUCTION;
@@ -295,11 +418,11 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 	res->operands = new_list(NULL, 0);
 	res->typeoperand = NULL;
 	res->next = NULL;
-	if (opflags & OF_START) {
+	if ((opflags & OF_START) || (opflags & OF_START_OF_BLOCK)) {
 		struct itm_instr *before = NULL;
 		struct itm_instr *after;
-		while (b->lexprev)
-			b = b->lexprev;
+		if (opflags & OF_START)
+			b = b->container->block;
 		
 		// find first non-id instruction
 		after = b->first;
@@ -567,6 +690,19 @@ struct itm_instr *itm_store(struct itm_block *b, struct itm_expr *l, struct itm_
 
 	list_push_back(res->operands, l);
 	list_push_back(res->operands, r);
+
+	return res;
+}
+
+struct itm_instr *itm_phi(struct itm_block *b, struct ctype *ty, struct list *dict)
+{
+	struct itm_instr *res;
+	res = impl_op(b, ty, ITM_ID(itm_phi), "phi", OF_START_OF_BLOCK);
+
+	struct itm_expr *ex;
+	void *it = list_iterator(dict);
+	while (iterator_next(&it, (void **)&ex))
+		list_push_back(res->operands, ex);
 
 	return res;
 }

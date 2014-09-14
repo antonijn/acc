@@ -86,9 +86,9 @@ static bool parseif(FILE *f, enum statflags flags, struct itm_block **block,
 		freetok(&tok);
 	}
 
-	struct itm_block *ontrue = new_itm_block();
+	struct itm_block *ontrue = new_itm_block((*block)->container);
 	struct itm_block *ontruelbl = ontrue;
-	struct itm_block *onfalse = new_itm_block();
+	struct itm_block *onfalse = new_itm_block((*block)->container);
 	struct itm_block *onfalselbl = onfalse;
 	
 	struct expr cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE, block, NULL);
@@ -103,7 +103,7 @@ static bool parseif(FILE *f, enum statflags flags, struct itm_block **block,
 	parsestatx(f, SF_NORMAL, &ontrue, tobreak, tocont, fun);
 
 	if (chkt(f, "else")) {
-		struct itm_block *onquit = new_itm_block();
+		struct itm_block *onquit = new_itm_block((*block)->container);
 
 		itm_jmp(ontrue, onquit);
 
@@ -179,11 +179,11 @@ static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block,
 
 	struct itm_block *condb;
 	struct itm_block *condblbl;
-	struct itm_block *body = new_itm_block();
+	struct itm_block *body = new_itm_block((*block)->container);
 	struct itm_block *bodylbl = body;
 	struct itm_block *finalb;
 	struct itm_block *finalblbl;
-	struct itm_block *quit = new_itm_block();
+	struct itm_block *quit = new_itm_block((*block)->container);
 	struct itm_block *quitlbl = quit;
 	
 	if (!chkt(f, ";")) {
@@ -195,7 +195,7 @@ static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block,
 	}
 	
 	if (!chkt(f, ";")) {
-		condb = new_itm_block();
+		condb = new_itm_block((*block)->container);
 		condblbl = condb;
 
 		itm_jmp(*block, condblbl);
@@ -221,7 +221,7 @@ static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block,
 	}
 	
 	if (!chkt(f, ")")) {
-		finalb = new_itm_block();
+		finalb = new_itm_block((*block)->container);
 		finalblbl = finalb;
 		
 		parseexpr(f, EF_FINISH_BRACKET, &finalb, NULL);
@@ -276,11 +276,11 @@ static bool parsedo(FILE *f, enum statflags flags, struct itm_block **block,
 	if (!chkt(f, "do"))
 		return false;
 
-	struct itm_block *body = new_itm_block();
+	struct itm_block *body = new_itm_block((*block)->container);
 	struct itm_block *bodylbl = body;
-	struct itm_block *condb = new_itm_block();
+	struct itm_block *condb = new_itm_block((*block)->container);
 	struct itm_block *condblbl = condb;
-	struct itm_block *quit = new_itm_block();
+	struct itm_block *quit = new_itm_block((*block)->container);
 	struct itm_block *quitlbl = quit;
 
 	itm_jmp(*block, bodylbl);
@@ -353,11 +353,11 @@ static bool parsewhile(FILE *f, enum statflags flags, struct itm_block **block,
 		freetok(&tok);
 	}
 
-	struct itm_block *body = new_itm_block();
+	struct itm_block *body = new_itm_block((*block)->container);
 	struct itm_block *bodylbl = body;
-	struct itm_block *condb = new_itm_block();
+	struct itm_block *condb = new_itm_block((*block)->container);
 	struct itm_block *condblbl = condb;
-	struct itm_block *quit = new_itm_block();
+	struct itm_block *quit = new_itm_block((*block)->container);
 	struct itm_block *quitlbl = quit;
 
 	itm_jmp(*block, condblbl);
@@ -413,7 +413,7 @@ static bool parsestatx(FILE *f, enum statflags flags, struct itm_block **block,
 			report(E_PARSER, &btok, "no loop to break from");
 		} else {
 			itm_jmp(*block, tobreak);
-			struct itm_block *newblock = new_itm_block();
+			struct itm_block *newblock = new_itm_block((*block)->container);
 			itm_lex_progress(*block, newblock);
 			itm_progress(*block, tobreak);
 			*block = newblock;
@@ -431,7 +431,7 @@ static bool parsestatx(FILE *f, enum statflags flags, struct itm_block **block,
 			report(E_PARSER, &btok, "no loop to continue from");
 		} else {
 			itm_jmp(*block, tocont);
-			struct itm_block *newblock = new_itm_block();
+			struct itm_block *newblock = new_itm_block((*block)->container);
 			itm_lex_progress(*block, newblock);
 			itm_progress(*block, tocont);
 			*block = newblock;
@@ -445,7 +445,7 @@ static bool parsestatx(FILE *f, enum statflags flags, struct itm_block **block,
 
 	struct token rettok;
 	if (chktp(f, "return", &rettok)) {
-		struct itm_block *nb = new_itm_block();
+		struct itm_block *nb = new_itm_block((*block)->container);
 		itm_lex_progress(*block, nb);
 
 		if (chkt(f, ";")) {
