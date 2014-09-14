@@ -63,7 +63,6 @@ static void compilefile(FILE *f)
 			if (!sym->block)
 				continue;
 
-			analyze(sym->block, A_PHIABLE);
 			itm_container_to_string(out, sym);
 			optimize(sym->block, OPT_PHIABLE);
 			itm_container_to_string(opt, sym);
@@ -75,6 +74,7 @@ static void compilefile(FILE *f)
 #endif
 
 	getarch()->emitter(stdout, syms);
+
 
 cleanup:
 	delete_list(syms, NULL);

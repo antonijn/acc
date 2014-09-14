@@ -25,70 +25,16 @@
 #include <acc/itm/tag.h>
 #include <acc/list.h>
 
-static void repli(struct itm_instr *a, struct itm_expr *b);
-static void replocc(struct itm_instr *a, struct itm_expr *b);
-
 static void o_phiable(struct itm_instr *strt, struct list *dict);
 
 void optimize(struct itm_block *strt, enum optimization o)
 {
 	if (o & OPT_PHIABLE) {
+		analyze(strt, A_PHIABLE);
 		struct list *dict = new_list(NULL, 0);
 		o_phiable(strt->first, dict);
 		delete_list(dict, NULL);
 	}
-}
-
-static void remi(struct itm_instr *a)
-{
-	if (a->previous)
-		a->previous->next = a->next;
-	if (a->next)
-		a->next->previous = a->previous;
-	if (a->block->first == a)
-		a->block->first = a->next;
-	if (a->block->last == a)
-		a->block->last = a->previous;
-
-	a->previous = NULL;
-	a->next = NULL;
-	cleanup_instr(a);
-}
-
-static void replocc(struct itm_instr *a, struct itm_expr *b)
-{
-	struct itm_block *first = a->block;
-	while (first->lexprev)
-		first = first->lexprev;
-
-	struct itm_instr *instr = first->first;
-	while (instr) {
-		struct itm_expr *e;
-		void *it = list_iterator(instr->operands);
-		int i = 0;
-		while (iterator_next(&it, (void **)&e)) {
-			if (e == &a->base) {
-				set_list_item(instr->operands, i, b);
-				break;
-			}
-			++i;
-		}
-
-		if (!instr->next) {
-			if (instr->block->lexnext)
-				instr = instr->block->lexnext->first;
-			else
-				break;
-		} else {
-			instr = instr->next;
-		}
-	}
-}
-
-static void repli(struct itm_instr *a, struct itm_expr *b)
-{
-	replocc(a, b);
-	remi(a);
 }
 
 static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
@@ -106,7 +52,7 @@ static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 		if (i->id == ITM_ID(itm_load) &&
 		    ptr == list_head(i->operands)) {
 			struct itm_expr *repl = traceload(i, i, dict);
-			replocc(i, repl);
+			itm_replocc(&i->base, repl, i->block);
 			return repl;
 		}
 	}
@@ -173,10 +119,10 @@ static void remphiables(struct itm_instr *strt)
 
 		if (strt->id == ITM_ID(itm_store) &&
 		    itm_get_tag(list_last(strt->operands), &tt_phiable))
-			remi(strt);
+			itm_remi(strt);
 		else if (strt->id == ITM_ID(itm_load) &&
 		         itm_get_tag(list_head(strt->operands), &tt_phiable))
-			remi(strt);
+			itm_remi(strt);
 
 		strt = nnxt;
 	}
@@ -186,7 +132,7 @@ static void remphiables(struct itm_instr *strt)
 		struct itm_instr *nnxt = strt->next;
 		if (strt->id == ITM_ID(itm_alloca) &&
 		    itm_get_tag(&strt->base, &tt_phiable))
-			remi(strt);
+			itm_remi(strt);
 		strt = nnxt;
 	}
 }
@@ -197,7 +143,7 @@ static void o_phiable(struct itm_instr *strt, struct list *dict)
 
 	if (strt->id == ITM_ID(itm_load) &&
 	    itm_get_tag(list_head(strt->operands), &tt_phiable))
-		replocc(strt, traceload(strt, strt, dict));
+		itm_replocc(&strt->base, traceload(strt, strt, dict), strt->block);
 
 	if (nxt)
 		o_phiable(nxt, dict);

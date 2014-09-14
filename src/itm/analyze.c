@@ -173,9 +173,12 @@ exit:
 
 	// used in block only
 	if (localuse && !orf) {
-		struct itm_tag *endlife = new_itm_tag(&tt_endlife, "endlife", TO_EXPR_LIST);
+		struct itm_tag *endlife = itm_get_tag(&blocki->base, &tt_endlife);
+		if (!endlife) {
+			endlife = new_itm_tag(&tt_endlife, "endlife", TO_EXPR_LIST);
+			itm_tag_expr(&blocki->base, endlife);
+		}
 		itm_tag_add_item(endlife, instr);
-		itm_tag_expr(&blocki->base, endlife);
 	}
 
 	if (orf || localuse)

@@ -21,30 +21,36 @@
 #define EMIT_ASM_H
 
 #include <stdio.h>
+#include <stdint.h>
+
+#include <acc/itm/tag.h>
 
 typedef void *asme_type_t;
 
 extern asme_type_t asme_reg;
 extern asme_type_t asme_imm;
 
+extern itm_tag_type_t tt_loc;
+
 struct asme {
 	asme_type_t *type;
-	int size;
+	int64_t size;
 	void (*to_string)(FILE *f, struct asme *e);
 	void (*to_string_d)(FILE *f, struct asme *e);
 };
 
 struct asmreg {
 	struct asme base;
+	int id;
 	const char *name;
 	const struct asmreg *parent;
 	const struct asmreg *child1;
 	const struct asmreg *child2;
 };
 
-#define NEW_REG(size, name, parent, ch1, ch2) 				\
+#define NEW_REG(size, name, parent, ch1, ch2, id)			\
 	{ { &asme_reg, size, &asmregtostr, &asmregtostr }, 		\
-		name, parent, ch1, ch2 }
+		1 << (id), name, parent, ch1, ch2 }
 
 struct asmimm {
 	struct asme base;

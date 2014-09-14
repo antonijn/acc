@@ -32,11 +32,11 @@ enum itm_tag_object {
 
 struct itm_tag;
 
-struct itm_tag *new_itm_tag(itm_tag_type_t type, const char *name,
+struct itm_tag *new_itm_tag(itm_tag_type_t *type, const char *name,
 	enum itm_tag_object obj);
 void delete_itm_tag(struct itm_tag *tag);
 
-itm_tag_type_t itm_tag_type(struct itm_tag *tag);
+itm_tag_type_t *itm_tag_type(struct itm_tag *tag);
 const char *itm_tag_name(struct itm_tag *tag);
 enum itm_tag_object itm_tag_object(struct itm_tag *tag);
 void itm_tag_seti(struct itm_tag *tag, int i);
