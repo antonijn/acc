@@ -28,6 +28,7 @@
 #include <acc/emit/x86.h>
 #include <acc/itm/ast.h>
 #include <acc/itm/analyze.h>
+#include <acc/parsing/ast.h>
 #include <acc/options.h>
 #include <acc/target.h>
 
@@ -297,12 +298,28 @@ static void x86_restrictmul(struct itm_instr *i)
 	itm_inserti(clobb, i->next);
 }
 
+static void x86_restrictret(struct itm_instr *i)
+{
+	if (i->id != ITM_ID(itm_ret))
+		return;
+
+	if (hastc(i->base.type, TC_POINTER) ||
+	    hastc(i->base.type, TC_INTEGRAL)) {
+		struct itm_instr *mov = itm_mov(i->block, list_head(i->operands));
+		struct itm_tag *loc = new_itm_tag(&tt_loc, "loc", TO_INT);
+		itm_tag_seti(loc, rax.id);
+		itm_tag_expr(&mov->base, loc);
+		itm_inserti(mov, i);
+	}
+}
+
 static void x86_restrict(struct itm_block *b)
 {
 	struct itm_instr *i = b->first;
 	while (i) {
 		// TODO: restrict for function calls
 		x86_restrictmul(i);
+		x86_restrictret(i);
 		i = i->next;
 	}
 
