@@ -30,7 +30,7 @@ typedef void *asme_type_t;
 extern asme_type_t asme_reg;
 extern asme_type_t asme_imm;
 
-extern itm_tag_type_t tt_loc;
+extern itm_tag_type_t tt_loc, tt_color;
 
 struct asme {
 	asme_type_t *type;
@@ -87,5 +87,11 @@ void emit_short(FILE *f, size_t cnt, ...);
 void emit_long(FILE *f, size_t cnt, ...);
 void emit_quad(FILE *f, size_t cnt, ...);
 void emit_asciiz(FILE *f, const char *str);
+
+enum raflags {
+	RA_NONE
+};
+
+void regalloc(struct itm_block *b, enum raflags flags);
 
 #endif

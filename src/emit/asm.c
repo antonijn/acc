@@ -30,7 +30,7 @@
 asme_type_t asme_reg;
 asme_type_t asme_imm;
 
-itm_tag_type_t tt_loc;
+itm_tag_type_t tt_loc, tt_color;
 
 static void asmimmtostr(FILE *f, struct asme *e);
 static void asmimmtostrd(FILE *f, struct asme *e);
@@ -334,4 +334,24 @@ void emit_asciiz(FILE *f, const char *str)
 	if (option_asmflavor() != AF_ATT)
 		fprintf(f, "\\0");
 	fprintf(f, "\"\n");
+}
+
+
+/*
+ * This is one of the most important functions in the whole compiler.
+ * It tags each and every intermediate instruction with a tt_loc/tt_reg flag,
+ * a flag that indicates the location of the instruction.
+ *
+ * It may also use itm_mov instructions along the way to split the lifetime
+ * of an instruction up into multiple locations, which may be more register
+ * efficient, or faster.
+ *
+ * In this process, it first assigns each intermediate instruction with a color,
+ * meaning one unique location, not bound to any location yet. Important here is
+ * that **no two instructions with an overlapping lifespan may be assigned the
+ * same color**.
+ */
+void regalloc(struct itm_block *b, enum raflags flags)
+{
+	
 }
