@@ -18,7 +18,8 @@
 #
 
 CC = gcc
-CFLAGS = -c -Iinclude -std=c99 -pedantic-errors -DBUILDFOR_LINUX
+CFLAGS = -c -Iinclude -std=c99 -pedantic-errors -DBUILDFOR_LINUX \
+	-DACC_VERSION=\"pre-alpha\"
 LD = $(CC)
 
 TARGET = acc
