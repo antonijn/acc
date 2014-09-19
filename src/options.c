@@ -147,7 +147,10 @@ void options_init(int argc, char *argv[])
 		} else if (!strcmp(arg, "--help=optimizers")) {
 			//fprintf(stderr, help[4]);
 			exit(EXIT_SUCCESS);
-		} else if (!strcmp(arg, "-o")) {
+		} else if (!strcmp(arg, "--version")) {
+			fprintf(stderr, "acc " ACC_VERSION "\n");
+			exit(EXIT_SUCCESS);
+		}  else if (!strcmp(arg, "-o")) {
 			if (++i >= argc)
 				report(E_OPTIONS, NULL, "expected output file name");
 			outfile = argv[i];
