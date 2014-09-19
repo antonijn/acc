@@ -39,6 +39,29 @@ static enum asmflavor flavor =
 static bool emit_ir = false;
 static bool emit_asm = false;
 
+static char help[] =
+"Usage: acc [options] file...\n\
+Options:\n\
+  --help                   Display this information and exit\n\
+  --help={extensions|target|warning}\n\
+                           Display subject-specific help\n\
+  --version                Display version information and exit\n\
+  -std=<standard>          Interpret input files as being <standard>\n\
+  -v                       Output verbose information\n\
+  -Sir                     Parse only, and dump intermediate output\n\
+  -S                       Parse and compile, but do not assemble or link, and\n\
+                           dump assembly\n\
+  -c                       Parse, compile and assemble, but do not link\n\
+  -o <file>                Output to <file>\n\
+\n\
+Switches starting with -f, -m, -O and -W indicate extensions, target-specific\n\
+ options, optimizations and warnings respectively. Information about them can be\n\
+ displayed through the appropriate --help=... options.\n\
+\n\
+Report bugs at:\n\
+<https://github.com/antonijn/acc>.\n\
+";
+
 enum cversion {
 	C89,
 	C95,
@@ -76,7 +99,10 @@ void options_init(int argc, char *argv[])
 
 	for (int i = 1; i < argc; ++i) {
 		char *arg = argv[i];
-		if (!strcmp(arg, "-o")) {
+		if (!strcmp(arg, "--help")) {
+			fprintf(stderr, help);
+			exit(EXIT_SUCCESS);
+		} else if (!strcmp(arg, "-o")) {
 			if (++i >= argc)
 				report(E_OPTIONS, NULL, "expected output file name");
 			outfile = argv[i];
