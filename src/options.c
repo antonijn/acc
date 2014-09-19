@@ -43,7 +43,7 @@ static char *help[] = {
 "Usage: acc [options] file...\n\
 Options:\n\
   --help                   Display this information and exit\n\
-  --help={extensions|target|warning}\n\
+  --help={extensions|target|warnings|optimizers}\n\
                            Display subject-specific help\n\
   --version                Display version information and exit\n\
   -std=<standard>          Interpret input files as being <standard>\n\
@@ -88,7 +88,11 @@ Report bugs at:\n\
   -fdigraphs               Enables C95 digraphs\n\
   -fdiagnostics-color      Signal the error reporter to colorize its output,\n\
                            and is enabled by default if the ACC_COLORS\n\
-                           environment variable is set\n"
+                           environment variable is set\n",
+
+"  -masm=att, -masm=gas     Sets the x86 assembler dialect to AT&T/GAS syntax\n\
+  -masm=nasm               Sets the x86 assembler dialect to NASM syntax\n\
+  -masm=intel, -masm=masm  Sets the x86 assembler dialect to MASM syntax\n"
 };
 
 enum cversion {
@@ -135,10 +139,13 @@ void options_init(int argc, char *argv[])
 			fprintf(stderr, help[1]);
 			exit(EXIT_SUCCESS);
 		} else if (!strcmp(arg, "--help=target")) {
-			//fprintf(stderr, help[2]);
+			fprintf(stderr, help[2]);
 			exit(EXIT_SUCCESS);
-		} else if (!strcmp(arg, "--help=warning")) {
+		} else if (!strcmp(arg, "--help=warnings")) {
 			//fprintf(stderr, help[3]);
+			exit(EXIT_SUCCESS);
+		} else if (!strcmp(arg, "--help=optimizers")) {
+			//fprintf(stderr, help[4]);
 			exit(EXIT_SUCCESS);
 		} else if (!strcmp(arg, "-o")) {
 			if (++i >= argc)
