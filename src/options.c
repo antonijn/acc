@@ -39,6 +39,62 @@ static enum asmflavor flavor =
 static bool emit_ir = false;
 static bool emit_asm = false;
 
+static char *help[] = {
+"Usage: acc [options] file...\n\
+Options:\n\
+  --help                   Display this information and exit\n\
+  --help={extensions|target|warnings|optimizers}\n\
+                           Display subject-specific help\n\
+  --version                Display version information and exit\n\
+  -std=<standard>          Interpret input files as being <standard>\n\
+  -v                       Output verbose information\n\
+  -Sir                     Parse only, and dump intermediate output\n\
+  -S                       Parse and compile, but do not assemble or link, and\n\
+                           dump assembly\n\
+  -c                       Parse, compile and assemble, but do not link\n\
+  -o <file>                Output to <file>\n\
+\n\
+Switches starting with -f, -m, -O and -W indicate extensions, target-specific\n\
+ options, optimizations and warnings respectively. Information about them can be\n\
+ displayed through the appropriate --help=... options.\n\
+\n\
+Report bugs at:\n\
+<https://github.com/antonijn/acc/issues>.\n",
+
+"  -fmixed-declarations     Allows intermingled code and declarations\n\
+  -fpure                   Enables the __pure keyword used to declare functions\n\
+                           without side-effects\n\
+  -fbool                   Enables the _Bool type\n\
+  -fundef                  Enables the __undef constant, which has no set value\n\
+  -finline                 Enables the inline keyword, which hints for function\n\
+                           inlining\n\
+  -flong-long              Enables the long long integer type\n\
+  -fvlas                   Enables variable-length arrays (VLAs)\n\
+  -fcomplex                Enables the _Complex type\n\
+  -fone-line-comments      Enables C++ style one-line comments\n\
+  -fhex-floats             Enables hexadecimal floating point constants\n\
+  -flong-double            Enables the long double type\n\
+  -fdesignated-initializers\n\
+                           Enables C99 designated initializers\n\
+  -fcompound-literals      Enables C99 compound literals\n\
+  -fvariadic-macros        Allows variadic macro definitions\n\
+  -frestrict               Enables the C99 restrict keyword for no-alias\n\
+                           pointers\n\
+  -funiversal-character-names\n\
+                           Enables unicode universal character names in string\n\
+                           literals\n\
+  -funicode-strings        Enables u8, u and U string-literal prefixes\n\
+  -fbinary-literals        Enables 0b-prefixed binary integer literals\n\
+  -fdigraphs               Enables C95 digraphs\n\
+  -fdiagnostics-color      Signal the error reporter to colorize its output,\n\
+                           and is enabled by default if the ACC_COLORS\n\
+                           environment variable is set\n",
+
+"  -masm=att, -masm=gas     Sets the x86 assembler dialect to AT&T/GAS syntax\n\
+  -masm=nasm               Sets the x86 assembler dialect to NASM syntax\n\
+  -masm=intel, -masm=masm  Sets the x86 assembler dialect to MASM syntax\n"
+};
+
 enum cversion {
 	C89,
 	C95,
@@ -76,7 +132,25 @@ void options_init(int argc, char *argv[])
 
 	for (int i = 1; i < argc; ++i) {
 		char *arg = argv[i];
-		if (!strcmp(arg, "-o")) {
+		if (!strcmp(arg, "--help")) {
+			fprintf(stderr, help[0]);
+			exit(EXIT_SUCCESS);
+		} else if (!strcmp(arg, "--help=extensions")) {
+			fprintf(stderr, help[1]);
+			exit(EXIT_SUCCESS);
+		} else if (!strcmp(arg, "--help=target")) {
+			fprintf(stderr, help[2]);
+			exit(EXIT_SUCCESS);
+		} else if (!strcmp(arg, "--help=warnings")) {
+			//fprintf(stderr, help[3]);
+			exit(EXIT_SUCCESS);
+		} else if (!strcmp(arg, "--help=optimizers")) {
+			//fprintf(stderr, help[4]);
+			exit(EXIT_SUCCESS);
+		} else if (!strcmp(arg, "--version")) {
+			fprintf(stderr, "acc " ACC_VERSION "\n");
+			exit(EXIT_SUCCESS);
+		}  else if (!strcmp(arg, "-o")) {
 			if (++i >= argc)
 				report(E_OPTIONS, NULL, "expected output file name");
 			outfile = argv[i];
