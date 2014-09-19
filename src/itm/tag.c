@@ -26,7 +26,7 @@
 #include <acc/list.h>
 
 struct itm_tag {
-	itm_tag_type_t type;
+	itm_tag_type_t *type;
 	const char *name;
 	enum itm_tag_object object;
 	void (*free)(void *data);
@@ -42,7 +42,7 @@ static void free_expr_list(void *data)
 	delete_list(data, NULL);
 }
 
-struct itm_tag *new_itm_tag(itm_tag_type_t type, const char *name,
+struct itm_tag *new_itm_tag(itm_tag_type_t *type, const char *name,
 	enum itm_tag_object obj)
 {
 	struct itm_tag *tag = malloc(sizeof(struct itm_tag));
@@ -64,7 +64,7 @@ void delete_itm_tag(struct itm_tag *tag)
 		tag->free(tag->value.data);
 }
 
-itm_tag_type_t itm_tag_type(struct itm_tag *tag)
+itm_tag_type_t *itm_tag_type(struct itm_tag *tag)
 {
 	return tag->type;
 }

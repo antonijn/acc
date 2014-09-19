@@ -29,7 +29,6 @@
 static void free_dummy(struct itm_expr *e);
 
 // to_string functions
-#ifndef NDEBUG
 static int itm_block_number(struct itm_block *block);
 
 static int itm_instr_number(struct itm_instr *i)
@@ -229,7 +228,6 @@ void itm_container_to_string(FILE *f, struct itm_container *c)
 	fprintf(f, "\n");
 }
 
-#endif
 
 struct itm_container *new_itm_container(enum itm_linkage linkage, char *id,
 	struct ctype *ty)
@@ -242,9 +240,7 @@ struct itm_container *new_itm_container(enum itm_linkage linkage, char *id,
 	c->base.etype = ITME_CONTAINER;
 	c->base.type = new_pointer(ty);
 	c->base.free = (void (*)(struct itm_expr *))&delete_itm_container;
-#ifndef NDEBUG
 	c->base.to_string = &itm_containere_to_string;
-#endif
 	c->block = NULL;
 	c->id = malloc((strlen(id) + 1) * sizeof(char));
 	sprintf(c->id, "%s", id);
@@ -277,9 +273,7 @@ struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *ty)
 	lit->base.etype = ITME_LITERAL;
 	lit->base.type = ty;
 	lit->base.free = (void (*)(struct itm_expr *))&free;
-#ifndef NDEBUG
 	lit->base.to_string = &itm_literal_to_string;
-#endif
 	list_push_back(c->literals, lit);
 	return lit;
 }
@@ -292,9 +286,7 @@ struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *ty)
 	lit->etype = ITME_UNDEF;
 	lit->type = ty;
 	lit->free = (void (*)(struct itm_expr *))&free;
-#ifndef NDEBUG
 	lit->to_string = &itm_undef_to_string;
-#endif
 	list_push_back(c->literals, lit);
 	return lit;
 }
@@ -306,9 +298,7 @@ struct itm_block *new_itm_block(struct itm_container *container)
 	res->base.etype = ITME_BLOCK;
 	res->base.tags = NULL;
 	res->base.free = (void (*)(struct itm_expr *))&delete_itm_block;
-#ifndef NDEBUG
 	res->base.to_string = &itm_blocke_to_string;
-#endif
 	res->previous = new_list(NULL, 0);
 	res->next = new_list(NULL, 0);
 	res->lexnext = NULL;
@@ -387,6 +377,75 @@ static void free_dummy(struct itm_expr *e)
 {
 }
 
+void itm_remi(struct itm_instr *a)
+{
+	if (a->previous)
+		a->previous->next = a->next;
+	if (a->next)
+		a->next->previous = a->previous;
+	if (a->block->first == a)
+		a->block->first = a->next;
+	if (a->block->last == a)
+		a->block->last = a->previous;
+
+	a->previous = NULL;
+	a->next = NULL;
+	cleanup_instr(a);
+}
+
+void itm_replocc(struct itm_expr *a, struct itm_expr *b, struct itm_block *bl)
+{
+	struct itm_block *first = bl;
+	while (first->lexprev)
+		first = first->lexprev;
+
+	struct itm_instr *instr = first->first;
+	while (instr) {
+		struct itm_expr *e;
+		void *it = list_iterator(instr->operands);
+		int i = 0;
+		while (iterator_next(&it, (void **)&e)) {
+			if (e == a)
+				set_list_item(instr->operands, i, b);
+			++i;
+		}
+
+		if (!instr->next) {
+			if (instr->block->lexnext)
+				instr = instr->block->lexnext->first;
+			else
+				break;
+		} else {
+			instr = instr->next;
+		}
+	}
+}
+
+void itm_repli(struct itm_instr *a, struct itm_expr *b)
+{
+	itm_replocc(&a->base, b, a->block);
+	itm_remi(a);
+}
+
+void itm_inserti(struct itm_instr *a, struct itm_instr *before)
+{
+	if (a->previous)
+		a->previous->next = a->next;
+	if (a->next)
+		a->next->previous = a->previous;
+	if (a->block->last == a)
+		a->block->last = a->previous;
+
+	if (before->previous)
+		before->previous->next = a;
+	else
+		a->block->first = a;
+
+	a->previous = before->previous;
+	a->next = before;
+	before->previous = a;
+}
+
 // instruction initializers and instructions
 enum opflags {
 	OF_NONE = 0x0,
@@ -407,9 +466,7 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 	res->base.etype = ITME_INSTRUCTION;
 	res->base.type = type;
 	res->base.free = &free_dummy;
-#ifndef NDEBUG
 	res->base.to_string = &itm_instr_expr_to_string;
-#endif
 
 	res->id = id;
 	res->operation = operation;
@@ -742,4 +799,18 @@ struct itm_instr *itm_leave(struct itm_block *b)
 	struct itm_instr *res;
 	res = impl_op(b, &cvoid, ITM_ID(itm_leave), "leave", OF_TERMINAL);
 	return res;
+}
+
+
+struct itm_instr *itm_mov(struct itm_block *b, struct itm_expr *l)
+{
+	struct itm_instr *res;
+	res = impl_op(b, l->type, ITM_ID(itm_mov), "mov", OF_NONE);
+	list_push_back(res->operands, l);
+	return res;
+}
+
+struct itm_instr *itm_clobb(struct itm_block *b)
+{
+	return impl_op(b, &cvoid, ITM_ID(itm_clobb), "clobb", OF_NONE);
 }

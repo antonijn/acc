@@ -39,5 +39,7 @@ int option_optimize(void);
 struct list *option_input(void);
 bool option_warnings(void);
 enum asmflavor option_asmflavor(void);
+bool option_emit_ir(void);
+bool option_emit_asm(void);
 
 #endif

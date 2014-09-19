@@ -37,6 +37,33 @@
 #include <acc/error.h>
 #include <acc/target.h>
 
+static void opt_and_dump(struct list *syms)
+{
+	char ofname[strlen(currentfile ? currentfile : "-") + 4];
+	sprintf(ofname, "%s.ir", currentfile ? currentfile : "-");
+	FILE *out;
+	if (option_emit_ir()) {
+		if (option_outfile())
+			out = fopen(option_outfile(), "wb");
+		else
+			out = fopen(ofname, "wb");
+	}
+
+	struct itm_container *sym;
+	void *it = list_iterator(syms);
+	while (iterator_next(&it, (void **)&sym)) {
+		if (!sym->block)
+			continue;
+
+		optimize(sym->block);
+		if (option_emit_ir())
+			itm_container_to_string(out, sym);
+	}
+
+	if (option_emit_ir())
+		fclose(out);
+}
+
 static void compilefile(FILE *f)
 {
 	struct list *syms = new_list(NULL, 0);
@@ -48,33 +75,22 @@ static void compilefile(FILE *f)
 		goto cleanup;
 
 	parsefile(f, syms);
+	opt_and_dump(syms);
 
-#ifndef NDEBUG
-	{
-		char ofname[strlen(currentfile ? currentfile : "-") + 9];
-		sprintf(&ofname[0], "%s.itm", currentfile ? currentfile : "-");
-		FILE *out = fopen(&ofname[0], "wb");
-		strcat(ofname, ".opt");
-		FILE *opt = fopen(&ofname[0], "wb");
-
-		struct itm_container *sym;
-		void *it = list_iterator(syms);
-		while (iterator_next(&it, (void **)&sym)) {
-			if (!sym->block)
-				continue;
-
-			analyze(sym->block, A_PHIABLE);
-			itm_container_to_string(out, sym);
-			optimize(sym->block, OPT_PHIABLE);
-			itm_container_to_string(opt, sym);
+	FILE *s;
+	if (option_emit_asm()) {
+		if (option_outfile()) {
+			s = fopen(option_outfile(), "wb");
+		} else {
+			char ofname[strlen(currentfile ? currentfile : "-") + 3];
+			sprintf(ofname, "%s.s", currentfile ? currentfile : "-");
+			s = fopen(ofname, "wb");
 		}
-
-		fclose(out);
-		fclose(opt);
+	} else {
+		s = tmpfile();
 	}
-#endif
-
-	getarch()->emitter(stdout, syms);
+	getarch()->emitter(s, syms);
+	fclose(s);
 
 cleanup:
 	delete_list(syms, NULL);

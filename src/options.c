@@ -23,7 +23,7 @@
 #include <acc/error.h>
 #include <acc/ext.h>
 
-static char *outfile = "a.out";
+static char *outfile = NULL;
 static struct list *input;
 static int optimize = 0;
 static bool warnings = true;
@@ -36,6 +36,8 @@ static enum asmflavor flavor =
 #error No target defined
 	-1;
 #endif
+static bool emit_ir = false;
+static bool emit_asm = false;
 
 enum cversion {
 	C89,
@@ -77,7 +79,7 @@ void options_init(int argc, char *argv[])
 		if (!strcmp(arg, "-o")) {
 			if (++i >= argc)
 				report(E_OPTIONS, NULL, "expected output file name");
-			outfile = argv[++i];
+			outfile = argv[i];
 		} else if (!strcmp(arg, "-w")) {
 			warnings = false;
 		} else if (!strcmp(arg, "-O0")) {
@@ -100,6 +102,10 @@ void options_init(int argc, char *argv[])
 			setcversion(C95);
 		} else if (!strcmp(arg, "-std=c99")) {
 			setcversion(C99);
+		} else if (!strcmp(arg, "-Sir")) {
+			emit_ir = true;
+		} else if (!strcmp(arg, "-S")) {
+			emit_asm = true;
 		} else if (arg[0] == '-' && arg[1] == 'f') {
 			enableext(&arg[2]);
 		} else if (arg[0] == '-' && arg[1] != '\0') {
@@ -139,4 +145,14 @@ enum asmflavor option_asmflavor(void)
 bool option_warnings(void)
 {
 	return warnings;
+}
+
+bool option_emit_ir(void)
+{
+	return emit_ir;
+}
+
+bool option_emit_asm(void)
+{
+	return emit_asm;
 }

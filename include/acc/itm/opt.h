@@ -22,10 +22,6 @@
 
 #include <acc/itm/ast.h>
 
-enum optimization {
-	OPT_PHIABLE = 0x1
-};
-
-void optimize(struct itm_block *strt, enum optimization o);
+void optimize(struct itm_block *strt);
 
 #endif

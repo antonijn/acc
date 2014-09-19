@@ -45,9 +45,7 @@ struct itm_expr {
 	struct ctype *type;
 	struct list *tags;
 	void (*free)(struct itm_expr *e);
-#ifndef NDEBUG
 	void (*to_string)(FILE *f, struct itm_expr *e);
-#endif
 };
 
 #define ITM_ID(x)		((instr_id_t)&(x))
@@ -120,12 +118,15 @@ struct itm_block *add_itm_block_previous(struct itm_block *block,
 	struct list *previous);
 void delete_itm_block(struct itm_block *block);
 void cleanup_instr(struct itm_instr *i);
-#ifndef NDEBUG
 void itm_container_to_string(FILE *f, struct itm_container *c);
-#endif
 
 void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag);
 struct itm_tag *itm_get_tag(struct itm_expr *e, itm_tag_type_t *ty);
+
+void itm_remi(struct itm_instr *a);
+void itm_repli(struct itm_instr *a, struct itm_expr *b);
+void itm_replocc(struct itm_expr *a, struct itm_expr *b, struct itm_block *bl);
+void itm_inserti(struct itm_instr *a, struct itm_instr *before);
 
 struct itm_instr *itm_add(struct itm_block *b, struct itm_expr *l, struct itm_expr *r);
 struct itm_instr *itm_sub(struct itm_block *b, struct itm_expr *l, struct itm_expr *r);
@@ -169,5 +170,8 @@ struct itm_instr *itm_jmp(struct itm_block *b, struct itm_block *to);
 struct itm_instr *itm_split(struct itm_block *b, struct itm_expr *c, struct itm_block *t, struct itm_block *e);
 struct itm_instr *itm_ret(struct itm_block *b, struct itm_expr *l);
 struct itm_instr *itm_leave(struct itm_block *b);
+
+struct itm_instr *itm_mov(struct itm_block *b, struct itm_expr *e);
+struct itm_instr *itm_clobb(struct itm_block *b);
 
 #endif
