@@ -29,7 +29,7 @@ OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
 release: CFLAGS += -DNDEBUG -O2
 debug: CFLAGS += -g -DITM_COLORS=1
-	LD += -rdynamic
+debug: LDFLAGS += -rdynamic
 
 release debug: $(TARGET)
 
