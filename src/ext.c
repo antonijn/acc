@@ -23,6 +23,8 @@
 #include <acc/ext.h>
 #include <acc/error.h>
 
+static bool enabled[EX_COUNT + 1] = { 0 };
+
 struct extension {
 	const char *str;
 	enum exno no;
@@ -52,8 +54,6 @@ static struct extension extensions[] = {
 	{ "diagnostics-color", EX_DIAGNOSTICS_COLOR }
 };
 
-static enum exno enabled = 0;
-
 enum exno getex(const char *ext)
 {
 	for (int i = 0; i < sizeof(extensions) / sizeof(struct extension); ++i) {
@@ -63,31 +63,31 @@ enum exno getex(const char *ext)
 	}
 	report(E_WARNING | E_HIDE_TOKEN | E_HIDE_LOCATION,
 		NULL, "extension not found: \"%s\"", ext);
-	return -1;
+	return EX_COUNT;
 }
 
 void enableext(const char *ext)
 {
 	if (!strncmp(ext, "no-", 3))
-		enabled &= ~getex(&ext[3]);
+		enabled[getex(&ext[3])] = false;
 	else
-		enabled |= getex(ext);
+		enabled[getex(ext)] = true;
 }
 
 void disableext(const char *ext)
 {
 	if (!strncmp(ext, "no-", 3))
-		enabled |= getex(&ext[3]);
+		enabled[getex(&ext[3])] = true;
 	else
-		enabled &= ~getex(ext);
+		enabled[getex(ext)] = false;
 }
 
 void orext(enum exno ext)
 {
-	enabled |= ext;
+	enabled[ext] = true;
 }
 
 bool isext(enum exno ext)
 {
-	return (enabled & ext) == ext;
+	return enabled[ext];
 }
