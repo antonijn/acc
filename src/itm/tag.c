@@ -82,11 +82,6 @@ static void print_expr_list(FILE *f, void *it)
 
 void itm_tag_to_string(FILE *f, struct itm_tag *tag)
 {
-	if (tag->print) {
-		tag->print(f, tag->value.data);
-		return;
-	}
-
 	fprintf(f, "%s(", tag->name);
 	switch (tag->object) {
 	case TO_INT:
@@ -94,6 +89,9 @@ void itm_tag_to_string(FILE *f, struct itm_tag *tag)
 		break;
 	case TO_EXPR_LIST:
 		print_expr_list(f, list_iterator(itm_tag_get_list(tag)));
+		break;
+	case TO_USER_PTR:
+		tag->print(f, tag->value.data);
 		break;
 	}
 	fprintf(f, ")");

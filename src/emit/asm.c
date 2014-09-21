@@ -33,6 +33,108 @@ asme_type_t asme_imm;
 
 itm_tag_type_t tt_loc, tt_color;
 
+enum locty {
+	LT_REG,
+	LT_LMEM,
+	LT_PMEM,
+	LT_MULTIPLE
+};
+
+struct location {
+	enum locty type;
+	size_t size;
+	void *extended;
+};
+
+struct loc_reg {
+	struct location base;
+	uint64_t rid;
+};
+
+struct loc_mem {
+	struct location base;
+	int offset;
+};
+
+struct loc_multiple {
+	struct location base;
+	struct list *locs;
+};
+
+static inline void loc_init(struct location *loc, enum locty type,
+	size_t size, void *ex)
+{
+	loc->type = type;
+	loc->size = size;
+	loc->extended = ex;
+}
+
+struct location *new_loc_reg(size_t size, int rid)
+{
+	struct loc_reg *loc = malloc(sizeof(struct loc_reg));
+	loc_init(&loc->base, LT_REG, size, loc);
+	loc->rid = rid;
+	return &loc->base;
+}
+
+struct location *new_loc_lmem(size_t size, int offset)
+{
+	struct loc_mem *loc = malloc(sizeof(struct loc_mem));
+	loc_init(&loc->base, LT_LMEM, size, loc);
+	loc->offset = offset;
+	return &loc->base;
+}
+
+struct location *new_loc_pmem(size_t size, int offset)
+{
+	struct loc_mem *loc = malloc(sizeof(struct loc_mem));
+	loc_init(&loc->base, LT_PMEM, size, loc);
+	loc->offset = offset;
+	return &loc->base;
+}
+
+struct location *new_loc_multiple(size_t size, struct list *locs)
+{
+	struct loc_multiple *loc = malloc(sizeof(struct loc_multiple));
+	loc_init(&loc->base, LT_MULTIPLE, size, loc);
+	loc->locs = clone_list(locs);
+	return &loc->base;
+}
+
+void delete_loc(struct location *loc)
+{
+	if (loc->type == LT_MULTIPLE) {
+		struct loc_multiple *ext = loc->extended;
+		delete_list(ext->locs, (void (*)(void *))&delete_loc);
+	}
+	free(loc);
+}
+
+void loc_to_string(FILE *f, struct location *loc)
+{
+	struct loc_reg *reg;
+	struct loc_mem *mem;
+	struct loc_multiple *mul;
+
+	switch (loc->type) {
+	case LT_REG:
+		reg = loc->extended;
+		uint64_t rid = reg->rid;
+		bool prevprint = false;
+		for (int i = 0; i < sizeof(rid) * 8; ++i) {
+			if (!(rid & (1ul << i)))
+				continue;
+
+			if (prevprint)
+				fprintf(f, " | ");
+			fprintf(f, "r%d", i);
+			prevprint = true;
+			rid &= ~(1ul << i);
+		}
+		break;
+	}
+}
+
 static void asmimmtostr(FILE *f, struct asme *e);
 static void asmimmtostrd(FILE *f, struct asme *e);
 

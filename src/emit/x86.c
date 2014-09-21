@@ -283,16 +283,18 @@ static void x86_restrictmul(struct itm_instr *i)
 	if (!hastc(l->type, TC_UNSIGNED))
 		return;
 
+	struct location *actloc = new_loc_reg(i->base.type->size, rax.id);
 	struct itm_instr *mov = itm_mov(i->block, l);
-	struct itm_tag *loc = new_itm_tag(&tt_loc, "loc", TO_INT);
-	itm_tag_seti(loc, rax.id);
+	struct itm_tag *loc = new_itm_tag(&tt_loc, "loc", TO_USER_PTR);
+	itm_tag_set_user_ptr(loc, actloc, (void (*)(FILE *, void *))&loc_to_string);
 	itm_tag_expr(&mov->base, loc);
 	itm_inserti(mov, i);
 	set_list_item(i->operands, 0, mov);
 
+	actloc = new_loc_reg(i->base.type->size, rdx.id);
 	struct itm_instr *clobb = itm_clobb(i->block);
-	loc = new_itm_tag(&tt_loc, "loc", TO_INT);
-	itm_tag_seti(loc, rdx.id);
+	loc = new_itm_tag(&tt_loc, "loc", TO_USER_PTR);
+	itm_tag_set_user_ptr(loc, actloc, (void (*)(FILE *, void *))&loc_to_string);
 	itm_tag_expr(&clobb->base, loc);
 	itm_inserti(clobb, i->next);
 }
@@ -305,10 +307,12 @@ static void x86_restrictret(struct itm_instr *i)
 	if (hastc(i->base.type, TC_POINTER) ||
 	    hastc(i->base.type, TC_INTEGRAL)) {
 		struct itm_instr *mov = itm_mov(i->block, list_head(i->operands));
-		struct itm_tag *loc = new_itm_tag(&tt_loc, "loc", TO_INT);
-		itm_tag_seti(loc, rax.id);
+		struct itm_tag *loc = new_itm_tag(&tt_loc, "loc", TO_USER_PTR);
+		struct location *actloc = new_loc_reg(i->base.type->size, rax.id);
+		itm_tag_set_user_ptr(loc, actloc, (void (*)(FILE *, void *))&loc_to_string);
 		itm_tag_expr(&mov->base, loc);
 		itm_inserti(mov, i);
+		set_list_item(i->operands, 0, mov);
 	}
 }
 
