@@ -5,8 +5,25 @@ subsystems.
 
 Its features include:
 
-	- Providing an interface for reading and writing the intermediate form
-	  abstract syntax tree for the parsing and emission subsystems
-	  respectively.
-	- Analyse and optimise the intermediate form abstract syntax tree
-	  (unimplemented as of yet).
+- Providing an interface for reading and writing the intermediate form abstract
+  syntax tree for the parsing and emission subsystems respectively. These
+  functions are provided by ast.c.
+
+- Analyse the intermediate form abstract syntax tree. Analysations include:
+
+	- A_USED: Usage analysis. Checks how often the instruction is used by
+	  other instructions, and tags each instruction with a tt_used.
+	- A_ACC: Accumulator analysis. Tags instructions which are only used
+	  by the next instruction (will probably remain unused...).
+	- A_LIFETIME: Lifetime analysis. Checks when an instruction is used
+	  last, and tags the instruction where it ends with tt_endlife.
+	- A_PHIABLE: Tests whether itm_alloca instructions are only used as the
+	  destination of an itm_store or the source of an itm_load, and is thus
+	  eligable for phi-node optimisation.
+
+  Analysations are only performed by the optimiser and the assembly emitter.
+
+- Optimising the intermediate abstract syntax tree. Current optimisations only
+  include phi-node optimisations, which involves running A_PHIABLE and
+  converting the appropriate itm_alloca, itm_load and itm_store instructions
+  into a phi-node system.
