@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include <acc/itm/ast.h>
 #include <acc/itm/tag.h>
 
 typedef void *asme_type_t;

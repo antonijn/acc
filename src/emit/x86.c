@@ -268,10 +268,9 @@ void x86_emit(FILE *f, struct list *blocks)
 
 static void x86_emit_symbol(FILE *f, struct itm_container *c)
 {
-	// TODO: implement
 	x86_restrict(c->block);
+	regalloc(c->block, RA_NONE);
 
-	analyze(c->block, A_LIFETIME);
 	itm_container_to_string(f, c);
 }
 
