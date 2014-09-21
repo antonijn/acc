@@ -47,7 +47,8 @@ void itm_tag_seti(struct itm_tag *tag, int i);
 int itm_tag_geti(struct itm_tag *tag);
 void itm_tag_add_item(struct itm_tag *tag, void *expr);
 struct list *itm_tag_get_list(struct itm_tag *tag);
-void itm_tag_set_user_ptr(struct itm_tag *tag, void *ptr, void (*print)(void *));
+void itm_tag_set_user_ptr(struct itm_tag *tag, void *ptr,
+	void (*print)(FILE *, void *));
 void *itm_tag_get_user_ptr(struct itm_tag *tag);
 
 #endif
