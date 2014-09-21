@@ -23,6 +23,7 @@
 #include <assert.h>
 
 #include <acc/itm/tag.h>
+#include <acc/itm/ast.h>
 #include <acc/list.h>
 
 struct itm_tag {
@@ -30,6 +31,7 @@ struct itm_tag {
 	const char *name;
 	enum itm_tag_object object;
 	void (*free)(void *data);
+	void (*print)(void *data);
 
 	union {
 		int i;
@@ -54,6 +56,7 @@ struct itm_tag *new_itm_tag(itm_tag_type_t *type, const char *name,
 	tag->object = obj;
 	tag->free = (obj == TO_EXPR_LIST) ? &free_expr_list : NULL;
 	tag->value.data = (obj == TO_EXPR_LIST) ? new_list(NULL, 0) : NULL;
+	tag->print = NULL;
 
 	return tag;
 }
@@ -62,6 +65,38 @@ void delete_itm_tag(struct itm_tag *tag)
 {
 	if (tag->free)
 		tag->free(tag->value.data);
+}
+
+static void print_expr_list(FILE *f, void *it)
+{
+	struct itm_expr *e;
+	bool first = true;
+	while (iterator_next(&it, (void **)&e)) {
+		if (!first)
+			fprintf(f, ", ");
+		else
+			first = false;
+		e->to_string(f, e);
+	}
+}
+
+void itm_tag_to_string(FILE *f, struct itm_tag *tag)
+{
+	if (tag->print) {
+		tag->print(tag->value.data);
+		return;
+	}
+
+	fprintf(f, "%s(", tag->name);
+	switch (tag->object) {
+	case TO_INT:
+		fprintf(f, "%d", tag->value.i);
+		break;
+	case TO_EXPR_LIST:
+		print_expr_list(f, list_iterator(itm_tag_get_list(tag)));
+		break;
+	}
+	fprintf(f, ")");
 }
 
 itm_tag_type_t *itm_tag_type(struct itm_tag *tag)
@@ -103,6 +138,21 @@ void itm_tag_add_item(struct itm_tag *tag, void *expr)
 struct list *itm_tag_get_list(struct itm_tag *tag)
 {
 	assert(tag->object == TO_EXPR_LIST);
+
+	return tag->value.data;
+}
+
+void itm_tag_set_user_ptr(struct itm_tag *tag, void *ptr, void (*print)(void *))
+{
+	assert(tag->object == TO_USER_PTR);
+
+	tag->print = print;
+	tag->value.data = ptr;
+}
+
+void *itm_tag_get_user_ptr(struct itm_tag *tag)
+{
+	assert(tag->object == TO_USER_PTR);
 
 	return tag->value.data;
 }
