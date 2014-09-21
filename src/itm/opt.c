@@ -60,7 +60,6 @@ static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 
 	switch (list_length(i->block->previous)) {
 	case 0:
-		// TODO: return __undef
 		return new_itm_undef(i->block->container, ld->base.type);
 	case 1:
 		return traceload(ld, ((struct itm_block *)list_head(i->block->previous))->last,
