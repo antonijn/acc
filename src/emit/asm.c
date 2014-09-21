@@ -23,6 +23,7 @@
 #include <ctype.h>
 #include <assert.h>
 
+#include <acc/itm/analyze.h>
 #include <acc/emit/asm.h>
 #include <acc/options.h>
 #include <acc/target.h>
@@ -336,22 +337,137 @@ void emit_asciiz(FILE *f, const char *str)
 	fprintf(f, "\"\n");
 }
 
+/*
+ * These are register allocation functions, used to assign a valid register to
+ * each intermediate instruction.
+ */
 
 /*
- * This is one of the most important functions in the whole compiler.
- * It tags each and every intermediate instruction with a tt_loc/tt_reg flag,
- * a flag that indicates the location of the instruction.
+ * Color Allocate
  *
- * It may also use itm_mov instructions along the way to split the lifetime
- * of an instruction up into multiple locations, which may be more register
- * efficient, or faster.
+ * colalloc() assigns a color to each intermediate instruction result, which
+ * represents a unique location, either a register, or in memory. No two
+ * instruction with an overlapping lifespan are assigned the same color.
  *
- * In this process, it first assigns each intermediate instruction with a color,
- * meaning one unique location, not bound to any location yet. Important here is
- * that **no two instructions with an overlapping lifespan may be assigned the
- * same color**.
+ * This algorithm "snatches" a location of an operand if the types match, and
+ * the lifespan of the operand ends.
+ */
+static void colalloc(struct itm_block *b, enum raflags flags);
+
+/*
+ * Color Optimize
+ *
+ * Stub!
+ */
+static void colopt(struct itm_block *b, enum raflags flags);
+
+/*
+ * Register Assign
+ *
+ * Assigns a register/memory location to each color, based on its type, CPU
+ * capabilities and lifespan.
+ */
+static void regasn(struct itm_block *b, enum raflags flags);
+
+/*
+ * The only exported register allocation functions, calling in sequence the
+ * three basic components.
  */
 void regalloc(struct itm_block *b, enum raflags flags)
 {
-	
+	colalloc(b, flags);
+	colopt(b, flags);
+	regasn(b, flags);
+}
+
+
+static void rcolphi(struct itm_instr *i, enum raflags flags, int *h);
+static void rcolalloc(struct itm_instr *i, enum raflags flags, int *h);
+static int colsnatch(struct itm_instr *i, enum raflags flags);
+static bool samety(struct ctype *a, struct ctype *b);
+
+static void colalloc(struct itm_block *b, enum raflags flags)
+{
+	assert(b != NULL);
+
+	analyze(b, A_LIFETIME);
+
+	int h = 0;
+	rcolalloc(b->first, flags, &h);
+}
+
+static int colsnatch(struct itm_instr *i, enum raflags flags)
+{
+	struct itm_tag *elifet = itm_get_tag(&i->base, &tt_endlife);
+	if (!elifet)
+		return -1;
+
+	struct list *elife = itm_tag_get_list(elifet);
+	struct itm_expr *e;
+	void *it = list_iterator(i->operands);
+	while (iterator_next(&it, (void **)&e)) {
+		if (samety(e->type, i->base.type) && list_contains(elife, e)) {
+			struct itm_tag *ct = itm_get_tag(e, &tt_color);
+			return itm_tag_geti(ct);
+		}
+	}
+
+	return -1;
+}
+
+static void rcolalloc(struct itm_instr *i, enum raflags flags, int *h)
+{
+	assert(h != NULL);
+	assert(i != NULL);
+
+	if (i->base.type == &cvoid || i->id == ITM_ID(itm_alloca))
+		goto nxti;
+
+	if (itm_get_tag(&i->base, &tt_loc))
+		goto nxti;
+
+	if (i->id == ITM_ID(itm_phi)) {
+		rcolphi(i, flags, h);
+		return;
+	}
+
+	int col = colsnatch(i, flags);
+	if (col == -1)
+		col = (*h)++;
+
+	struct itm_tag *colt = new_itm_tag(&tt_color, "color", TO_INT);
+	itm_tag_seti(colt, col);
+	itm_tag_expr(&i->base, colt);
+
+nxti:
+	if (i->next) {
+		rcolalloc(i->next, flags, h);
+		return;
+	}
+
+	struct itm_block *nxt;
+	void *bit = list_iterator(i->block->next);
+	while (iterator_next(&bit, (void **)&nxt))
+		rcolalloc(nxt->first, flags, h);
+}
+
+static void rcolphi(struct itm_instr *i, enum raflags flags, int *h)
+{
+	assert(!"rcolphi(): stub");
+}
+
+static bool samety(struct ctype *a, struct ctype *b)
+{
+	// TODO: proper implementation...
+	return a == b;
+}
+
+
+static void colopt(struct itm_block *b, enum raflags flags)
+{
+}
+
+
+static void regasn(struct itm_block *b, enum raflags flags)
+{
 }
