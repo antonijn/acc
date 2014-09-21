@@ -31,7 +31,7 @@ struct itm_tag {
 	const char *name;
 	enum itm_tag_object object;
 	void (*free)(void *data);
-	void (*print)(void *data);
+	void (*print)(FILE *f, void *data);
 
 	union {
 		int i;
@@ -83,7 +83,7 @@ static void print_expr_list(FILE *f, void *it)
 void itm_tag_to_string(FILE *f, struct itm_tag *tag)
 {
 	if (tag->print) {
-		tag->print(tag->value.data);
+		tag->print(f, tag->value.data);
 		return;
 	}
 
@@ -142,7 +142,8 @@ struct list *itm_tag_get_list(struct itm_tag *tag)
 	return tag->value.data;
 }
 
-void itm_tag_set_user_ptr(struct itm_tag *tag, void *ptr, void (*print)(void *))
+void itm_tag_set_user_ptr(struct itm_tag *tag, void *ptr,
+	void (*print)(FILE *, void *))
 {
 	assert(tag->object == TO_USER_PTR);
 
