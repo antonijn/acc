@@ -282,3 +282,22 @@ size_t list_length(struct list *l)
 
 	return l->length;
 }
+
+void dict_push_back(struct list *restrict d, void *key, void *value)
+{
+	list_push_back(d, key);
+	list_push_back(d, value);
+}
+
+bool dict_get(struct list *restrict d, void *key, void **val)
+{
+	void *it = list_iterator(d);
+	void *kact;
+	while (iterator_next(it, &kact)) {
+		iterator_next(it, val);
+		if (kact == key)
+			return true;
+	}
+	return false;
+}
+
