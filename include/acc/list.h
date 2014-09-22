@@ -44,4 +44,7 @@ void *list_head(struct list *l);
 void *list_last(struct list *l);
 size_t list_length(struct list *l);
 
+void dict_push_back(struct list *restrict d, void *key, void *value);
+bool dict_get(struct list *restrict d, void *key, void **value);
+
 #endif
