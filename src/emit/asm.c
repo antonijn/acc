@@ -404,7 +404,7 @@ static int colsnatch(struct itm_instr *i, enum raflags flags)
 
 	struct list *elife = itm_tag_get_list(elifet);
 	struct itm_expr *e;
-	void *it = list_iterator(i->operands);
+	it_t it = list_iterator(i->operands);
 	while (iterator_next(&it, (void **)&e)) {
 		if (samety(e->type, i->base.type) && list_contains(elife, e)) {
 			struct itm_tag *ct = itm_get_tag(e, &tt_color);
@@ -446,7 +446,7 @@ nxti:
 	}
 
 	struct itm_block *nxt;
-	void *bit = list_iterator(i->block->next);
+	it_t bit = list_iterator(i->block->next);
 	while (iterator_next(&bit, (void **)&nxt))
 		rcolalloc(nxt->first, flags, h);
 }
