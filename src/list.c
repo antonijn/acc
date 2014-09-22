@@ -36,7 +36,7 @@ struct list {
 
 static struct node *getnode(struct list *restrict l, void *data)
 {
-	void *it = list_iterator(l);
+	it_t it = list_iterator(l);
 	void *d;
 	while (iterator_next(&it, &d))
 		if (d == data)
@@ -47,6 +47,9 @@ static struct node *getnode(struct list *restrict l, void *data)
 
 static void rmnode(struct list *restrict l, struct node *node)
 {
+	assert(l != NULL);
+	assert(node != NULL);
+	
 	if (node == l->head)
 		l->head = node->next;
 	if (node == l->last)
@@ -98,7 +101,7 @@ struct list *clone_list(struct list *l)
 	struct node *prev = NULL;
 	struct node *head = NULL;
 	void *item;
-	void *it = list_iterator(l);
+	it_t it = list_iterator(l);
 	while (iterator_next(&it, &item)) {
 		struct node *n = malloc(sizeof(struct node));
 		n->data = item;
@@ -132,14 +135,14 @@ void delete_list(struct list *l, void (*destr)(void *))
 	free(l);
 }
 
-void *list_iterator(struct list *l)
+it_t list_iterator(struct list *l)
 {
 	assert(l != NULL);
 
 	return l->head;
 }
 
-bool iterator_next(void **restrict it, void **restrict item)
+bool iterator_next(it_t *restrict it, void **restrict item)
 {
 	assert(it != NULL);
 	assert(item != NULL);
@@ -152,14 +155,14 @@ bool iterator_next(void **restrict it, void **restrict item)
 	return true;
 }
 
-void *list_rev_iterator(struct list *l)
+it_t list_rev_iterator(struct list *l)
 {
 	assert(l != NULL);
 
 	return l->last;
 }
 
-bool rev_iterator_next(void **restrict it, void **restrict item)
+bool rev_iterator_next(it_t *restrict it, void **restrict item)
 {
 	assert(it != NULL);
 	assert(item != NULL);
@@ -256,21 +259,12 @@ void *list_pop_front(struct list *l)
 
 bool list_contains(struct list *l, void *restrict data)
 {
-	assert(l != NULL);
-
-	void *dat;
-	void *it = list_iterator(l);
-	while (iterator_next(&it, &dat))
-		if (dat == data)
-			return true;
-
-	return false;
+	return getnode(l, data) != NULL;
 }
 
 void list_remove(struct list *l, void *restrict data)
 {
 	struct node *node = getnode(l, data);
-	assert(node != NULL);
 	rmnode(l, node);
 }
 
@@ -305,10 +299,11 @@ void dict_push_back(struct list *restrict d, void *key, void *value)
 
 bool dict_get(struct list *restrict d, void *key, void **val)
 {
-	void *it = list_iterator(d);
 	void *kact;
-	while (iterator_next(it, &kact)) {
-		iterator_next(it, val);
+	it_t it = list_iterator(d);
+	while (iterator_next(&it, &kact)) {
+		bool suc = iterator_next(&it, val);
+		assert(suc);
 		if (kact == key)
 			return true;
 	}

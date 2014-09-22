@@ -67,7 +67,7 @@ void delete_itm_tag(struct itm_tag *tag)
 		tag->free(tag->value.data);
 }
 
-static void print_expr_list(FILE *f, void *it)
+static void print_expr_list(FILE *f, it_t it)
 {
 	struct itm_expr *e;
 	bool first = true;
