@@ -117,6 +117,9 @@ exit:
 
 static void a_lifetime(struct itm_instr *instr)
 {
+	// FIXME: for phi node instructions
+	// FIXME: for unused instructions
+
 	if (!instr)
 		return;
 
