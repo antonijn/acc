@@ -268,7 +268,7 @@ struct field *struct_get_field(struct ctype *type, char *name)
 {
 	struct cstruct *cs = (struct cstruct *)type;
 	struct field *fi;
-	void *it = list_iterator(cs->fields);
+	it_t it = list_iterator(cs->fields);
 	while (iterator_next(&it, (void **)&fi))
 		if (!strcmp(name, fi->id))
 			return fi;
@@ -337,7 +337,7 @@ static void function_to_string(FILE *f, struct ctype *ty)
 
 	int i = 0;
 	struct symbol *sym;
-	void *it = list_iterator(cf->parameters);
+	it_t it = list_iterator(cf->parameters);
 	while (iterator_next(&it, (void **)&sym)) {
 		sym->type->to_string(f, sym->type);
 
@@ -371,10 +371,10 @@ struct ctype *new_function(struct ctype *ret, struct list *params)
 struct symbol *get_symbol(char *id)
 {
 	struct list *l;
-	void *revit = list_rev_iterator(symscopes);
+	it_t revit = list_rev_iterator(symscopes);
 	while (rev_iterator_next(&revit, (void **)&l)) {
 		struct symbol *sym;
-		void *it = list_iterator(l);
+		it_t it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym)) {
 			if (!sym->id)
 				continue;
@@ -394,10 +394,10 @@ struct enumerator *get_enumerator(char *id)
 struct cstruct *get_struct(char *name)
 {
 	struct list *l;
-	void *revit = list_rev_iterator(typescopes);
+	it_t revit = list_rev_iterator(typescopes);
 	while (rev_iterator_next(&revit, (void **)&l)) {
 		struct ctype *sym;
-		void *it = list_iterator(l);
+		it_t it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym)) {
 			if (!sym->name)
 				continue;
@@ -411,10 +411,10 @@ struct cstruct *get_struct(char *name)
 struct cstruct *get_union(char *name)
 {
 	struct list *l;
-	void *revit = list_rev_iterator(typescopes);
+	it_t revit = list_rev_iterator(typescopes);
 	while (rev_iterator_next(&revit, (void **)&l)) {
 		struct ctype *sym;
-		void *it = list_iterator(l);
+		it_t it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym)) {
 			if (!sym->name)
 				continue;
@@ -463,10 +463,10 @@ static void delete_symbol(void *ptr)
 struct ctype *get_typedef(char *id)
 {
 	struct list *l;
-	void *revit = list_rev_iterator(symscopes);
+	it_t revit = list_rev_iterator(symscopes);
 	while (rev_iterator_next(&revit, (void **)&l)) {
 		struct symbol *sym;
-		void *it = list_iterator(l);
+		it_t it = list_iterator(l);
 		while (iterator_next(&it, (void **)&sym))
 			if (!strcmp(sym->id, id) && sym->storage == SC_TYPEDEF)
 				return sym->type;
