@@ -261,7 +261,8 @@ static void x86eatostr(FILE *f, struct asme *e)
 
 void x86_emit(FILE *f, struct list *blocks)
 {
-	void *sym, *it = list_iterator(blocks);
+	void *sym;
+	it_t it = list_iterator(blocks);
 	while (iterator_next(&it, &sym))
 		x86_emit_symbol(f, sym);
 }
