@@ -68,7 +68,7 @@ static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 
 	struct itm_block *bkey;
 	struct itm_expr *pkey, *dval;
-	void *iter = list_iterator(dict);
+	it_t iter = list_iterator(dict);
 	while (iterator_next(&iter, (void **)&bkey)) {
 		iterator_next(&iter, (void **)&pkey);
 		iterator_next(&iter, (void **)&dval);
@@ -85,7 +85,7 @@ static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
 	list_push_back(dict, phi);
 
 	struct itm_block *pb;
-	void *it = list_iterator(i->block->previous);
+	it_t it = list_iterator(i->block->previous);
 	while (iterator_next(&it, (void **)&pb)) {
 		list_push_back(phi->operands, pb);
 		list_push_back(phi->operands, traceload(ld, pb->last, dict));
