@@ -517,36 +517,33 @@ static void rgetovlps(struct itm_instr *i, enum raflags flags, int *h,
 	assert(h != NULL);
 	assert(i != NULL);
 
-	if (i->base.type == &cvoid || i->id == ITM_ID(itm_alloca))
-		goto nxti;
+	if (i->base.type != &cvoid && i->id != ITM_ID(itm_alloca)) {
+		killinstrs(i, alive);
 
-	killinstrs(i, alive);
+		struct list *initoverl = new_list(NULL, 0);
 
-	struct list *initoverl = new_list(NULL, 0);
+		struct itm_instr *other;
+		it_t it = list_iterator(alive);
+		while (iterator_next(&it, (void **)&other)) {
+			list_push_back(initoverl, other);
+			struct list *otherovl;
+			bool suc = dict_get(overlapdict, other, (void **)&otherovl);
+			assert(suc);
+			list_push_back(otherovl, i);
+		}
 
-	struct itm_instr *other;
-	it_t it = list_iterator(alive);
-	while (iterator_next(&it, (void **)&other)) {
-		list_push_back(initoverl, other);
-		struct list *otherovl;
-		bool suc = dict_get(overlapdict, other, (void **)&otherovl);
-		assert(suc);
-		list_push_back(otherovl, i);
+		dict_push_back(overlapdict, i, initoverl);
+		list_push_back(alive, i);
 	}
 
-	dict_push_back(overlapdict, i, initoverl);
-	list_push_back(alive, i);
-
-nxti:
 	if (i->next) {
 		rgetovlps(i->next, flags, h, alive, overlapdict);
-		return;
+	} else {
+		struct itm_block *nxt;
+		it_t bit = list_iterator(i->block->next);
+		while (iterator_next(&bit, (void **)&nxt))
+			rgetovlps(nxt->first, flags, h, alive, overlapdict);
 	}
-
-	struct itm_block *nxt;
-	it_t bit = list_iterator(i->block->next);
-	while (iterator_next(&bit, (void **)&nxt))
-		rgetovlps(nxt->first, flags, h, alive, overlapdict);
 }
 
 static bool samety(struct ctype *a, struct ctype *b)
