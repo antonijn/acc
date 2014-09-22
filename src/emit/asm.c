@@ -351,15 +351,11 @@ void emit_asciiz(FILE *f, const char *str)
  *
  * This algorithm "snatches" a location of an operand if the types match, and
  * the lifespan of the operand ends.
+ * 
+ * All the overlaps between colour lifetimes are stored in overlapdict
  */
-static void colalloc(struct itm_block *b, enum raflags flags);
-
-/*
- * Color Optimize
- *
- * Stub!
- */
-static void colopt(struct itm_block *b, enum raflags flags);
+static void colalloc(struct itm_block *b, enum raflags flags,
+	struct list *overlapdict);
 
 /*
  * Register Assign
@@ -367,7 +363,8 @@ static void colopt(struct itm_block *b, enum raflags flags);
  * Assigns a register/memory location to each color, based on its type, CPU
  * capabilities and lifespan.
  */
-static void regasn(struct itm_block *b, enum raflags flags);
+static void regasn(struct itm_block *b, enum raflags flags,
+	struct list *overlapdict);
 
 /*
  * The only exported register allocation functions, calling in sequence the
@@ -375,25 +372,62 @@ static void regasn(struct itm_block *b, enum raflags flags);
  */
 void regalloc(struct itm_block *b, enum raflags flags)
 {
-	colalloc(b, flags);
-	colopt(b, flags);
-	regasn(b, flags);
+	struct list *overlapdict = new_list(NULL, 0);
+	colalloc(b, flags, overlapdict);
+	regasn(b, flags, overlapdict);
+	it_t it = list_iterator(overlapdict);
+	struct list *li;
+	while (iterator_next(&it, (void **)&li)) {
+		iterator_next(&it, (void **)&li);
+		delete_list(li, NULL);
+	}
+	delete_list(overlapdict, NULL);
 }
 
 
-static void rcolphi(struct itm_instr *i, enum raflags flags, int *h);
-static void rcolalloc(struct itm_instr *i, enum raflags flags, int *h);
+static void rcolphi(struct itm_instr *i, enum raflags flags, int *h,
+	struct list *alive, struct list *overlapdicth);
+static void rcolalloc(struct itm_instr *i, enum raflags flags, int *h,
+	struct list *alive, struct list *overlapdicth);
+static void killcols(struct itm_instr *i, struct list *alive);
 static int colsnatch(struct itm_instr *i, enum raflags flags);
 static bool samety(struct ctype *a, struct ctype *b);
 
-static void colalloc(struct itm_block *b, enum raflags flags)
+static void colalloc(struct itm_block *b, enum raflags flags,
+	struct list *overlapdict)
 {
 	assert(b != NULL);
 
 	analyze(b, A_LIFETIME);
 
 	int h = 0;
-	rcolalloc(b->first, flags, &h);
+	struct list *alive = new_list(NULL, 0);
+	rcolalloc(b->first, flags, &h, alive, overlapdict);
+	delete_list(alive, NULL);
+}
+
+static void killcols(struct itm_instr *i, struct list *alive)
+{
+	struct itm_tag *elifet = itm_get_tag(&i->base, &tt_endlife);
+	if (!elifet)
+		return;
+
+	struct list *elife = itm_tag_get_list(elifet);
+	struct itm_expr *e;
+	it_t it = list_iterator(elife);
+	// everything tagged as endlife is guaranteed to be assigned a colour
+	while (iterator_next(&it, (void **)&e)) {
+		struct itm_tag *col = itm_get_tag(e, &tt_color);
+		assert(col != NULL);
+		union {
+			void *ptr;
+			int col;
+		} colact;
+		colact.ptr = NULL;
+		colact.col = itm_tag_geti(col);
+		if (list_contains(alive, colact.ptr))
+			list_remove(alive, colact.ptr);
+	}
 }
 
 static int colsnatch(struct itm_instr *i, enum raflags flags)
@@ -415,7 +449,8 @@ static int colsnatch(struct itm_instr *i, enum raflags flags)
 	return -1;
 }
 
-static void rcolalloc(struct itm_instr *i, enum raflags flags, int *h)
+static void rcolalloc(struct itm_instr *i, enum raflags flags, int *h,
+	struct list *alive, struct list *overlapdict)
 {
 	assert(h != NULL);
 	assert(i != NULL);
@@ -427,13 +462,36 @@ static void rcolalloc(struct itm_instr *i, enum raflags flags, int *h)
 		goto nxti;
 
 	if (i->id == ITM_ID(itm_phi)) {
-		rcolphi(i, flags, h);
+		rcolphi(i, flags, h, alive, overlapdict);
 		return;
 	}
 
+	killcols(i, alive);
 	int col = colsnatch(i, flags);
 	if (col == -1)
 		col = (*h)++;
+
+	union {
+		void *ptr;
+		int col;
+	} colptr, other;
+
+	struct list *initoverl = new_list(NULL, 0);
+	colptr.ptr = NULL;
+	colptr.col = col;
+	dict_push_back(overlapdict, colptr.ptr, initoverl);
+	list_push_back(alive, colptr.ptr);
+
+	it_t it = list_iterator(alive);
+	while (iterator_next(&it, &other.ptr)) {
+		if (other.ptr == colptr.ptr)
+			continue;
+		list_push_back(initoverl, other.ptr);
+		struct list *otherovl;
+		bool suc = dict_get(overlapdict, other.ptr, (void **)&otherovl);
+		assert(suc);
+		list_push_back(otherovl, colptr.ptr);
+	}
 
 	struct itm_tag *colt = new_itm_tag(&tt_color, "color", TO_INT);
 	itm_tag_seti(colt, col);
@@ -441,17 +499,18 @@ static void rcolalloc(struct itm_instr *i, enum raflags flags, int *h)
 
 nxti:
 	if (i->next) {
-		rcolalloc(i->next, flags, h);
+		rcolalloc(i->next, flags, h, alive, overlapdict);
 		return;
 	}
 
 	struct itm_block *nxt;
 	it_t bit = list_iterator(i->block->next);
 	while (iterator_next(&bit, (void **)&nxt))
-		rcolalloc(nxt->first, flags, h);
+		rcolalloc(nxt->first, flags, h, alive, overlapdict);
 }
 
-static void rcolphi(struct itm_instr *i, enum raflags flags, int *h)
+static void rcolphi(struct itm_instr *i, enum raflags flags, int *h,
+	struct list *alive, struct list *overlapdict)
 {
 	assert(!"rcolphi(): stub");
 }
@@ -463,11 +522,7 @@ static bool samety(struct ctype *a, struct ctype *b)
 }
 
 
-static void colopt(struct itm_block *b, enum raflags flags)
-{
-}
-
-
-static void regasn(struct itm_block *b, enum raflags flags)
+static void regasn(struct itm_block *b, enum raflags flags,
+	struct list *overlapdict)
 {
 }
