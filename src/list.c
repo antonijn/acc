@@ -224,7 +224,6 @@ void *list_pop_back(struct list *l)
 
 	void *data = l->last->data;
 
-	--l->length;
 	rmnode(l, l->last);
 	return data;
 }
@@ -251,7 +250,6 @@ void *list_pop_front(struct list *l)
 
 	void *data = l->head->data;
 
-	--l->length;
 	rmnode(l, l->head);
 	return data;
 }
