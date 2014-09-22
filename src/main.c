@@ -50,7 +50,7 @@ static void opt_and_dump(struct list *syms)
 	}
 
 	struct itm_container *sym;
-	void *it = list_iterator(syms);
+	it_t it = list_iterator(syms);
 	while (iterator_next(&it, (void **)&sym)) {
 		if (!sym->block)
 			continue;
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
 
 	options_init(argc, argv);
 
-	void *li = list_iterator(option_input());
+	it_t li = list_iterator(option_input());
 	while (iterator_next(&li, (void **)&currentfile)) {
 		FILE *file;
 

@@ -55,7 +55,7 @@ static void print_tags(FILE *f, struct itm_expr *expr)
 		return;
 
 	struct itm_tag *tag;
-	void *it = list_iterator(expr->tags);
+	it_t it = list_iterator(expr->tags);
 	while (iterator_next(&it, (void **)&tag)) {
 		fprintf(f, ANSI_GREEN(ITM_COLORS));
 		fprintf(f, " /* ");
@@ -82,7 +82,7 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 	fprintf(f, "(");
 
 	struct itm_expr *ex;
-	void *it = list_iterator(i->operands);
+	it_t it = list_iterator(i->operands);
 	for (int j = 0; iterator_next(&it, (void **)&ex); ++j) {
 		ex->to_string(f, ex);
 		if (j != list_length(i->operands) - 1 ||
@@ -234,7 +234,7 @@ void delete_itm_container(struct itm_container *c)
 	free(c->id);
 
 	struct itm_expr *lit;
-	void *it = list_iterator(c->literals);
+	it_t it = list_iterator(c->literals);
 	while (iterator_next(&it, (void **)&lit))
 		lit->free(lit);
 	delete_list(c->literals, NULL);
@@ -308,7 +308,7 @@ void itm_lex_progress(struct itm_block *before, struct itm_block *after)
 void cleanup_instr(struct itm_instr *i)
 {
 	/*struct itm_expr *op;
-	void *it = list_iterator(i->operands);
+	it_t it = list_iterator(i->operands);
 	while (iterator_next(&it, (void **)&op))
 		op->free(op);*/
 	delete_list(i->operands, NULL);
@@ -345,7 +345,7 @@ struct itm_tag *itm_get_tag(struct itm_expr *e, itm_tag_type_t *ty)
 		return NULL;
 
 	struct itm_tag *tag;
-	void *it = list_iterator(e->tags);
+	it_t it = list_iterator(e->tags);
 	while (iterator_next(&it, (void **)&tag))
 		if (itm_tag_type(tag) == ty)
 			return tag;
@@ -382,7 +382,7 @@ void itm_replocc(struct itm_expr *a, struct itm_expr *b, struct itm_block *bl)
 	struct itm_instr *instr = first->first;
 	while (instr) {
 		struct itm_expr *e;
-		void *it = list_iterator(instr->operands);
+		it_t it = list_iterator(instr->operands);
 		int i = 0;
 		while (iterator_next(&it, (void **)&e)) {
 			if (e == a)
@@ -737,7 +737,7 @@ struct itm_instr *itm_phi(struct itm_block *b, struct ctype *ty, struct list *di
 	res = impl_op(b, ty, ITM_ID(itm_phi), "phi", OF_START_OF_BLOCK);
 
 	struct itm_expr *ex;
-	void *it = list_iterator(dict);
+	it_t it = list_iterator(dict);
 	while (iterator_next(&it, (void **)&ex))
 		list_push_back(res->operands, ex);
 

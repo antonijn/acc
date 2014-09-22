@@ -479,7 +479,7 @@ static struct ctype *parsestructure(FILE *f)
 		parsedecl(f, DF_FIELD, syms, NULL);
 
 		struct symbol *sym;
-		void *it = list_iterator(syms);
+		it_t it = list_iterator(syms);
 		while (iterator_next(&it, (void **)&sym))
 			struct_add_field((struct ctype *)str, sym->type, sym->id);
 		delete_list(syms, NULL);

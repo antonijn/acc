@@ -33,7 +33,7 @@
 static void addparams(struct cfunction *fun)
 {
 	struct symbol *sym;
-	void *it = list_iterator(fun->parameters);
+	it_t it = list_iterator(fun->parameters);
 	while (iterator_next(&it, (void **)&sym))
 		registersym(sym);
 }
@@ -41,7 +41,7 @@ static void addparams(struct cfunction *fun)
 static void processdecls(FILE *f, struct list *decls, struct list *syms)
 {
 	struct symbol *sym;
-	void *it = list_iterator(decls);
+	it_t it = list_iterator(decls);
 	while (iterator_next(&it, (void **)&sym))
 		if (sym->value)
 			list_push_back(syms, sym->value);
