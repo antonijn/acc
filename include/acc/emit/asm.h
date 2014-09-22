@@ -40,9 +40,11 @@ struct asme {
 	void (*to_string_d)(FILE *f, struct asme *e);
 };
 
+typedef uint64_t regid_t;
+
 struct asmreg {
 	struct asme base;
-	uint64_t id;
+	regid_t id;
 	const char *name;
 	const struct asmreg *parent;
 	const struct asmreg *child1;

@@ -119,7 +119,7 @@ void loc_to_string(FILE *f, struct location *loc)
 	switch (loc->type) {
 	case LT_REG:
 		reg = loc->extended;
-		uint64_t rid = reg->rid;
+		regid_t rid = reg->rid;
 		bool prevprint = false;
 		for (int i = 0; i < sizeof(rid) * 8; ++i) {
 			if (!(rid & (1ul << i)))
