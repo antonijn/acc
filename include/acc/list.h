@@ -22,16 +22,18 @@
 
 #include <stdbool.h>
 
+typedef struct node *it_t;
+
 struct list;
 
 struct list *new_list(void *init[], int count);
 struct list *clone_list(struct list *l);
 void delete_list(struct list *l, void (*destr)(void *));
 
-void *list_iterator(struct list *l);
-bool iterator_next(void **restrict it, void **restrict item);
-void *list_rev_iterator(struct list *l);
-bool rev_iterator_next(void **restrict it, void **restrict item);
+it_t list_iterator(struct list *l);
+bool iterator_next(it_t *restrict it, void **restrict item);
+it_t list_rev_iterator(struct list *l);
+bool rev_iterator_next(it_t *restrict it, void **restrict item);
 
 void *get_list_item(struct list *l, int idx);
 void set_list_item(struct list *l, int idx, void *restrict data);

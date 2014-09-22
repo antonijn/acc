@@ -66,7 +66,7 @@ static void a_used(struct itm_instr *i)
 	}
 
 	struct itm_expr *e;
-	void *it = list_iterator(i->operands);
+	it_t it = list_iterator(i->operands);
 	while (iterator_next(&it, (void **)&e)) {
 		struct itm_tag *tag = itm_get_tag(e, &tt_used);
 		if (!tag) {
@@ -96,7 +96,7 @@ static void a_acc(struct itm_instr *i)
 		goto exit;
 
 	struct itm_expr *e;
-	void *it = list_iterator(i->next->operands);
+	it_t it = list_iterator(i->next->operands);
 	while (iterator_next(&it, (void **)&e)) {
 		if (e == &i->base) {
 			struct itm_tag *acc = new_itm_tag(&tt_acc, "acc", TO_NONE);
@@ -152,7 +152,7 @@ static bool lifetime(struct itm_instr *instr, struct itm_block *block, struct li
 	if (!blocki)
 		goto exit;
 
-	void *it;
+	it_t it;
 	while (blocki) {
 		struct itm_expr *e;
 		it = list_iterator(blocki->operands);
@@ -197,7 +197,7 @@ static bool isreferenced(struct itm_instr *instr, struct itm_block *b)
 			goto skip;
 
 		struct itm_expr *e;
-		void *it = list_iterator(i->operands);
+		it_t it = list_iterator(i->operands);
 		int j = 0;
 		while (iterator_next(&it, (void **)&e)) {
 			if (i->id == ITM_ID(itm_store) && j > 0)
