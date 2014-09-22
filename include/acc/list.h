@@ -40,6 +40,7 @@ void *list_pop_back(struct list *l);
 void list_push_front(struct list *l, void *restrict data);
 void *list_pop_front(struct list *l);
 bool list_contains(struct list *l, void *restrict data);
+void list_remove(struct list *l, void *restrict data);
 void *list_head(struct list *l);
 void *list_last(struct list *l);
 size_t list_length(struct list *l);

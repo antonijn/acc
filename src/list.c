@@ -34,6 +34,31 @@ struct list {
 	size_t length;
 };
 
+static struct node *getnode(struct list *restrict l, void *data)
+{
+	void *it = list_iterator(l);
+	void *d;
+	while (iterator_next(&it, &d))
+		if (d == data)
+			return it;
+
+	return NULL;
+}
+
+static void rmnode(struct list *restrict l, struct node *node)
+{
+	if (node == l->head)
+		l->head = node->next;
+	if (node == l->last)
+		l->last = node->previous;
+	if (node->previous)
+		node->previous->next = node->next;
+	if (node->next)
+		node->next->previous = node->previous;
+	free(node);
+	--l->length;
+}
+
 struct list *new_list(void *init[], int count)
 {
 	struct list *result = malloc(sizeof(struct list));
@@ -200,15 +225,7 @@ void *list_pop_back(struct list *l)
 	void *data = l->last->data;
 
 	--l->length;
-	struct node *nl = l->last->previous;
-	free(l->last);
-	if (!nl) {
-		l->last = NULL;
-		l->head = NULL;
-		return data;
-	}
-	nl->next = NULL;
-	l->last = nl;
+	rmnode(l, l->last);
 	return data;
 }
 
@@ -235,15 +252,7 @@ void *list_pop_front(struct list *l)
 	void *data = l->head->data;
 
 	--l->length;
-	struct node *nh = l->head->next;
-	free(l->head);
-	if (!nh) {
-		l->last = NULL;
-		l->head = NULL;
-		return data;
-	}
-	nh->previous = NULL;
-	l->head = nh;
+	rmnode(l, l->head);
 	return data;
 }
 
@@ -258,6 +267,13 @@ bool list_contains(struct list *l, void *restrict data)
 			return true;
 
 	return false;
+}
+
+void list_remove(struct list *l, void *restrict data)
+{
+	struct node *node = getnode(l, data);
+	assert(node != NULL);
+	rmnode(l, node);
 }
 
 void *list_head(struct list *l)
