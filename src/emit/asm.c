@@ -48,7 +48,7 @@ struct location {
 
 struct loc_reg {
 	struct location base;
-	uint64_t rid;
+	regid_t rid;
 };
 
 struct loc_mem {
@@ -69,7 +69,7 @@ static inline void loc_init(struct location *loc, enum locty type,
 	loc->extended = ex;
 }
 
-struct location *new_loc_reg(size_t size, int rid)
+struct location *new_loc_reg(size_t size, regid_t rid)
 {
 	struct loc_reg *loc = malloc(sizeof(struct loc_reg));
 	loc_init(&loc->base, LT_REG, size, loc);
@@ -132,6 +132,60 @@ void loc_to_string(FILE *f, struct location *loc)
 			rid &= ~(1ul << i);
 		}
 		break;
+	}
+}
+
+static bool loc_eq(struct location *a, struct location *b)
+{
+	assert(a != NULL);
+	assert(b != NULL);
+	
+	if (a->type != b->type)
+		return false;
+
+	struct loc_reg *reg1, *reg2;
+	struct loc_mem *mem1, *mem2;
+	struct loc_multiple *mul1, *mul2;
+	
+	switch (a->type) {
+	case LT_REG:
+		reg1 = a->extended;
+		reg2 = b->extended;
+		return (reg1->rid & reg2->rid) != 0;
+	case LT_LMEM:
+	case LT_PMEM:
+		mem1 = a->extended;
+		mem2 = b->extended;
+		// FIXME: better overlap check
+		return mem1->offset == mem2->offset;
+	case LT_MULTIPLE:
+		// TODO: implement LT_MULTIPLE
+		return true;
+	}
+}
+
+static struct location *copy_loc(struct location *loc)
+{
+	assert(loc != NULL);
+
+	struct loc_reg *reg1, *reg2;
+	struct loc_mem *mem1, *mem2;
+
+	switch (loc->type) {
+	case LT_REG:
+		reg1 = loc->extended;
+		reg2 = new_loc_reg(loc->size, reg1->rid)->extended;
+		return &reg2->base;
+	case LT_LMEM:
+		mem1 = loc->extended;
+		mem2 = new_loc_lmem(loc->size, mem1->offset)->extended;
+		return &mem2->base;
+	case LT_PMEM:
+		mem1 = loc->extended;
+		mem2 = new_loc_pmem(loc->size, mem1->offset)->extended;
+		return &mem2->base;
+	case LT_MULTIPLE:
+		assert(false); // TODO: implement LT_MULTIPLE copy
 	}
 }
 
@@ -444,6 +498,10 @@ void emit_asciiz(FILE *f, const char *str)
  * each intermediate instruction.
  */
 
+#ifndef NDEBUG
+static void ovldump(struct list *overlapdict);
+#endif
+
 /*
  * Get Overlaps
  *
@@ -468,7 +526,11 @@ void regalloc(struct itm_block *b, enum raflags flags)
 {
 	struct list *overlapdict = new_list(NULL, 0);
 	getovlps(b, flags, overlapdict);
+#ifndef NDEBUG
+	ovldump(overlapdict);
+#endif
 	regasn(b, flags, overlapdict);
+
 	it_t it = list_iterator(overlapdict);
 	struct list *li;
 	while (iterator_next(&it, (void **)&li)) {
@@ -478,11 +540,32 @@ void regalloc(struct itm_block *b, enum raflags flags)
 	delete_list(overlapdict, NULL);
 }
 
+#ifndef NDEBUG
+static void ovldump(struct list *overlapdict)
+{
+	FILE *f = fopen("ovldump", "wb");
+	
+	struct itm_instr *i;
+	it_t it = list_iterator(overlapdict);
+	while (iterator_next(&it, (void **)&i)) {
+		fprintf(f, "%d", itm_instr_number(i));
+		struct list *ovlwith;
+		iterator_next(&it, (void **)&ovlwith);
+		it_t ovlit = list_iterator(ovlwith);
+		while (iterator_next(&ovlit, (void **)&i))
+			fprintf(f, ",\t%d", itm_instr_number(i));
+		fprintf(f, "\n");
+		fflush(f);
+	}
+	
+	fclose(f);
+}
+#endif
+
 
 static void rgetovlps(struct itm_instr *i, enum raflags flags, int *h,
 	struct list *alive, struct list *overlapdicth);
 static void killinstrs(struct itm_instr *i, struct list *alive);
-static bool samety(struct ctype *a, struct ctype *b);
 
 static void getovlps(struct itm_block *b, enum raflags flags,
 	struct list *overlapdict)
@@ -546,14 +629,63 @@ static void rgetovlps(struct itm_instr *i, enum raflags flags, int *h,
 	}
 }
 
-static bool samety(struct ctype *a, struct ctype *b)
-{
-	// TODO: proper implementation...
-	return a == b;
-}
 
+/*
+ * This function tries to "get rid of" itm_mov instructions by trying to assign
+ * each instruction that is used as an itm_mov operand with the location it's
+ * moved into.
+ */
+static void inducereg(struct itm_instr *i, enum raflags flags,
+	struct list *overlapdict);
 
 static void regasn(struct itm_block *b, enum raflags flags,
 	struct list *overlapdict)
 {
+	for (struct itm_instr *i = b->first; i; i = i->next)
+		inducereg(i, flags, overlapdict);
+	
+	struct itm_block *nxt;
+	it_t it = list_iterator(b->next);
+	while (iterator_next(&it, (void **)&nxt))
+		regasn(nxt, flags, overlapdict);
+}
+
+static void inducereg(struct itm_instr *i, enum raflags flags,
+	struct list *overlapdict)
+{
+	if (i->id != ITM_ID(itm_mov))
+		return;
+
+	struct itm_tag *movto = itm_get_tag(&i->base, &tt_loc);
+	if (!movto)
+		return;
+	
+	struct location *loc = itm_tag_get_user_ptr(movto);
+	if (loc->type != LT_REG)
+		return; // TODO: implement non-regs? multiple regs?
+	
+	struct loc_reg *reg = loc->extended;
+
+	struct itm_expr *op = list_head(i->operands);
+	if (op->etype != ITME_INSTRUCTION)
+		return;
+
+	struct itm_instr *opi = (struct itm_instr *)op;
+	if (itm_get_tag(&opi->base, &tt_loc))
+		return;
+
+	struct list *overlaps;
+	dict_get(overlapdict, opi, (void **)&overlaps);
+	struct itm_instr *overlap;
+	it_t it = list_iterator(overlaps);
+	while (iterator_next(&it, (void **)&overlap)) {
+		struct itm_tag *ovlloc = itm_get_tag(&overlap->base, &tt_loc);
+		if (loc_eq(loc, itm_tag_get_user_ptr(ovlloc)))
+			return;
+	}
+
+	struct location *newl = copy_loc(loc);
+	struct itm_tag *newt = new_itm_tag(&tt_loc, "loc", TO_USER_PTR);
+	itm_tag_set_user_ptr(newt, newl, (void (*)(FILE *, void *))&loc_to_string);
+	itm_tag_expr(op, newt);
 }

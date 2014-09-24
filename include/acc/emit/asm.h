@@ -93,7 +93,7 @@ void emit_asciiz(FILE *f, const char *str);
 
 struct location;
 
-struct location *new_loc_reg(size_t size, int rid);
+struct location *new_loc_reg(size_t size, regid_t rid);
 struct location *new_loc_regany(size_t size, int of);
 struct location *new_loc_lmem(size_t size, int offset);
 struct location *new_loc_pmem(size_t size, int offset);

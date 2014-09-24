@@ -104,6 +104,9 @@ struct itm_block {
 	struct itm_container *container;
 };
 
+int itm_instr_number(struct itm_instr *i);
+int itm_block_number(struct itm_block *b);
+
 struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *type);
 struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *type);
 

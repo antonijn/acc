@@ -29,9 +29,7 @@
 static void free_dummy(struct itm_expr *e);
 
 // to_string functions
-static int itm_block_number(struct itm_block *block);
-
-static int itm_instr_number(struct itm_instr *i)
+int itm_instr_number(struct itm_instr *i)
 {
 	assert(i != NULL);
 
@@ -42,7 +40,7 @@ static int itm_instr_number(struct itm_instr *i)
 	return itm_instr_number(i->previous) + 1;
 }
 
-static int itm_block_number(struct itm_block *block)
+int itm_block_number(struct itm_block *block)
 {
 	if (!block->lexprev)
 		return 0;
