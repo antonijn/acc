@@ -104,6 +104,9 @@ struct itm_block {
 	struct itm_container *container;
 };
 
+int itm_instr_number(struct itm_instr *i);
+int itm_block_number(struct itm_block *b);
+
 struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *type);
 struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *type);
 
@@ -121,6 +124,7 @@ void cleanup_instr(struct itm_instr *i);
 void itm_container_to_string(FILE *f, struct itm_container *c);
 
 void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag);
+void itm_untag_expr(struct itm_expr *e, itm_tag_type_t *ty);
 struct itm_tag *itm_get_tag(struct itm_expr *e, itm_tag_type_t *ty);
 
 void itm_remi(struct itm_instr *a);
