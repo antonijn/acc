@@ -105,6 +105,7 @@ enum raflags {
 	RA_NONE
 };
 
-void regalloc(struct itm_block *b, enum raflags flags);
+void regalloc(struct itm_block *b, enum raflags flags,
+	regid_t callersav, regid_t calleesav);
 
 #endif

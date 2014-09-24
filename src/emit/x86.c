@@ -270,7 +270,8 @@ void x86_emit(FILE *f, struct list *blocks)
 static void x86_emit_symbol(FILE *f, struct itm_container *c)
 {
 	x86_restrict(c->block);
-	regalloc(c->block, RA_NONE);
+	// TODO: proper callee/caller save
+	regalloc(c->block, RA_NONE, 0, rax.id | rbx.id | rcx.id | rdx.id);
 
 	itm_container_to_string(f, c);
 }

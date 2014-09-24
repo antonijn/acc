@@ -337,6 +337,18 @@ void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag)
 	list_push_back(e->tags, tag);
 }
 
+void itm_untag_expr(struct itm_expr *e, itm_tag_type_t *ty)
+{
+	struct itm_tag *tag;
+	for (it_t it = list_iterator(e->tags); iterator_next(&it, (void **)&tag);) {
+		if (itm_tag_type(tag) == ty) {
+			list_remove(e->tags, tag);
+			delete_itm_tag(tag);
+			return;
+		}
+	}
+}
+
 struct itm_tag *itm_get_tag(struct itm_expr *e, itm_tag_type_t *ty)
 {
 	if (!e->tags)
