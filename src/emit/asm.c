@@ -791,14 +791,9 @@ static void asnrems(struct itm_block *b, enum raflags flags,
 }
 
 // returns 0 if unsuccessful
-static regid_t getreg(struct itm_instr *i, enum raflags flags,
-	struct list *overlapdict, regid_t av)
+static regid_t rgetreg(struct itm_instr *i, enum raflags flags,
+	struct list *ovlps, regid_t av)
 {
-	// TODO: allocate multiple regs for large instructions
-	struct list *ovlps;
-	dict_get(overlapdict, i, (void **)&ovlps);
-
-retry:
 	if (!av)
 		return 0;
 
@@ -820,13 +815,22 @@ retry:
 		if (loc->type != LT_REG)
 			continue;
 		struct loc_reg *rloc = loc->extended;
-		if (try & rloc->rid) {
-			av &= ~try;
-			goto retry;
-		}
+		if (try & rloc->rid)
+			return rgetreg(i, flags, ovlps, av & ~try);
 	}
 
 	return try;
+}
+
+// returns 0 if unsuccessful
+static regid_t getreg(struct itm_instr *i, enum raflags flags,
+	struct list *overlapdict, regid_t av)
+{
+	// TODO: allocate multiple regs for large instructions
+	struct list *ovlps;
+	dict_get(overlapdict, i, (void **)&ovlps);
+
+	return rgetreg(i, flags, ovlps, av);
 }
 
 static void asnrem(struct itm_instr *i, enum raflags flags,
