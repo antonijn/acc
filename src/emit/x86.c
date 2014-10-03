@@ -288,6 +288,21 @@ static void x86_archdes(struct archdes *ades)
 		rbx.id | r12.id | r13.id | r14.id | r15.id;
 }
 
+static bool x86_isarith(struct itm_instr *i)
+{
+	return i->id == ITM_ID(itm_add) || i->id == ITM_ID(itm_sub) ||
+	       i->id == ITM_ID(itm_mul) || i->id == ITM_ID(itm_div) ||
+	       i->id == ITM_ID(itm_xor) || i->id == ITM_ID(itm_and) ||
+	       i->id == ITM_ID(itm_or);
+}
+
+static bool x86_issymm(struct itm_instr *i)
+{
+	return i->id == ITM_ID(itm_add) || i->id == ITM_ID(itm_mul) ||
+	       i->id == ITM_ID(itm_xor) || i->id == ITM_ID(itm_and) ||
+	       i->id == ITM_ID(itm_or);
+}
+
 static void x86_emit_block(FILE *f, struct itm_block *b, struct list *bldict);
 
 static void x86_emit_container(FILE *f, struct itm_container *c)
@@ -301,6 +316,25 @@ static void x86_emit_container(FILE *f, struct itm_container *c)
 	struct list *dict = new_list(NULL, 0);
 	x86_emit_block(f, c->block, dict);
 	delete_list(dict, NULL);
+
+	//itm_container_to_string(f, c);
+}
+
+static void x86_restrictarith(struct itm_instr *i)
+{
+	if (!x86_isarith(i))
+		return;
+
+	if (x86_issymm(i))
+		return;
+
+	struct itm_expr *head = list_head(i->operands);
+	if (head->etype == ITME_INSTRUCTION)
+		return;
+
+	struct itm_instr *mov = itm_mov(i->block, head);
+	itm_inserti(mov, i);
+	set_list_item(i->operands, 0, mov);
 }
 
 static void x86_restrictmul(struct itm_instr *i)
@@ -352,6 +386,7 @@ static void x86_restrict(struct itm_block *b)
 		// TODO: restrict for function calls
 		x86_restrictmul(i);
 		x86_restrictret(i);
+		x86_restrictarith(i);
 		i = i->next;
 	}
 
@@ -445,6 +480,18 @@ static struct itm_instr *x86_emiti(FILE *f, struct itm_instr *i)
 	if ((nxt = x86_emiti_ret(f, i)) != i)
 		return nxt;
 
+	if (i->id == ITM_ID(itm_mov)) {
+		struct asme *result = x86_getasme(NULL, &i->base);
+		struct asmimm imm;
+		struct itm_expr *firstop = list_head(i->operands);
+		struct asme *firstope;
+		if ((firstope = x86_getasme(&imm, firstop)) != result) {
+			emit_sdi(f, "mov", result, firstope);
+			if (firstope == &imm.base)
+				delete_asm_imm(&imm);
+		}
+	}
+
 	return i->next;
 }
 
@@ -465,26 +512,55 @@ static struct itm_instr *x86_emiti_arith(FILE *f, struct itm_instr *i)
 	instr_id_t id = i->id;
 	if (id == ITM_ID(itm_add))
 		instrstr = "add";
+	else if (id == ITM_ID(itm_sub))
+		instrstr = "sub";
+	else if (id == ITM_ID(itm_mul))
+		instrstr = "imul"; // TODO: unsigned multiply
+	else if (id == ITM_ID(itm_div))
+		instrstr = "idiv"; // TODO: unsigned divide
+	else if (id == ITM_ID(itm_and))
+		instrstr = "and";
+	else if (id == ITM_ID(itm_xor))
+		instrstr = "xor";
+	else if (id == ITM_ID(itm_or))
+		instrstr = "or";
 	else
 		return i;
 
+	struct asmimm limm, rimm;
 	struct asme *result = x86_getasme(NULL, &i->base);
+	struct asme *le = x86_getasme(&limm, list_head(i->operands));
+	struct asme *re = x86_getasme(&rimm, list_last(i->operands));
 
-	struct itm_expr *firstop = list_head(i->operands);
-	if (firstop->etype != ITME_INSTRUCTION ||
-	    x86_getasme(NULL, firstop) != result) {
-		struct asmimm imm;
-		struct asme *firstope = x86_getasme(&imm, firstop);
-		emit_sdi(f, "mov", result, firstope);
-		if (firstope == &imm.base)
-			delete_asm_imm(&imm);
+	// all the stuff that checks for this variable is basically dirty
+	// it introduces a set of xchg instructions, which... isn't ideal...
+	bool xchg = false;
+
+	if (re == result) {
+		if (x86_issymm(i)) {
+			struct asme *tmpe = le;
+			le = re;
+			re = tmpe;
+		} else {
+			xchg = true;
+		}
 	}
 
-	struct asmimm immsecond;
-	struct asme *lastope = x86_getasme(&immsecond, list_last(i->operands));
-	emit_sdi(f, instrstr, result, lastope);
-	if (lastope == &immsecond.base)
-		delete_asm_imm(&immsecond);
+	if (xchg) {
+		// re == result here, just keep that in mind
+		emit_sdi(f, "xchg", le, re);
+		emit_sdi(f, instrstr, le, re);
+		emit_sdi(f, "xchg", le, re);
+	} else {
+		if (le != result)
+			emit_sdi(f, "mov", result, le);
+		emit_sdi(f, instrstr, result, re);
+	}
+
+	if (re == &rimm.base)
+		delete_asm_imm(&rimm);
+	if (le == &limm.base)
+		delete_asm_imm(&limm);
 
 	return i->next;
 }

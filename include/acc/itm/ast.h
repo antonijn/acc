@@ -71,7 +71,7 @@ struct itm_literal {
 	struct itm_expr base;
 
 	union {
-		uint64_t i;
+		int64_t i;
 		float f;
 		double d;
 	} value;
