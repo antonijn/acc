@@ -101,11 +101,13 @@ struct location *new_loc_multiple(size_t size, struct list *locs);
 void delete_loc(struct location *loc);
 void loc_to_string(FILE *f, struct location *loc);
 
-enum raflags {
-	RA_NONE
+struct archdes {
+	regid_t all_iregs;
+	regid_t saved_iregs;
+	regid_t all_fregs;
+	regid_t saved_fregs;
 };
 
-void regalloc(struct itm_block *b, enum raflags flags,
-	regid_t callersav, regid_t calleesav);
+void regalloc(struct itm_block *b, struct archdes rset);
 
 #endif

@@ -508,7 +508,7 @@ static void ovldump(struct list *overlapdict);
  *
  * Creates a dictionary of overlaps between instruction lifetimes.
  */
-static void getovlps(struct itm_block *b, enum raflags flags,
+static void getovlps(struct itm_block *b, struct archdes ades,
 	struct list *overlapdict);
 
 /*
@@ -516,22 +516,21 @@ static void getovlps(struct itm_block *b, enum raflags flags,
  *
  * Assigns a register/memory location to each instruction.
  */
-static void regasn(struct itm_block *b, enum raflags flags,
-	struct list *overlapdict, regid_t callersav, regid_t calleesav);
+static void regasn(struct itm_block *b, struct archdes ades,
+	struct list *overlapdict);
 
 /*
  * The only exported register allocation functions, calling in sequence the
  * three basic components.
  */
-void regalloc(struct itm_block *b, enum raflags flags,
-	regid_t callersav, regid_t calleesav)
+void regalloc(struct itm_block *b, struct archdes ades)
 {
 	struct list *overlapdict = new_list(NULL, 0);
-	getovlps(b, flags, overlapdict);
+	getovlps(b, ades, overlapdict);
 #ifndef NDEBUG
 	ovldump(overlapdict);
 #endif
-	regasn(b, flags, overlapdict, callersav, calleesav);
+	regasn(b, ades, overlapdict);
 
 	it_t it = list_iterator(overlapdict);
 	struct list *li;
@@ -565,11 +564,11 @@ static void ovldump(struct list *overlapdict)
 #endif
 
 
-static void rgetovlps(struct itm_instr *i, enum raflags flags, int *h,
+static void rgetovlps(struct itm_instr *i, struct archdes ades, int *h,
 	struct list *alive, struct list *overlapdicth);
 static void killinstrs(struct itm_instr *i, struct list *alive);
 
-static void getovlps(struct itm_block *b, enum raflags flags,
+static void getovlps(struct itm_block *b, struct archdes ades,
 	struct list *overlapdict)
 {
 	assert(b != NULL);
@@ -578,7 +577,7 @@ static void getovlps(struct itm_block *b, enum raflags flags,
 
 	int h = 0;
 	struct list *alive = new_list(NULL, 0);
-	rgetovlps(b->first, flags, &h, alive, overlapdict);
+	rgetovlps(b->first, ades, &h, alive, overlapdict);
 	delete_list(alive, NULL);
 }
 
@@ -596,7 +595,7 @@ static void killinstrs(struct itm_instr *i, struct list *alive)
 			list_remove(alive, e);
 }
 
-static void rgetovlps(struct itm_instr *i, enum raflags flags, int *h,
+static void rgetovlps(struct itm_instr *i, struct archdes ades, int *h,
 	struct list *alive, struct list *overlapdict)
 {
 	assert(h != NULL);
@@ -622,13 +621,13 @@ static void rgetovlps(struct itm_instr *i, enum raflags flags, int *h,
 	}
 
 	if (i->next) {
-		rgetovlps(i->next, flags, h, alive, overlapdict);
+		rgetovlps(i->next, ades, h, alive, overlapdict);
 	} else {
 		struct itm_block *nxt;
 		it_t bit = list_iterator(i->block->next);
 		while (iterator_next(&bit, (void **)&nxt)) {
 			struct list *nalive = clone_list(alive);
-			rgetovlps(nxt->first, flags, h, nalive, overlapdict);
+			rgetovlps(nxt->first, ades, h, nalive, overlapdict);
 			delete_list(nalive, NULL);
 		}
 	}
@@ -640,44 +639,44 @@ static void rgetovlps(struct itm_instr *i, enum raflags flags, int *h,
  * each instruction that is used as an itm_mov operand with the location it's
  * moved into.
  */
-static void induceregs(struct itm_block *b, enum raflags flags,
+static void induceregs(struct itm_block *b, struct archdes ades,
 	struct list *overlapdict);
-static void inducereg(struct itm_instr *i, enum raflags flags,
+static void inducereg(struct itm_instr *i, struct archdes ades,
 	struct list *overlapdict);
 
 /*
  * Resolves tt_lochint conflicts. The instruction with the highest tt_used value
  * "wins" the register.
  */
-static void resolvconfls(struct itm_block *b, enum raflags flags,
+static void resolvconfls(struct itm_block *b, struct archdes ades,
 	struct list *overlapdict);
 // returns the winning itm_instr
-static struct itm_instr *resolvconfl(struct itm_instr *i, enum raflags flags,
+static struct itm_instr *resolvconfl(struct itm_instr *i, struct archdes ades,
 	struct list *overlapdict);
 
 /*
  * Assigns locations to the remainder of registers.
  */
-static void asnrems(struct itm_block *b, enum raflags flags,
-	struct list *overlapdict, regid_t callersav, regid_t calleesav);
-static void asnrem(struct itm_instr *i, enum raflags flags,
-	struct list *overlapdict, regid_t callersav, regid_t calleesav);
+static void asnrems(struct itm_block *b, struct archdes ades,
+	struct list *overlapdict);
+static void asnrem(struct itm_instr *i, struct archdes ades,
+	struct list *overlapdict);
 
-static void regasn(struct itm_block *b, enum raflags flags,
-	struct list *overlapdict, regid_t callersav, regid_t calleesav)
+static void regasn(struct itm_block *b, struct archdes ades,
+	struct list *overlapdict)
 {
 	analyze(b, A_USED);
 
-	induceregs(b, flags, overlapdict);
-	resolvconfls(b, flags, overlapdict);
-	asnrems(b, flags, overlapdict, callersav, calleesav);
+	induceregs(b, ades, overlapdict);
+	resolvconfls(b, ades, overlapdict);
+	asnrems(b, ades, overlapdict);
 }
 
-static void resolvconfls(struct itm_block *b, enum raflags flags,
+static void resolvconfls(struct itm_block *b, struct archdes ades,
 	struct list *overlapdict)
 {
 	for (struct itm_instr *i = b->first; i; i = i->next) {
-		struct itm_instr *win = resolvconfl(i, flags, overlapdict);
+		struct itm_instr *win = resolvconfl(i, ades, overlapdict);
 		if (!win)
 			continue;
 
@@ -692,10 +691,10 @@ static void resolvconfls(struct itm_block *b, enum raflags flags,
 	struct itm_block *nxt;
 	it_t it = list_iterator(b->next);
 	while (iterator_next(&it, (void **)&nxt))
-		resolvconfls(nxt, flags, overlapdict);
+		resolvconfls(nxt, ades, overlapdict);
 }
 
-static struct itm_instr *resolvconfl(struct itm_instr *i, enum raflags flags,
+static struct itm_instr *resolvconfl(struct itm_instr *i, struct archdes ades,
 	struct list *overlapdict)
 {
 	struct itm_tag *lochint = itm_get_tag(&i->base, &tt_lochint);
@@ -724,7 +723,7 @@ static struct itm_instr *resolvconfl(struct itm_instr *i, enum raflags flags,
 		struct itm_tag *otherut = itm_get_tag(&ovli->base, &tt_used);
 		assert(otherut != NULL);
 		int oused = itm_tag_geti(otherut);
-		if (oused > used && resolvconfl(ovli, flags, overlapdict) == ovli) {
+		if (oused > used && resolvconfl(ovli, ades, overlapdict) == ovli) {
 			winner = i;
 			used = oused;
 			continue;
@@ -736,19 +735,19 @@ static struct itm_instr *resolvconfl(struct itm_instr *i, enum raflags flags,
 	return winner;
 }
 
-static void induceregs(struct itm_block *b, enum raflags flags,
+static void induceregs(struct itm_block *b, struct archdes ades,
 	struct list *overlapdict)
 {
 	for (struct itm_instr *i = b->first; i; i = i->next)
-		inducereg(i, flags, overlapdict);
+		inducereg(i, ades, overlapdict);
 
 	struct itm_block *nxt;
 	it_t it = list_iterator(b->next);
 	while (iterator_next(&it, (void **)&nxt))
-		induceregs(nxt, flags, overlapdict);
+		induceregs(nxt, ades, overlapdict);
 }
 
-static void inducereg(struct itm_instr *i, enum raflags flags,
+static void inducereg(struct itm_instr *i, struct archdes ades,
 	struct list *overlapdict)
 {
 	if (i->id != ITM_ID(itm_mov))
@@ -778,20 +777,20 @@ static void inducereg(struct itm_instr *i, enum raflags flags,
 	itm_tag_expr(op, newt);
 }
 
-static void asnrems(struct itm_block *b, enum raflags flags,
-	struct list *overlapdict, regid_t callersav, regid_t calleesav)
+static void asnrems(struct itm_block *b, struct archdes ades,
+	struct list *overlapdict)
 {
 	for (struct itm_instr *i = b->first; i; i = i->next)
-		asnrem(i, flags, overlapdict, callersav, calleesav);
+		asnrem(i, ades, overlapdict);
 
 	struct itm_block *nxt;
 	it_t it = list_iterator(b->next);
 	while (iterator_next(&it, (void **)&nxt))
-		asnrems(nxt, flags, overlapdict, callersav, calleesav);
+		asnrems(nxt, ades, overlapdict);
 }
 
 // returns 0 if unsuccessful
-static regid_t rgetreg(struct itm_instr *i, enum raflags flags,
+static regid_t rgetreg(struct itm_instr *i, struct archdes ades,
 	struct list *ovlps, regid_t av)
 {
 	if (!av)
@@ -816,32 +815,32 @@ static regid_t rgetreg(struct itm_instr *i, enum raflags flags,
 			continue;
 		struct loc_reg *rloc = loc->extended;
 		if (try & rloc->rid)
-			return rgetreg(i, flags, ovlps, av & ~try);
+			return rgetreg(i, ades, ovlps, av & ~try);
 	}
 
 	return try;
 }
 
 // returns 0 if unsuccessful
-static regid_t getreg(struct itm_instr *i, enum raflags flags,
+static regid_t getreg(struct itm_instr *i, struct archdes ades,
 	struct list *overlapdict, regid_t av)
 {
 	// TODO: allocate multiple regs for large instructions
 	struct list *ovlps;
 	dict_get(overlapdict, i, (void **)&ovlps);
 
-	return rgetreg(i, flags, ovlps, av);
+	return rgetreg(i, ades, ovlps, av);
 }
 
-static void asnrem(struct itm_instr *i, enum raflags flags,
-	struct list *overlapdict, regid_t callersav, regid_t calleesav)
+static void asnrem(struct itm_instr *i, struct archdes ades,
+	struct list *overlapdict)
 {
 	if (itm_get_tag(&i->base, &tt_loc))
 		return;
 
-	regid_t try = getreg(i, flags, overlapdict, callersav);
+	regid_t try = getreg(i, ades, overlapdict, ades.all_iregs & ~ades.saved_iregs);
 	if (!try)
-		try = getreg(i, flags, overlapdict, calleesav);
+		try = getreg(i, ades, overlapdict, ades.saved_iregs);
 
 	struct loc_reg *reg = new_loc_reg(i->base.type->size, try)->extended;
 	struct itm_tag *regt = new_itm_tag(&tt_loc, "loc", TO_USER_PTR);
