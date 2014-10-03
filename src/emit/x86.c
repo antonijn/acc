@@ -267,11 +267,34 @@ void x86_emit(FILE *f, struct list *blocks)
 		x86_emit_symbol(f, sym);
 }
 
+static void x86_archdes(struct archdes *ades)
+{
+	// TODO: floating point regs
+
+	memset(ades, 0, sizeof(struct archdes));
+	int offs = getcpu()->offset;
+
+	if (offs < cpuamd64.offset) {
+		ades->all_iregs =
+			eax.id | ebx.id | ecx.id | edx.id | edi.id | esi.id;
+		ades->saved_iregs = ades->all_iregs & ~(eax.id | edx.id);
+		return;
+	}
+
+	ades->all_iregs =
+		rax.id | rbx.id | rcx.id | rdx.id | rdi.id | rsi.id | r15.id |
+		r8.id | r9.id | r10.id | r11.id | r12.id | r13.id | r14.id;
+	ades->saved_iregs =
+		rbx.id | r12.id | r13.id | r14.id | r15.id;
+}
+
 static void x86_emit_symbol(FILE *f, struct itm_container *c)
 {
 	x86_restrict(c->block);
-	// TODO: proper callee/caller save
-	regalloc(c->block, RA_NONE, 0, rax.id | rbx.id | rcx.id | rdx.id);
+
+	struct archdes des;
+	x86_archdes(&des);
+	regalloc(c->block, des);
 
 	itm_container_to_string(f, c);
 }
