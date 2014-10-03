@@ -91,7 +91,33 @@ void emit_long(FILE *f, size_t cnt, ...);
 void emit_quad(FILE *f, size_t cnt, ...);
 void emit_asciiz(FILE *f, const char *str);
 
-struct location;
+enum locty {
+	LT_REG,
+	LT_LMEM,
+	LT_PMEM,
+	LT_MULTIPLE
+};
+
+struct location {
+	enum locty type;
+	size_t size;
+	void *extended;
+};
+
+struct loc_reg {
+	struct location base;
+	regid_t rid;
+};
+
+struct loc_mem {
+	struct location base;
+	int offset;
+};
+
+struct loc_multiple {
+	struct location base;
+	struct list *locs;
+};
 
 struct location *new_loc_reg(size_t size, regid_t rid);
 struct location *new_loc_regany(size_t size, int of);

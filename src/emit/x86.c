@@ -170,7 +170,7 @@ static void delete_x86_ea(struct x86ea *ea);
 
 static void x86eatostr(FILE *f, struct asme *ea);
 
-static void x86_emit_symbol(FILE *f, struct itm_container *sym);
+static void x86_emit_container(FILE *f, struct itm_container *sym);
 static void x86_restrict(struct itm_block *b);
 
 static void new_x86_ea(struct x86ea *res, int size,
@@ -264,7 +264,7 @@ void x86_emit(FILE *f, struct list *blocks)
 	void *sym;
 	it_t it = list_iterator(blocks);
 	while (iterator_next(&it, &sym))
-		x86_emit_symbol(f, sym);
+		x86_emit_container(f, sym);
 }
 
 static void x86_archdes(struct archdes *ades)
@@ -288,7 +288,9 @@ static void x86_archdes(struct archdes *ades)
 		rbx.id | r12.id | r13.id | r14.id | r15.id;
 }
 
-static void x86_emit_symbol(FILE *f, struct itm_container *c)
+static void x86_emit_block(FILE *f, struct itm_block *b, struct list *bldict);
+
+static void x86_emit_container(FILE *f, struct itm_container *c)
 {
 	x86_restrict(c->block);
 
@@ -296,7 +298,9 @@ static void x86_emit_symbol(FILE *f, struct itm_container *c)
 	x86_archdes(&des);
 	regalloc(c->block, des);
 
-	itm_container_to_string(f, c);
+	struct list *dict = new_list(NULL, 0);
+	x86_emit_block(f, c->block, dict);
+	delete_list(dict, NULL);
 }
 
 static void x86_restrictmul(struct itm_instr *i)
@@ -353,4 +357,134 @@ static void x86_restrict(struct itm_block *b)
 
 	if (b->lexnext)
 		x86_restrict(b->lexnext);
+}
+
+
+static struct itm_instr *x86_emiti(FILE *f, struct itm_instr *i);
+
+static void x86_emit_block(FILE *f, struct itm_block *b, struct list *bldict)
+{
+	struct asmimm *lbl;
+
+	if (!dict_get(bldict, b, (void **)&lbl)) {
+		lbl = malloc(sizeof(struct asmimm));
+		char lblid[3 + sizeof(int) * 3]; // size estimate
+		sprintf(lblid, ".L%d", list_length(bldict) / 2);
+		new_asm_label(lbl, lblid);
+		dict_push_back(bldict, b, lbl);
+	}
+
+	emit_label(f, lbl);
+
+
+	for (struct itm_instr *i = b->first; i; i = x86_emiti(f, i))
+		;
+
+	if (b->lexnext)
+		x86_emit_block(f, b->lexnext, bldict);
+
+	delete_asm_imm(lbl);
+	free(lbl);
+	list_pop_back(bldict);
+	list_pop_back(bldict);
+}
+
+static struct asme *x86_getloce(struct location *loc, int size);
+static struct asme *x86_getasme(struct asmimm *imm, struct itm_expr *e);
+static struct itm_instr *x86_emiti_arith(FILE *f, struct itm_instr *i);
+static struct itm_instr *x86_emiti_ret(FILE *f, struct itm_instr *i);
+
+static struct asme *x86_getloce(struct location *loc, int size)
+{
+	// TODO: stack and parameter space memory
+	struct loc_reg *lreg;
+
+	switch (loc->type) {
+	case LT_REG:
+		lreg = loc->extended;
+
+		const struct asmreg **av = regav[getcpu()->offset];
+		for (int i = 0; av[i]; ++i) {
+			const struct asmreg *reg = av[i];
+			if (reg->id == lreg->rid && reg->base.size == size)
+				return (struct asme *)&reg->base;
+		}
+
+		break;
+	}
+
+	assert(false);
+}
+
+static struct asme *x86_getasme(struct asmimm *imm, struct itm_expr *e)
+{
+	if (e->etype != ITME_INSTRUCTION) {
+		if (!imm)
+			return NULL;
+
+		struct itm_literal *lit = (struct itm_literal *)e;
+		new_asm_imm(imm, e->type->size, lit->value.i);
+		return &imm->base;
+	}
+
+	struct itm_tag *restag = itm_get_tag(e, &tt_loc);
+	assert(restag != NULL);
+	struct location *loc = itm_tag_get_user_ptr(restag);
+	assert(loc != NULL);
+	return x86_getloce(loc, e->type->size);
+}
+
+static struct itm_instr *x86_emiti(FILE *f, struct itm_instr *i)
+{
+	assert(i != NULL);
+
+	struct itm_instr *nxt;
+
+	if ((nxt = x86_emiti_arith(f, i)) != i)
+		return nxt;
+	if ((nxt = x86_emiti_ret(f, i)) != i)
+		return nxt;
+
+	return i->next;
+}
+
+static struct itm_instr *x86_emiti_ret(FILE *f, struct itm_instr *i)
+{
+	if (i->id == ITM_ID(itm_leave) || i->id == ITM_ID(itm_ret)) {
+		emit_i(f, "ret", 0);
+		return i->next;
+	}
+
+	return i;
+}
+
+static struct itm_instr *x86_emiti_arith(FILE *f, struct itm_instr *i)
+{
+	const char *instrstr;
+
+	instr_id_t id = i->id;
+	if (id == ITM_ID(itm_add))
+		instrstr = "add";
+	else
+		return i;
+
+	struct asme *result = x86_getasme(NULL, &i->base);
+
+	struct itm_expr *firstop = list_head(i->operands);
+	if (firstop->etype != ITME_INSTRUCTION ||
+	    x86_getasme(NULL, firstop) != result) {
+		struct asmimm imm;
+		struct asme *firstope = x86_getasme(&imm, firstop);
+		emit_sdi(f, "mov", result, firstope);
+		if (firstope == &imm.base)
+			delete_asm_imm(&imm);
+	}
+
+	struct asmimm immsecond;
+	struct asme *lastope = x86_getasme(&immsecond, list_last(i->operands));
+	emit_sdi(f, instrstr, result, lastope);
+	if (lastope == &immsecond.base)
+		delete_asm_imm(&immsecond);
+
+	return i->next;
 }
