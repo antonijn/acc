@@ -17,6 +17,8 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
+ARCH = $(shell uname -m)
+
 CC = gcc
 CFLAGS = -c -Iinclude -std=c99 -pedantic-errors -DBUILDFOR_LINUX \
 	-DACC_VERSION=\"pre-alpha\"
@@ -24,25 +26,25 @@ LD = $(CC)
 
 TARGET = acc
 
-SOURCES ?= $(wildcard src/*.c) \
-           $(wildcard src/itm/*.c) \
-           $(wildcard src/parsing/*.c) \
-           $(wildcard src/target/*.c) \
-           $(wildcard src/target/cpu/*.c)
+SOURCES = $(wildcard src/*.c) \
+          $(wildcard src/itm/*.c) \
+          $(wildcard src/parsing/*.c) \
+          $(wildcard src/target/*.c) \
+          $(wildcard src/target/cpu/*.c)
 OBJECTS = $(patsubst %.c, %.o, $(SOURCES))
 
 release: CFLAGS += -DNDEBUG -O2
 debug: CFLAGS += -g -DITM_COLORS=1
 debug: LDFLAGS += -rdynamic
 
-release debug: mksyms $(TARGET)
+release debug: $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	$(LD) -o $@ $^ $(LDFLAGS)
 
-mksyms:
-	ln -sf cpus/$(shell uname -m) -T src/target/cpu
-	ln -sf cpus/$(shell uname -m) -T include/acc/target/cpu
+config:
+	ln -sf cpus/$(ARCH) -T src/target/cpu
+	ln -sf cpus/$(ARCH) -T include/acc/target/cpu
 
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
