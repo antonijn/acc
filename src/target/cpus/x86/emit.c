@@ -1,17 +1,17 @@
 /*
  * x86 code emission
  * Copyright (C) 2014  Antonie Blom
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -25,12 +25,14 @@
 #include <ctype.h>
 #include <assert.h>
 
-#include <acc/emit/x86.h>
+#include <acc/target/cpu/cpus.h>
+#include <acc/target/emit.h>
+#include <acc/target/cpu.h>
+#include <acc/target/asm.h>
 #include <acc/itm/ast.h>
 #include <acc/itm/analyze.h>
 #include <acc/parsing/ast.h>
 #include <acc/options.h>
-#include <acc/target.h>
 
 asme_type_t asme_x86ea;
 
@@ -150,7 +152,7 @@ static const struct asmreg *regavamd64[] = {
 	&spl, &bpl, &sil, &dil,
 	&ax, &bx, &cx, &dx, &sp, &bp, &si, &di,
 	&eax, &ebx, &edx, &ecx, &esp, &ebp, &esi, &edi,
-	
+
 	&r8b, &r9b, &r10b, &r11b, &r12b, &r14b, &r15b,
 	&r8w, &r9w, &r10w, &r11w, &r12w, &r14w, &r15w,
 	&r8d, &r9d, &r10d, &r11d, &r12d, &r14d, &r15d,
@@ -181,7 +183,7 @@ static void new_x86_ea(struct x86ea *res, int size,
 {
 	assert(res != NULL);
 	assert(getcpu()->offset >= cpui386.offset || mult == 1);
-	
+
 	res->base.type = &asme_x86ea;
 	res->base.to_string = &x86eatostr;
 	res->base.to_string_d = &x86eatostr;
@@ -221,7 +223,7 @@ static void x86eatostr(FILE *f, struct asme *e)
 		fprintf(f, ")");
 		return;
 	}
-	
+
 	switch (ea->base.size) {
 	case 1:
 		fprintf(f, "byte");
@@ -259,12 +261,12 @@ static void x86eatostr(FILE *f, struct asme *e)
 	fprintf(f, "]");
 }
 
-void x86_emit(FILE *f, struct list *blocks)
+void emit(FILE *f, struct list *containers)
 {
-	void *sym;
-	it_t it = list_iterator(blocks);
-	while (iterator_next(&it, &sym))
-		x86_emit_container(f, sym);
+	void *cont;
+	it_t it = list_iterator(containers);
+	while (iterator_next(&it, &cont))
+		x86_emit_container(f, cont);
 }
 
 static void x86_archdes(struct archdes *ades)
@@ -274,7 +276,7 @@ static void x86_archdes(struct archdes *ades)
 	memset(ades, 0, sizeof(struct archdes));
 	int offs = getcpu()->offset;
 
-	if (offs < cpuamd64.offset) {
+	if (offs < cpux86_64.offset) {
 		ades->all_iregs =
 			eax.id | ebx.id | ecx.id | edx.id | edi.id | esi.id;
 		ades->saved_iregs = ades->all_iregs & ~(eax.id | edx.id);

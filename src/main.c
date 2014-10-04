@@ -28,6 +28,7 @@
 #include <unistd.h>
 #endif
 
+#include <acc/target/emit.h>
 #include <acc/itm/analyze.h>
 #include <acc/itm/opt.h>
 #include <acc/itm/ast.h>
@@ -35,7 +36,6 @@
 #include <acc/parsing/token.h>
 #include <acc/options.h>
 #include <acc/error.h>
-#include <acc/target.h>
 
 static void opt_and_dump(struct list *syms)
 {
@@ -89,7 +89,7 @@ static void compilefile(FILE *f)
 	} else {
 		s = tmpfile();
 	}
-	getarch()->emitter(s, syms);
+	emit(s, syms);
 	fclose(s);
 
 cleanup:

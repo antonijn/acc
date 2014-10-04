@@ -7,3 +7,4 @@ acc
 *.s
 *.ir
 ovldump
+cpu

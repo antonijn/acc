@@ -23,10 +23,10 @@
 #include <ctype.h>
 #include <assert.h>
 
+#include <acc/target/asm.h>
+#include <acc/target/cpu.h>
 #include <acc/itm/analyze.h>
-#include <acc/emit/asm.h>
 #include <acc/options.h>
-#include <acc/target.h>
 
 asme_type_t asme_reg;
 asme_type_t asme_imm;
@@ -185,7 +185,8 @@ void new_asm_label(struct asmimm *res, char *value)
 	assert(value != NULL);
 
 	// I don't know if ISO true values are necessarily 1...
-	int uscorepfix = ((getos() == &oswindows) && value[0] != '.') ? 1 : 0;
+	int uscorepfix = //((getos() == &oswindows) && value[0] != '.') ? 1 : 0;
+		0;
 
 	res->base.type = &asme_imm;
 	res->base.size = getcpu()->bits / 8;
