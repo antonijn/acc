@@ -34,34 +34,6 @@ asme_type_t asme_imm;
 itm_tag_type_t tt_loc, tt_color;
 static itm_tag_type_t tt_lochint;
 
-enum locty {
-	LT_REG,
-	LT_LMEM,
-	LT_PMEM,
-	LT_MULTIPLE
-};
-
-struct location {
-	enum locty type;
-	size_t size;
-	void *extended;
-};
-
-struct loc_reg {
-	struct location base;
-	regid_t rid;
-};
-
-struct loc_mem {
-	struct location base;
-	int offset;
-};
-
-struct loc_multiple {
-	struct location base;
-	struct list *locs;
-};
-
 static inline void loc_init(struct location *loc, enum locty type,
 	size_t size, void *ex)
 {
@@ -267,6 +239,24 @@ void asmregtostr(FILE *f, struct asme *e)
 	fprintf(f, "%s", r->name);
 }
 
+static void write_intel_size(FILE *f, int size)
+{
+	switch (size) {
+	case 1:
+		fprintf(f, "byte");
+		break;
+	case 2:
+		fprintf(f, "word");
+		break;
+	case 4:
+		fprintf(f, "dword");
+		break;
+	case 8:
+		fprintf(f, "qword");
+		break;
+	}
+}
+
 static void asmimmtostrpfix(FILE *f, struct asmimm *imm, bool attprefix)
 {
 	if (imm->op) {
@@ -277,8 +267,13 @@ static void asmimmtostrpfix(FILE *f, struct asmimm *imm, bool attprefix)
 		fprintf(f, ")");
 	} else if (imm->label) {
 		fprintf(f, "%s", imm->label);
-	} else if (attprefix && option_asmflavor() == AF_ATT) {
-		fprintf(f, "$%ld", imm->value);
+	} else if (attprefix) {
+		if (option_asmflavor() == AF_ATT) {
+			fprintf(f, "$%ld", imm->value);
+		} else {
+			write_intel_size(f, imm->base.size);
+			fprintf(f, " %ld", imm->value);
+		}
 	} else {
 		fprintf(f, "%ld", imm->value);
 	}
