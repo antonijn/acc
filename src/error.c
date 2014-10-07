@@ -49,10 +49,12 @@ void report(enum errorty ty, struct token *tok, const char *frmt, ...)
 	if (!(ty & E_HIDE_LOCATION))
 		fprintf(stderr, "%s:%d:%d: ", currentfile ?
 			currentfile : "<stdin>", get_line(), get_column());
+	else
+		fprintf(stderr, "acc: ");
 
 	if (ty & E_FATAL) {
 		fprintf(stderr, ANSI_RED(colors));
-		fprintf(stderr, "FATAL: ");
+		fprintf(stderr, "fatal error: ");
 	} else if (ty & E_WARNING) {
 		fprintf(stderr, ANSI_MAGENTA(colors));
 		fprintf(stderr, "warning: ");

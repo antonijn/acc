@@ -137,52 +137,73 @@ static bool lifetime(struct itm_instr *instr, struct itm_block *block, struct li
 {
 	assert(done != NULL);
 
-	list_push_back(done, block);
-
-	struct itm_tag *alive = itm_get_tag(&block->base, &tt_alive);
-	if (!alive) {
-		alive = new_itm_tag(&tt_alive, "alive", TO_EXPR_LIST);
-		itm_tag_expr(&block->base, alive);
-	}
 
 	bool localuse = false;
 	bool orf = false;
-	struct itm_instr *blocki = block->last;
-	struct itm_block *baft;
-	if (!blocki)
-		goto exit;
+	struct itm_instr *bi = block->first;
 
-	it_t it;
-	while (blocki) {
-		struct itm_expr *e;
-		it = list_iterator(blocki->operands);
-		while (iterator_next(&it, (void **)&e)) {
-			if (e == &instr->base) {
-				localuse = true;
-				goto exit;
-			}
-		}
-		blocki = blocki->previous;
+	for (bi = block->first; bi && bi->id == ITM_ID(itm_phi); bi = bi->next) {
+		localuse = list_contains(bi->operands, &instr->base);
+		if (localuse)
+			break;
 	}
 
-exit:
-	it = list_iterator(block->next);
-	while (iterator_next(&it, (void **)&baft))
-		if (!list_contains(done, baft))
-			orf |= lifetime(instr, baft, done);
+	if (list_contains(done, block))
+		goto tag;
 
-	// used in block only
-	if (localuse && !orf) {
-		struct itm_tag *endlife = itm_get_tag(&blocki->base, &tt_endlife);
+	list_push_back(done, block);
+
+	/*
+	 * Backwards is faster
+	 */
+	for (bi = block->last; bi && bi->id != ITM_ID(itm_phi); bi = bi->previous) {
+		localuse = bi == instr ||
+		           list_contains(bi->operands, &instr->base);
+		if (localuse)
+			break;
+	}
+
+	/*
+	 * Store the blocks in which the instruction isn't alive,
+	 * so we can tag the first instruction in them as ending the lifetime
+	 * for the instruction.
+	 */
+	struct list *notalive = new_list(NULL, 0);
+	struct itm_block *baft;
+	it_t it = list_iterator(block->next);
+	while (iterator_next(&it, (void **)&baft)) {
+		if (lifetime(instr, baft, done))
+			orf = true;
+		else
+			list_push_back(notalive, baft);
+	}
+
+	if (!orf)
+		goto tag;
+
+	it = list_iterator(notalive);
+	while (iterator_next(&it, (void **)&baft)) {
+		struct itm_instr *i;
+		for (i = baft->first; i->id == ITM_ID(itm_phi); i = i->next)
+			;
+		struct itm_tag *endlife = itm_get_tag(&i->base, &tt_endlife);
 		if (!endlife) {
 			endlife = new_itm_tag(&tt_endlife, "endlife", TO_EXPR_LIST);
-			itm_tag_expr(&blocki->base, endlife);
+			itm_tag_expr(&i->base, endlife);
 		}
 		itm_tag_add_item(endlife, instr);
 	}
 
-	if (orf || localuse)
-		itm_tag_add_item(alive, &instr->base);
+tag:
+	// used in block only
+	if (localuse && !orf) {
+		struct itm_tag *endlife = itm_get_tag(&bi->base, &tt_endlife);
+		if (!endlife) {
+			endlife = new_itm_tag(&tt_endlife, "endlife", TO_EXPR_LIST);
+			itm_tag_expr(&bi->base, endlife);
+		}
+		itm_tag_add_item(endlife, instr);
+	}
 
 	return orf || localuse;
 }

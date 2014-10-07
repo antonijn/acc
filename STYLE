@@ -333,7 +333,12 @@ It exists. Just wanted to remind you of that.
 
 	4.8. typedef
 
-As a general rule: don't use it.
+As a general rule: use it only if you have a very good reason: if it improves
+scalability, such as using a general globally easily changable integer regid_t
+type for registers, or improves maintainability, such as using it_t for
+iterators instead of the more error-prone void pointer (in case of the iterator
+type this could also be done using a pointer to some opaque struct, but
+iterators are used frequently enough to require a short-and-sweet name).
 
 Some people like declaring types like this:
 
