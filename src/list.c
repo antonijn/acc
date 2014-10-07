@@ -38,9 +38,16 @@ static struct node *getnode(struct list *restrict l, void *data)
 {
 	it_t it = list_iterator(l);
 	void *d;
-	while (iterator_next(&it, &d))
+	while (true) {
+		it_t new = it;
+		if (!iterator_next(&new, &d))
+			break;
+
 		if (d == data)
 			return it;
+
+		it = new;
+	}
 
 	return NULL;
 }
