@@ -164,10 +164,36 @@ static bool lifetime(struct itm_instr *instr, struct itm_block *block, struct li
 			break;
 	}
 
+	/*
+	 * Store the blocks in which the instruction isn't alive,
+	 * so we can tag the first instruction in them as ending the lifetime
+	 * for the instruction.
+	 */
+	struct list *notalive = new_list(NULL, 0);
 	struct itm_block *baft;
 	it_t it = list_iterator(block->next);
-	while (iterator_next(&it, (void **)&baft))
-		orf |= lifetime(instr, baft, done);
+	while (iterator_next(&it, (void **)&baft)) {
+		if (lifetime(instr, baft, done))
+			orf = true;
+		else
+			list_push_back(notalive, baft);
+	}
+
+	if (!orf)
+		goto tag;
+
+	it = list_iterator(notalive);
+	while (iterator_next(&it, (void **)&baft)) {
+		struct itm_instr *i;
+		for (i = baft->first; i->id == ITM_ID(itm_phi); i = i->next)
+			;
+		struct itm_tag *endlife = itm_get_tag(&i->base, &tt_endlife);
+		if (!endlife) {
+			endlife = new_itm_tag(&tt_endlife, "endlife", TO_EXPR_LIST);
+			itm_tag_expr(&i->base, endlife);
+		}
+		itm_tag_add_item(endlife, instr);
+	}
 
 tag:
 	// used in block only
