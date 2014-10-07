@@ -117,8 +117,6 @@ exit:
 
 static void a_lifetime(struct itm_instr *instr)
 {
-	// FIXME: for unused instructions
-
 	if (!instr)
 		return;
 
@@ -159,7 +157,8 @@ static bool lifetime(struct itm_instr *instr, struct itm_block *block, struct li
 	 * Backwards is faster
 	 */
 	for (bi = block->last; bi && bi->id != ITM_ID(itm_phi); bi = bi->previous) {
-		localuse = list_contains(bi->operands, &instr->base);
+		localuse = bi == instr ||
+		           list_contains(bi->operands, &instr->base);
 		if (localuse)
 			break;
 	}
