@@ -133,8 +133,10 @@ int main(int argc, char *argv[])
 		                "segmentation fault handler\n");
 #endif
 
-	if (setjmp(fatal_env))
+	if (setjmp(fatal_env)) {
+		fprintf(stderr, "compilation terminated.\n");
 		exit(EXIT_FAILURE);
+	}
 
 	options_init(argc, argv);
 

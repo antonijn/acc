@@ -184,11 +184,14 @@ void options_init(int argc, char *argv[])
 			enableext(&arg[2]);
 		} else if (arg[0] == '-' && arg[1] != '\0') {
 			report(E_OPTIONS, NULL,
-				"invalid command-line option: %s", arg);
+				"invalid command line option: %s", arg);
 		} else {
 			list_push_back(input, arg);
 		}
 	}
+
+	if (list_length(input) == 0)
+		report(E_OPTIONS | E_FATAL, NULL, "no input files specified");
 }
 
 void options_destroy(void)
