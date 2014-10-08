@@ -30,7 +30,7 @@
 asme_type_t asme_reg;
 asme_type_t asme_imm;
 
-itm_tag_type_t tt_loc;
+const char *const tt_loc = "loc";
 
 static void asmimmtostr(FILE *f, struct asme *e);
 static void asmimmtostrd(FILE *f, struct asme *e);

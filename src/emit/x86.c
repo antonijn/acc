@@ -286,14 +286,14 @@ static void x86_restrictmul(struct itm_instr *i)
 		return;
 
 	struct itm_instr *mov = itm_mov(i->block, l);
-	struct itm_tag *loc = new_itm_tag(&tt_loc, "loc", TO_INT);
+	struct itm_tag *loc = new_itm_tag(&tt_loc, TO_INT);
 	itm_tag_seti(loc, rax.id);
 	itm_tag_expr(&mov->base, loc);
 	itm_inserti(mov, i);
 	set_list_item(i->operands, 0, mov);
 
 	struct itm_instr *clobb = itm_clobb(i->block);
-	loc = new_itm_tag(&tt_loc, "loc", TO_INT);
+	loc = new_itm_tag(&tt_loc, TO_INT);
 	itm_tag_seti(loc, rdx.id);
 	itm_tag_expr(&clobb->base, loc);
 	itm_inserti(clobb, i->next);
@@ -307,7 +307,7 @@ static void x86_restrictret(struct itm_instr *i)
 	if (hastc(i->base.type, TC_POINTER) ||
 	    hastc(i->base.type, TC_INTEGRAL)) {
 		struct itm_instr *mov = itm_mov(i->block, list_head(i->operands));
-		struct itm_tag *loc = new_itm_tag(&tt_loc, "loc", TO_INT);
+		struct itm_tag *loc = new_itm_tag(&tt_loc, TO_INT);
 		itm_tag_seti(loc, rax.id);
 		itm_tag_expr(&mov->base, loc);
 		itm_inserti(mov, i);

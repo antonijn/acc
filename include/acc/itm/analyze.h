@@ -23,7 +23,9 @@
 #include <acc/itm/ast.h>
 #include <acc/itm/tag.h>
 
-extern itm_tag_type_t tt_used, tt_acc, tt_alive, tt_endlife, tt_phiable;
+extern const char *const tt_used;
+extern const char *const tt_endlife;
+extern const char *const tt_phiable;
 
 enum analysis {
 	A_USED = 0x1,

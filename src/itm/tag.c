@@ -27,8 +27,7 @@
 #include <acc/list.h>
 
 struct itm_tag {
-	itm_tag_type_t *type;
-	const char *name;
+	const char *const *type;
 	enum itm_tag_object object;
 	void (*free)(void *data);
 	void (*print)(FILE *f, void *data);
@@ -44,15 +43,13 @@ static void free_expr_list(void *data)
 	delete_list(data, NULL);
 }
 
-struct itm_tag *new_itm_tag(itm_tag_type_t *type, const char *name,
-	enum itm_tag_object obj)
+struct itm_tag *new_itm_tag(const char *const *type, enum itm_tag_object obj)
 {
 	struct itm_tag *tag = malloc(sizeof(struct itm_tag));
 
-	assert(name != NULL);
+	assert(type != NULL);
 
 	tag->type = type;
-	tag->name = name;
 	tag->object = obj;
 	tag->free = (obj == TO_EXPR_LIST) ? &free_expr_list : NULL;
 	tag->value.data = (obj == TO_EXPR_LIST) ? new_list(NULL, 0) : NULL;
@@ -87,7 +84,7 @@ void itm_tag_to_string(FILE *f, struct itm_tag *tag)
 		return;
 	}
 
-	fprintf(f, "%s(", tag->name);
+	fprintf(f, "%s(", *tag->type);
 	switch (tag->object) {
 	case TO_INT:
 		fprintf(f, "%d", tag->value.i);
@@ -99,14 +96,9 @@ void itm_tag_to_string(FILE *f, struct itm_tag *tag)
 	fprintf(f, ")");
 }
 
-itm_tag_type_t *itm_tag_type(struct itm_tag *tag)
+const char *const *itm_tag_type(struct itm_tag *tag)
 {
 	return tag->type;
-}
-
-const char *itm_tag_name(struct itm_tag *tag)
-{
-	return tag->name;
 }
 
 enum itm_tag_object itm_tag_object(struct itm_tag *tag)

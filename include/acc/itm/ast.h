@@ -121,7 +121,7 @@ void cleanup_instr(struct itm_instr *i);
 void itm_container_to_string(FILE *f, struct itm_container *c);
 
 void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag);
-struct itm_tag *itm_get_tag(struct itm_expr *e, itm_tag_type_t *ty);
+struct itm_tag *itm_get_tag(struct itm_expr *e, const char *const *ty);
 
 void itm_remi(struct itm_instr *a);
 void itm_repli(struct itm_instr *a, struct itm_expr *b);
