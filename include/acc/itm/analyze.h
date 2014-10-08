@@ -23,16 +23,16 @@
 #include <acc/itm/ast.h>
 #include <acc/itm/tag.h>
 
-extern itm_tag_type_t tt_used, tt_acc, tt_alive, tt_endlife, tt_phiable;
+extern const char *const tt_used;
+extern const char *const tt_endlife;
+extern const char *const tt_phiable;
 
 enum analysis {
-	A_ACC = 0x1,
-	A_USED = 0x2,
-	A_LIFETIME = 0x4,
-	A_PHIABLE = 0x8
+	A_USED = 0x1,
+	A_LIFETIME = 0x2,
+	A_PHIABLE = 0x4
 };
 
 void analyze(struct itm_block *strt, enum analysis a);
-void reanalyze(struct itm_block *strt, enum analysis a);
 
 #endif

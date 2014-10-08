@@ -31,8 +31,8 @@
 asme_type_t asme_reg;
 asme_type_t asme_imm;
 
-itm_tag_type_t tt_loc, tt_color;
-static itm_tag_type_t tt_lochint;
+const char *const tt_loc = "loc";
+static const char *const tt_lochint = "lochint";
 
 static inline void loc_init(struct location *loc, enum locty type,
 	size_t size, void *ex)
@@ -678,7 +678,7 @@ static void resolvconfls(struct itm_block *b, struct archdes ades,
 
 		struct itm_tag *loct = itm_get_tag(&win->base, &tt_lochint);
 		struct location *loc = copy_loc(itm_tag_get_user_ptr(loct));
-		struct itm_tag *nloct = new_itm_tag(&tt_loc, "loc", TO_USER_PTR);
+		struct itm_tag *nloct = new_itm_tag(&tt_loc, TO_USER_PTR);
 		itm_tag_set_user_ptr(nloct, loc, (void (*)(FILE *, void *))&loc_to_string);
 		itm_untag_expr(&win->base, &tt_lochint);
 		itm_tag_expr(&win->base, nloct);
@@ -768,7 +768,7 @@ static void inducereg(struct itm_instr *i, struct archdes ades,
 		return;
 
 	struct location *newl = copy_loc(loc);
-	struct itm_tag *newt = new_itm_tag(&tt_lochint, "lochint", TO_USER_PTR);
+	struct itm_tag *newt = new_itm_tag(&tt_lochint, TO_USER_PTR);
 	itm_tag_set_user_ptr(newt, newl, (void (*)(FILE *, void *))&loc_to_string);
 	itm_tag_expr(op, newt);
 }
@@ -839,7 +839,7 @@ static void asnrem(struct itm_instr *i, struct archdes ades,
 		try = getreg(i, ades, overlapdict, ades.saved_iregs);
 
 	struct loc_reg *reg = new_loc_reg(i->base.type->size, try)->extended;
-	struct itm_tag *regt = new_itm_tag(&tt_loc, "loc", TO_USER_PTR);
+	struct itm_tag *regt = new_itm_tag(&tt_loc, TO_USER_PTR);
 	itm_tag_set_user_ptr(regt, reg, (void (*)(FILE *, void *))&loc_to_string);
 	itm_tag_expr(&i->base, regt);
 }
