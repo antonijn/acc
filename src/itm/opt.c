@@ -194,7 +194,7 @@ static void o_prune(struct itm_block *blk)
 	while (iterator_next(&it, (void **)&aft)) {
 		struct itm_instr *i = aft->first;
 		while (i->id == ITM_ID(itm_phi)) {
-			//rmfromphi(blk, i);
+			rmfromphi(blk, i);
 			i = i->next;
 		}
 
