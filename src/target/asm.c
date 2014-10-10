@@ -639,6 +639,8 @@ static void induceregs(struct itm_block *b, struct archdes ades,
 	struct list *overlapdict);
 static void inducereg(struct itm_instr *i, struct archdes ades,
 	struct list *overlapdict);
+static void deducereg(struct itm_instr *i, struct archdes ades,
+	struct list *overlapdict);
 
 /*
  * Resolves tt_lochint conflicts. The instruction with the highest tt_used value
@@ -734,8 +736,10 @@ static struct itm_instr *resolvconfl(struct itm_instr *i, struct archdes ades,
 static void induceregs(struct itm_block *b, struct archdes ades,
 	struct list *overlapdict)
 {
-	for (struct itm_instr *i = b->first; i; i = i->next)
+	for (struct itm_instr *i = b->first; i; i = i->next) {
 		inducereg(i, ades, overlapdict);
+		deducereg(i, ades, overlapdict);
+	}
 
 	struct itm_block *nxt;
 	it_t it = list_iterator(b->next);
@@ -773,11 +777,41 @@ static void inducereg(struct itm_instr *i, struct archdes ades,
 	itm_tag_expr(op, newt);
 }
 
+static void deducereg(struct itm_instr *i, struct archdes ades,
+	struct list *overlapdict)
+{
+	if (i->id != ITM_ID(itm_mov))
+		return;
+
+	if (itm_get_tag(&i->base, &tt_loc))
+		return;
+
+	struct itm_expr *op = list_head(i->operands);
+	struct itm_tag *movto = itm_get_tag(op, &tt_loc);
+	if (!movto) {
+		movto = itm_get_tag(op, &tt_lochint);
+		if (!movto)
+			return;
+	}
+
+	struct location *loc = itm_tag_get_user_ptr(movto);
+	if (loc->type != LT_REG)
+		return; // TODO: implement non-regs? multiple regs?
+
+	struct loc_reg *reg = loc->extended;
+
+	struct location *newl = copy_loc(loc);
+	struct itm_tag *newt = new_itm_tag(&tt_lochint, TO_USER_PTR);
+	itm_tag_set_user_ptr(newt, newl, (void (*)(FILE *, void *))&loc_to_string);
+	itm_tag_expr(&i->base, newt);
+}
+
 static void asnrems(struct itm_block *b, struct archdes ades,
 	struct list *overlapdict)
 {
 	for (struct itm_instr *i = b->first; i; i = i->next)
-		asnrem(i, ades, overlapdict);
+		if (i->base.type != &cvoid)
+			asnrem(i, ades, overlapdict);
 
 	struct itm_block *nxt;
 	it_t it = list_iterator(b->next);
