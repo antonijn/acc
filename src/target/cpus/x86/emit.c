@@ -126,25 +126,42 @@ static const struct asmreg r13 = NEW_REG(8, "r13", NULL, &r13d, NULL, 11);
 static const struct asmreg r14 = NEW_REG(8, "r14", NULL, &r14d, NULL, 12);
 static const struct asmreg r15 = NEW_REG(8, "r15", NULL, &r15d, NULL, 13);
 
+static const struct asmreg eflag = NEW_REG(0, "e", NULL, NULL, NULL, 14);
+static const struct asmreg neflag = NEW_REG(0, "ne", NULL, NULL, NULL, 15);
+static const struct asmreg gflag = NEW_REG(0, "g", NULL, NULL, NULL, 16);
+static const struct asmreg geflag = NEW_REG(0, "ge", NULL, NULL, NULL, 17);
+static const struct asmreg lflag = NEW_REG(0, "l", NULL, NULL, NULL, 18);
+static const struct asmreg leflag = NEW_REG(0, "le", NULL, NULL, NULL, 19);
+static const struct asmreg aflag = NEW_REG(0, "a", NULL, NULL, NULL, 20);
+static const struct asmreg aeflag = NEW_REG(0, "ae", NULL, NULL, NULL, 21);
+static const struct asmreg bflag = NEW_REG(0, "b", NULL, NULL, NULL, 22);
+static const struct asmreg beflag = NEW_REG(0, "be", NULL, NULL, NULL, 23);
+
 // list of available registers per platform
 static const struct asmreg *regav8086[] = {
 	&ah, &al, &bh, &bl, &ch, &cl, &dh, &dl,
 	&spl, &bpl, &sil, &dil,
-	&ax, &bx, &cx, &dx, &sp, &bp, &si, &di, NULL
+	&ax, &bx, &cx, &dx, &sp, &bp, &si, &di,
+	&eflag, &neflag, &gflag, &geflag, &lflag, &leflag,
+	NULL
 };
 
 static const struct asmreg *regavi386[] = {
 	&ah, &al, &bh, &bl, &ch, &cl, &dh, &dl,
 	&spl, &bpl, &sil, &dil,
 	&ax, &bx, &cx, &dx, &sp, &bp, &si, &di,
-	&eax, &ebx, &edx, &ecx, &esp, &ebp, &esi, &edi, NULL
+	&eax, &ebx, &edx, &ecx, &esp, &ebp, &esi, &edi,
+	&eflag, &neflag, &gflag, &geflag, &lflag, &leflag,
+	NULL
 };
 
 static const struct asmreg *regavi686[] = {
 	&ah, &al, &bh, &bl, &ch, &cl, &dh, &dl,
 	&spl, &bpl, &sil, &dil,
 	&ax, &bx, &cx, &dx, &sp, &bp, &si, &di,
-	&eax, &ebx, &edx, &ecx, &esp, &ebp, &esi, &edi, NULL
+	&eax, &ebx, &edx, &ecx, &esp, &ebp, &esi, &edi,
+	&eflag, &neflag, &gflag, &geflag, &lflag, &leflag,
+	NULL
 };
 
 static const struct asmreg *regavamd64[] = {
@@ -156,7 +173,9 @@ static const struct asmreg *regavamd64[] = {
 	&r8b, &r9b, &r10b, &r11b, &r12b, &r14b, &r15b,
 	&r8w, &r9w, &r10w, &r11w, &r12w, &r14w, &r15w,
 	&r8d, &r9d, &r10d, &r11d, &r12d, &r14d, &r15d,
-	&r8, &r9, &r10, &r11, &r12, &r14, &r15, NULL
+	&r8, &r9, &r10, &r11, &r12, &r14, &r15,
+	&eflag, &neflag, &gflag, &geflag, &lflag, &leflag,
+	NULL
 };
 
 static const struct asmreg **regav[] = {
@@ -315,11 +334,13 @@ static void x86_emit_container(FILE *f, struct itm_container *c)
 	x86_archdes(&des);
 	regalloc(c->block, des);
 
+	//itm_container_to_string(f, c);
+	//return;
+
 	struct list *dict = new_list(NULL, 0);
 	x86_emit_block(f, c->block, dict);
 	delete_list(dict, NULL);
 
-	//itm_container_to_string(f, c);
 }
 
 static void x86_restrictarith(struct itm_instr *i)
@@ -364,6 +385,37 @@ static void x86_restrictmul(struct itm_instr *i)
 	itm_inserti(clobb, i->next);
 }
 
+static void x86_restrictcmp(struct itm_instr *i)
+{
+	regid_t reg;
+
+	if (i->id == ITM_ID(itm_cmpeq))
+		reg = eflag.id;
+	else if (i->id == ITM_ID(itm_cmpneq))
+		reg = neflag.id;
+	else if (i->id == ITM_ID(itm_cmpgt))
+		reg = gflag.id;
+	else if (i->id == ITM_ID(itm_cmpgte))
+		reg = geflag.id;
+	else if (i->id == ITM_ID(itm_cmplt))
+		reg = lflag.id;
+	else if (i->id == ITM_ID(itm_cmplte))
+		reg = leflag.id;
+	else
+		return;
+
+	struct itm_instr *mov = itm_mov(i->block, &i->base);
+	itm_inserti(mov, i->next);
+	itm_replocc(&i->base, &mov->base, i->block);
+	// set mov operand again for it has been replaced with the mov itself
+	set_list_item(mov->operands, 0, &i->base);
+
+	struct location *actloc = new_loc_reg(i->base.type->size, reg);
+	struct itm_tag *loc = new_itm_tag(&tt_loc, TO_USER_PTR);
+	itm_tag_set_user_ptr(loc, actloc, (void (*)(FILE *, void *))&loc_to_string);
+	itm_tag_expr(&i->base, loc);
+}
+
 static void x86_restrictret(struct itm_instr *i)
 {
 	if (i->id != ITM_ID(itm_ret))
@@ -389,6 +441,7 @@ static void x86_restrict(struct itm_block *b)
 		x86_restrictmul(i);
 		x86_restrictret(i);
 		x86_restrictarith(i);
+		x86_restrictcmp(i);
 		i = i->next;
 	}
 
@@ -397,9 +450,13 @@ static void x86_restrict(struct itm_block *b)
 }
 
 
-static struct itm_instr *x86_emiti(FILE *f, struct itm_instr *i);
+static struct itm_instr *x86_emiti(FILE *f, struct itm_instr *i,
+	struct list *bldict);
 
-static void x86_emit_block(FILE *f, struct itm_block *b, struct list *bldict)
+/*
+ * x86_emit_block cleans up the mess left by getblocklbl
+ */
+static struct asmimm *x86_getblocklbl(struct itm_block *b, struct list *bldict)
 {
 	struct asmimm *lbl;
 
@@ -411,10 +468,17 @@ static void x86_emit_block(FILE *f, struct itm_block *b, struct list *bldict)
 		dict_push_back(bldict, b, lbl);
 	}
 
+	return lbl;
+}
+
+static void x86_emit_block(FILE *f, struct itm_block *b, struct list *bldict)
+{
+	struct asmimm *lbl = x86_getblocklbl(b, bldict);
+
 	emit_label(f, lbl);
 
 
-	for (struct itm_instr *i = b->first; i; i = x86_emiti(f, i))
+	for (struct itm_instr *i = b->first; i; i = x86_emiti(f, i, bldict))
 		;
 
 	if (b->lexnext)
@@ -428,8 +492,19 @@ static void x86_emit_block(FILE *f, struct itm_block *b, struct list *bldict)
 
 static struct asme *x86_getloce(struct location *loc, int size);
 static struct asme *x86_getasme(struct asmimm *imm, struct itm_expr *e);
-static struct itm_instr *x86_emiti_arith(FILE *f, struct itm_instr *i);
-static struct itm_instr *x86_emiti_ret(FILE *f, struct itm_instr *i);
+
+static struct itm_instr *x86_emit_cmp(FILE *f, struct itm_instr *i,
+	struct list *bldict);
+static struct itm_instr *x86_emit_split(FILE *f, struct itm_instr *i,
+	struct list *bldict);
+static struct itm_instr *x86_emit_jmp(FILE *f, struct itm_instr *i,
+	struct list *bldict);
+static struct itm_instr *x86_emiti_arith(FILE *f, struct itm_instr *i,
+	struct list *bldict);
+static struct itm_instr *x86_emiti_ret(FILE *f, struct itm_instr *i,
+	struct list *bldict);
+static struct itm_instr *x86_emit_jmp(FILE *f, struct itm_instr *i,
+	struct list *bldict);
 
 static struct asme *x86_getloce(struct location *loc, int size)
 {
@@ -443,10 +518,13 @@ static struct asme *x86_getloce(struct location *loc, int size)
 		const struct asmreg **av = regav[getcpu()->offset];
 		for (int i = 0; av[i]; ++i) {
 			const struct asmreg *reg = av[i];
-			if (reg->id == lreg->rid && reg->base.size == size)
+			// !reg->base.size is for flags
+			if (reg->id == lreg->rid &&
+			    (reg->base.size == size || !reg->base.size))
 				return (struct asme *)&reg->base;
 		}
 
+		assert(false);
 		break;
 	}
 
@@ -471,15 +549,22 @@ static struct asme *x86_getasme(struct asmimm *imm, struct itm_expr *e)
 	return x86_getloce(loc, e->type->size);
 }
 
-static struct itm_instr *x86_emiti(FILE *f, struct itm_instr *i)
+static struct itm_instr *x86_emiti(FILE *f, struct itm_instr *i,
+	struct list *bldict)
 {
 	assert(i != NULL);
 
 	struct itm_instr *nxt;
 
-	if ((nxt = x86_emiti_arith(f, i)) != i)
+	if ((nxt = x86_emiti_arith(f, i, bldict)) != i)
 		return nxt;
-	if ((nxt = x86_emiti_ret(f, i)) != i)
+	if ((nxt = x86_emiti_ret(f, i, bldict)) != i)
+		return nxt;
+	if ((nxt = x86_emit_cmp(f, i, bldict)) != i)
+		return nxt;
+	if ((nxt = x86_emit_split(f, i, bldict)) != i)
+		return nxt;
+	if ((nxt = x86_emit_jmp(f, i, bldict)) != i)
 		return nxt;
 
 	if (i->id == ITM_ID(itm_mov)) {
@@ -497,7 +582,8 @@ static struct itm_instr *x86_emiti(FILE *f, struct itm_instr *i)
 	return i->next;
 }
 
-static struct itm_instr *x86_emiti_ret(FILE *f, struct itm_instr *i)
+static struct itm_instr *x86_emiti_ret(FILE *f, struct itm_instr *i,
+	struct list *bldict)
 {
 	if (i->id == ITM_ID(itm_leave) || i->id == ITM_ID(itm_ret)) {
 		emit_i(f, "ret", 0);
@@ -507,7 +593,137 @@ static struct itm_instr *x86_emiti_ret(FILE *f, struct itm_instr *i)
 	return i;
 }
 
-static struct itm_instr *x86_emiti_arith(FILE *f, struct itm_instr *i)
+static struct itm_instr *x86_emit_cmp(FILE *f, struct itm_instr *i,
+	struct list *bldict)
+{
+	if (i->id != ITM_ID(itm_cmpeq) &&
+	    i->id != ITM_ID(itm_cmpneq) &&
+	    i->id != ITM_ID(itm_cmpgt) &&
+	    i->id != ITM_ID(itm_cmplt) &&
+	    i->id != ITM_ID(itm_cmpgte) &&
+	    i->id != ITM_ID(itm_cmplte))
+		return i;
+
+	struct asmimm l, r;
+	struct asme *le = x86_getasme(&l, list_head(i->operands));
+	struct asme *re = x86_getasme(&r, list_last(i->operands));
+	emit_sdi(f, "cmp", le, re);
+
+	if (re == &r.base)
+		delete_asm_imm(&r);
+	if (le == &l.base)
+		delete_asm_imm(&l);
+
+	return i->next;
+}
+
+static struct itm_instr *x86_emit_split(FILE *f, struct itm_instr *i,
+	struct list *bldict)
+{
+	/*
+	 * Opposite is ++ for even labels and -- for odd
+	 */
+	enum {
+		JE,
+		JNE,
+		JG,
+		JLE,
+		JGE,
+		JL
+	} jtype;
+
+	if (i->id != ITM_ID(itm_split))
+		return i;
+
+	struct itm_block *trblk = get_list_item(i->operands, 1);
+	struct itm_block *fablk = list_last(i->operands);
+
+	struct itm_expr *cond = list_head(i->operands);
+	/*
+	 * TODO: the condition won't always be in a flags register...
+	 * Think of functions returning boolean values...
+	 */
+	struct asme *conde = x86_getasme(NULL, cond);
+	struct itm_tag *loct = itm_get_tag(cond, &tt_loc);
+	struct location *locg = itm_tag_get_user_ptr(loct);
+	assert(locg->type == LT_REG);
+	struct loc_reg *locr = locg->extended;
+	regid_t rid = locr->rid;
+
+	if (rid == eflag.id)
+		jtype = JE;
+	else if (rid == neflag.id)
+		jtype = JNE;
+	else if (rid == gflag.id)
+		jtype = JG;
+	else if (rid == geflag.id)
+		jtype = JGE;
+	else if (rid == lflag.id)
+		jtype = JL;
+	else if (rid == leflag.id)
+		jtype = JLE;
+
+	// shortcut to trblk if that comes after the current block
+	if (trblk == i->block->lexnext) {
+		struct itm_block *tmp = fablk;
+		fablk = trblk;
+		trblk = tmp;
+
+		jtype = ((jtype % 2) == 0) ? jtype + 1 : jtype - 1;
+	}
+
+	/*
+	 * The mess left by getblocklbl is cleaned up by the block automatically
+	 */
+	struct asmimm *trimm = x86_getblocklbl(trblk, bldict);
+	struct asmimm *faimm = x86_getblocklbl(fablk, bldict);
+
+	const char *instr;
+	switch (jtype) {
+	case JE:
+		instr = "je";
+		break;
+	case JNE:
+		instr = "jne";
+		break;
+	case JG:
+		instr = "jg";
+		break;
+	case JGE:
+		instr = "jge";
+		break;
+	case JL:
+		instr = "jl";
+		break;
+	case JLE:
+		instr = "jle";
+		break;
+	}
+
+	emit_i(f, instr, 1, &trimm->base);
+	if (fablk != i->block->lexnext)
+		emit_i(f, "jmp", 1, &faimm->base);
+
+	return i->next;
+}
+
+static struct itm_instr *x86_emit_jmp(FILE *f, struct itm_instr *i,
+	struct list *bldict)
+{
+	if (i->id != ITM_ID(itm_jmp))
+		return i;
+
+	struct itm_block *bl = list_head(i->operands);
+	if (bl == i->block->lexnext)
+		return i->next;
+
+	struct asmimm *lbl = x86_getblocklbl(bl, bldict);
+	emit_i(f, "jmp", 1, &lbl->base);
+	return i->next;
+}
+
+static struct itm_instr *x86_emiti_arith(FILE *f, struct itm_instr *i,
+	struct list *bldict)
 {
 	const char *instrstr;
 
