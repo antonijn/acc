@@ -275,6 +275,14 @@ void list_remove(struct list *l, void *restrict data)
 	rmnode(l, node);
 }
 
+void list_remove_at(struct list *l, int idx)
+{
+	struct node *n = l->head;
+	while (idx-- > 0)
+		n = n->next;
+	rmnode(l, n);
+}
+
 void *list_head(struct list *l)
 {
 	assert(l != NULL);

@@ -26,7 +26,14 @@
 #include <acc/options.h>
 #include <acc/list.h>
 
+/*
+ * Replaces SSA alloca/load/store system with a phi node system where possible
+ */
 static void o_phiable(struct itm_instr *strt, struct list *dict);
+/*
+ * Removes dead code.
+ */
+static void o_prune(struct itm_block *blk);
 
 void optimize(struct itm_block *strt)
 {
@@ -35,6 +42,8 @@ void optimize(struct itm_block *strt)
 		struct list *dict = new_list(NULL, 0);
 		o_phiable(strt->first, dict);
 		delete_list(dict, NULL);
+
+		o_prune(strt->lexnext);
 	}
 }
 
@@ -149,3 +158,56 @@ static void o_phiable(struct itm_instr *strt, struct list *dict)
 	else
 		remphiables(strt);
 }
+
+static void rmfromphi(struct itm_block *whichblk, struct itm_instr *phi)
+{
+	/*
+	 * TODO: remove phi node if there's only one other predecessor
+	 */
+
+	int i = 0;
+	struct itm_block *b;
+	void *dummy;
+	it_t it = list_iterator(phi->operands);
+	while (iterator_next(&it, (void **)&b)) {
+		iterator_next(&it, &dummy);
+		if (b == whichblk) {
+			list_remove_at(phi->operands, i);
+			list_remove_at(phi->operands, i + 1);
+		}
+		i += 2;
+	}
+}
+
+static void o_prune(struct itm_block *blk)
+{
+	if (!blk)
+		return;
+
+	if (blk->previous && list_length(blk->previous)) {
+		o_prune(blk->lexnext);
+		return;
+	}
+
+	struct itm_block *aft;
+	it_t it = list_iterator(blk->next);
+	while (iterator_next(&it, (void **)&aft)) {
+		struct itm_instr *i = aft->first;
+		while (i->id == ITM_ID(itm_phi)) {
+			//rmfromphi(blk, i);
+			i = i->next;
+		}
+
+		list_remove(aft->previous, blk);
+	}
+
+	struct itm_block *nxt = blk->lexnext;
+	blk->lexprev->lexnext = nxt;
+	blk->lexnext = NULL;
+	if (nxt) {
+		nxt->lexprev = blk->lexprev;
+		delete_itm_block(blk);
+		o_prune(nxt);
+	}
+}
+
