@@ -80,10 +80,6 @@ static void print_expr_list(FILE *f, it_t it)
 void itm_tag_to_string(FILE *f, struct itm_tag *tag)
 {
 	fprintf(f, "%s(", *tag->type);
-	if (tag->print) {
-		tag->print(f, tag->value.data);
-		return;
-	}
 
 	switch (tag->object) {
 	case TO_INT:
