@@ -17,6 +17,14 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+/*
+ * TODO: Floating point instructions
+ * TODO: Unsigned arithmetic
+ * TODO: Function calls and their restrictions
+ * TODO: Non-register location support
+ * TODO: Multiple register location support
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -191,7 +199,10 @@ static void delete_x86_ea(struct x86ea *ea);
 
 static void x86eatostr(FILE *f, struct asme *ea);
 
-static void x86_emit_container(FILE *f, struct itm_container *sym);
+static struct asmimm *x86_getcontlbl(struct itm_container *c,
+	struct list *cldict);
+static void x86_emit_container(FILE *f, struct itm_container *sym,
+	struct list *cldict);
 static void x86_restrict(struct itm_block *b);
 
 static void new_x86_ea(struct x86ea *res, int size,
@@ -256,9 +267,6 @@ static void x86eatostr(FILE *f, struct asme *e)
 	case 8:
 		fprintf(f, "qword");
 		break;
-	case 10:
-		// TODO: ?
-		break;
 	}
 	fprintf(f, " [");
 	if (ea->basereg) {
@@ -282,16 +290,29 @@ static void x86eatostr(FILE *f, struct asme *e)
 
 void emit(FILE *f, struct list *containers)
 {
-	void *cont;
+	struct list *cldict = new_list(NULL, 0);
+
+	struct itm_container *cont;
 	it_t it = list_iterator(containers);
-	while (iterator_next(&it, &cont))
-		x86_emit_container(f, cont);
+	while (iterator_next(&it, (void **)&cont))
+		x86_getcontlbl(cont, cldict);
+
+	it = list_iterator(containers);
+	while (iterator_next(&it, (void **)&cont))
+		x86_emit_container(f, cont, cldict);
+
+	while (list_length(cldict)) {
+		struct asmimm *lbl = list_pop_back(cldict);
+		delete_asm_imm(lbl);
+		free(lbl);
+		list_pop_back(cldict);
+	}
+
+	delete_list(cldict, NULL);
 }
 
 static void x86_archdes(struct archdes *ades)
 {
-	// TODO: floating point regs
-
 	memset(ades, 0, sizeof(struct archdes));
 	int offs = getcpu()->offset;
 
@@ -326,7 +347,25 @@ static bool x86_issymm(struct itm_instr *i)
 
 static void x86_emit_block(FILE *f, struct itm_block *b, struct list *bldict);
 
-static void x86_emit_container(FILE *f, struct itm_container *c)
+/*
+ * emit() cleans up the mess left by getcontlbl()
+ */
+static struct asmimm *x86_getcontlbl(struct itm_container *c,
+	struct list *bldict)
+{
+	struct asmimm *lbl;
+
+	if (!dict_get(bldict, c, (void **)&lbl)) {
+		lbl = malloc(sizeof(struct asmimm));
+		new_asm_label(lbl, c->id);
+		dict_push_back(bldict, c, lbl);
+	}
+
+	return lbl;
+}
+
+static void x86_emit_container(FILE *f, struct itm_container *c,
+	struct list *cldict)
 {
 	x86_restrict(c->block);
 
@@ -337,10 +376,17 @@ static void x86_emit_container(FILE *f, struct itm_container *c)
 	//itm_container_to_string(f, c);
 	//return;
 
+	struct asmimm *lbl = x86_getcontlbl(c, cldict);
+
+	if (c->linkage == IL_GLOBAL)
+		emit_global(f, lbl);
+	emit_label(f, lbl);
+
 	struct list *dict = new_list(NULL, 0);
 	x86_emit_block(f, c->block, dict);
 	delete_list(dict, NULL);
 
+	fprintf(f, "\n");
 }
 
 static void x86_restrictarith(struct itm_instr *i)
@@ -437,7 +483,6 @@ static void x86_restrict(struct itm_block *b)
 {
 	struct itm_instr *i = b->first;
 	while (i) {
-		// TODO: restrict for function calls
 		x86_restrictmul(i);
 		x86_restrictret(i);
 		x86_restrictarith(i);
@@ -508,7 +553,6 @@ static struct itm_instr *x86_emit_jmp(FILE *f, struct itm_instr *i,
 
 static struct asme *x86_getloce(struct location *loc, int size)
 {
-	// TODO: stack and parameter space memory
 	struct loc_reg *lreg;
 
 	switch (loc->type) {
@@ -733,9 +777,9 @@ static struct itm_instr *x86_emiti_arith(FILE *f, struct itm_instr *i,
 	else if (id == ITM_ID(itm_sub))
 		instrstr = "sub";
 	else if (id == ITM_ID(itm_mul))
-		instrstr = "imul"; // TODO: unsigned multiply
+		instrstr = "imul";
 	else if (id == ITM_ID(itm_div))
-		instrstr = "idiv"; // TODO: unsigned divide
+		instrstr = "idiv";
 	else if (id == ITM_ID(itm_and))
 		instrstr = "and";
 	else if (id == ITM_ID(itm_xor))
