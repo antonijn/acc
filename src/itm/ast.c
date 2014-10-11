@@ -426,6 +426,94 @@ void itm_inserti(struct itm_instr *a, struct itm_instr *before)
 	before->previous = a;
 }
 
+
+bool itm_isconst(struct itm_expr *e)
+{
+	if (e->etype != ITME_INSTRUCTION)
+		return true;
+
+	struct itm_instr *i = (struct itm_instr *)e;
+	if (i->id != ITM_ID(itm_add) && i->id != ITM_ID(itm_sub) &&
+	    i->id != ITM_ID(itm_mul) && i->id != ITM_ID(itm_div) &&
+	    i->id != ITM_ID(itm_shl) && i->id != ITM_ID(itm_shr) &&
+	    i->id != ITM_ID(itm_sal) && i->id != ITM_ID(itm_sar) &&
+	    i->id != ITM_ID(itm_cmpeq) && i->id != ITM_ID(itm_cmpneq) &&
+	    i->id != ITM_ID(itm_cmpgt) && i->id != ITM_ID(itm_cmpgte) &&
+	    i->id != ITM_ID(itm_cmplt) && i->id != ITM_ID(itm_cmplte))
+		return false;
+
+	return itm_isconst(list_head(i->operands)) &&
+	       itm_isconst(list_last(i->operands));
+}
+
+struct itm_expr *itm_eval(struct itm_expr *e)
+{
+	assert(itm_isconst(e));
+
+	if (e->etype != ITME_INSTRUCTION)
+		return e;
+
+	struct itm_instr *i = (struct itm_instr *)e;
+
+	struct itm_expr *first = list_head(i->operands);
+	struct itm_expr *second = list_last(i->operands);
+
+	if (first->etype == ITME_UNDEF)
+		return first;
+	else if (second->etype == ITME_UNDEF)
+		return second;
+
+	struct itm_literal *l = (struct itm_literal *)itm_eval(first);
+	struct itm_literal *r = (struct itm_literal *)itm_eval(second);
+
+	uint64_t li = l->value.i;
+	uint64_t ri = r->value.i;
+	uint64_t resi;
+
+	// TODO: floating point emulation
+	if (i->id == ITM_ID(itm_add))
+		resi = li + ri;
+	else if (i->id == ITM_ID(itm_sub))
+		resi = li - ri;
+	else if (i->id == ITM_ID(itm_mul))
+		resi = li * ri;
+	else if (i->id == ITM_ID(itm_div))
+		resi = li / ri;
+	else if (i->id == ITM_ID(itm_sub))
+		resi = li - ri;
+	else if (i->id == ITM_ID(itm_shl))
+		resi = li << ri;
+	else if (i->id == ITM_ID(itm_shr))
+		resi = li >> ri;
+	else if (i->id == ITM_ID(itm_sal))
+		resi = (int64_t)li / (1l >> ri);
+	else if (i->id == ITM_ID(itm_sar))
+		resi = (int64_t)li * (1l >> ri);
+	else if (i->id == ITM_ID(itm_cmpeq))
+		resi = li == ri;
+	else if (i->id == ITM_ID(itm_cmpneq))
+		resi = li != ri;
+	else if (i->id == ITM_ID(itm_cmpgt))
+		resi = li > ri;
+	else if (i->id == ITM_ID(itm_cmpgte))
+		resi = li >= ri;
+	else if (i->id == ITM_ID(itm_cmplt))
+		resi = li < ri;
+	else if (i->id == ITM_ID(itm_cmplte))
+		resi = li <= ri;
+	else
+		return &i->base;
+
+	uint64_t mask = 1ul << (i->base.type->size - 1);
+	mask |= mask - 1;
+	resi &= mask;
+
+	struct itm_literal *res = new_itm_literal(i->block->container, i->base.type);
+	res->value.i = resi;
+	return &res->base;
+}
+
+
 // instruction initializers and instructions
 enum opflags {
 	OF_NONE = 0x0,

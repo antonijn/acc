@@ -128,6 +128,16 @@ void itm_repli(struct itm_instr *a, struct itm_expr *b);
 void itm_replocc(struct itm_expr *a, struct itm_expr *b, struct itm_block *bl);
 void itm_inserti(struct itm_instr *a, struct itm_instr *before);
 
+/*
+ * These functions are vital for constant folding
+ */
+bool itm_isconst(struct itm_expr *e);
+/*
+ * Evaluates a value in a sort of VM, if possible
+ * Asserts itm_isconst(&i->base)
+ */
+struct itm_expr *itm_eval(struct itm_expr *e);
+
 struct itm_instr *itm_add(struct itm_block *b, struct itm_expr *l, struct itm_expr *r);
 struct itm_instr *itm_sub(struct itm_block *b, struct itm_expr *l, struct itm_expr *r);
 struct itm_instr *itm_mul(struct itm_block *b, struct itm_expr *l, struct itm_expr *r);

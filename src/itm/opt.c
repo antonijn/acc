@@ -31,9 +31,13 @@
  */
 static void o_phiable(struct itm_instr *strt, struct list *dict);
 /*
- * Removes dead code.
+ * Removes unused blocks
  */
 static void o_prune(struct itm_block *blk);
+/*
+ * Performs constant folding
+ */
+static void o_cfld(struct itm_instr *strt);
 
 void optimize(struct itm_block *strt)
 {
@@ -43,6 +47,7 @@ void optimize(struct itm_block *strt)
 		o_phiable(strt->first, dict);
 		delete_list(dict, NULL);
 
+		o_cfld(strt->first);
 		o_prune(strt->lexnext);
 	}
 }
@@ -161,10 +166,6 @@ static void o_phiable(struct itm_instr *strt, struct list *dict)
 
 static void rmfromphi(struct itm_block *whichblk, struct itm_instr *phi)
 {
-	/*
-	 * TODO: remove phi node if there's only one other predecessor
-	 */
-
 	int i = 0;
 	struct itm_block *b;
 	void *dummy;
@@ -173,10 +174,14 @@ static void rmfromphi(struct itm_block *whichblk, struct itm_instr *phi)
 		iterator_next(&it, &dummy);
 		if (b == whichblk) {
 			list_remove_at(phi->operands, i);
-			list_remove_at(phi->operands, i + 1);
+			list_remove_at(phi->operands, i);
+			break;
 		}
 		i += 2;
 	}
+
+	if (list_length(phi->operands) == 2)
+		itm_repli(phi, list_last(phi->operands));
 }
 
 static void o_prune(struct itm_block *blk)
@@ -194,8 +199,9 @@ static void o_prune(struct itm_block *blk)
 	while (iterator_next(&it, (void **)&aft)) {
 		struct itm_instr *i = aft->first;
 		while (i->id == ITM_ID(itm_phi)) {
+			struct itm_instr *nxti = i->next;
 			rmfromphi(blk, i);
-			i = i->next;
+			i = nxti;
 		}
 
 		list_remove(aft->previous, blk);
@@ -211,3 +217,19 @@ static void o_prune(struct itm_block *blk)
 	}
 }
 
+
+static void o_cfld(struct itm_instr *strt)
+{
+	struct itm_instr *nxt = strt->next;
+
+	if (itm_isconst(&strt->base)) {
+		struct itm_expr *repl = itm_eval(&strt->base);
+		if (repl != &strt->base)
+			itm_repli(strt, repl);
+	}
+
+	if (nxt)
+		o_cfld(nxt);
+	else if (strt->block->lexnext)
+		o_cfld(strt->block->lexnext->first);
+}
