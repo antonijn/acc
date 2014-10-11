@@ -37,7 +37,11 @@ static void o_prune(struct itm_block *blk);
 /*
  * Performs constant folding
  */
-static void o_cfld(struct itm_instr *strt);
+static void o_cfld(struct itm_instr *i);
+/*
+ * Converts splits with a constant condition into a jmp
+ */
+static void o_uncsplit(struct itm_block *b);
 
 void optimize(struct itm_block *strt)
 {
@@ -48,6 +52,7 @@ void optimize(struct itm_block *strt)
 		delete_list(dict, NULL);
 
 		o_cfld(strt->first);
+		o_uncsplit(strt);
 		o_prune(strt->lexnext);
 	}
 }
@@ -232,4 +237,37 @@ static void o_cfld(struct itm_instr *strt)
 		o_cfld(nxt);
 	else if (strt->block->lexnext)
 		o_cfld(strt->block->lexnext->first);
+}
+
+static void o_uncsplit(struct itm_block *b)
+{
+	if (!b)
+		return;
+
+	struct itm_instr *i = b->last;
+	if (i->id != ITM_ID(itm_split)) {
+		o_uncsplit(b->lexnext);
+		return;
+	}
+
+	struct itm_block *to, *other;
+	struct itm_expr *c = list_head(i->operands);
+	if (itm_hasvalue(c, 1)) {
+		to = get_list_item(i->operands, 1);
+		other = list_last(i->operands);
+	} else if (itm_hasvalue(c, 0)) {
+		to = list_last(i->operands);
+		other = get_list_item(i->operands, 1);
+	} else {
+		o_uncsplit(b->lexnext);
+		return;
+	}
+
+	itm_jmp(b, to);
+
+	list_remove(b->next, other);
+	list_remove(other->previous, b);
+	itm_remi(i);
+
+	o_uncsplit(b->lexnext);
 }
