@@ -269,6 +269,17 @@ struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *ty)
 	return lit;
 }
 
+bool itm_hasvalue(struct itm_expr *e, int val)
+{
+	if (e->etype == ITME_UNDEF)
+		return true;
+	if (e->etype != ITME_LITERAL)
+		return false;
+
+	struct itm_literal *lit = (struct itm_literal *)e;
+	return (int)lit->value.i == val;
+}
+
 struct itm_block *new_itm_block(struct itm_container *container)
 {
 	struct itm_block *res = malloc(sizeof(struct itm_block));

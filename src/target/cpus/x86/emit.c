@@ -615,12 +615,17 @@ static struct itm_instr *x86_emiti(FILE *f, struct itm_instr *i,
 		struct asme *result = x86_getasme(NULL, &i->base);
 		struct asmimm imm;
 		struct itm_expr *firstop = list_head(i->operands);
-		struct asme *firstope;
-		if ((firstope = x86_getasme(&imm, firstop)) != result) {
-			emit_sdi(f, "mov", result, firstope);
-			if (firstope == &imm.base)
-				delete_asm_imm(&imm);
+		if (itm_hasvalue(firstop, 0)) {
+			emit_sdi(f, "xor", result, result);
+			return i->next;
 		}
+		struct asme *firstope;
+		if ((firstope = x86_getasme(&imm, firstop)) == result)
+			return i->next;
+
+		emit_sdi(f, "mov", result, firstope);
+		if (firstope == &imm.base)
+			delete_asm_imm(&imm);
 	}
 
 	return i->next;
@@ -651,7 +656,11 @@ static struct itm_instr *x86_emit_cmp(FILE *f, struct itm_instr *i,
 	struct asmimm l, r;
 	struct asme *le = x86_getasme(&l, list_head(i->operands));
 	struct asme *re = x86_getasme(&r, list_last(i->operands));
-	emit_sdi(f, "cmp", le, re);
+
+	if (itm_hasvalue(list_last(i->operands), 0))
+		emit_sdi(f, "test", le, le);
+	else
+		emit_sdi(f, "cmp", le, re);
 
 	if (re == &r.base)
 		delete_asm_imm(&r);
@@ -789,10 +798,13 @@ static struct itm_instr *x86_emiti_arith(FILE *f, struct itm_instr *i,
 	else
 		return i;
 
+	struct itm_expr *firstop = list_head(i->operands);
+	struct itm_expr *secop = list_last(i->operands);
+
 	struct asmimm limm, rimm;
 	struct asme *result = x86_getasme(NULL, &i->base);
-	struct asme *le = x86_getasme(&limm, list_head(i->operands));
-	struct asme *re = x86_getasme(&rimm, list_last(i->operands));
+	struct asme *le = x86_getasme(&limm, firstop);
+	struct asme *re = x86_getasme(&rimm, secop);
 
 	// all the stuff that checks for this variable is basically dirty
 	// it introduces a set of xchg instructions, which... isn't ideal...
@@ -816,7 +828,13 @@ static struct itm_instr *x86_emiti_arith(FILE *f, struct itm_instr *i,
 	} else {
 		if (le != result)
 			emit_sdi(f, "mov", result, le);
-		emit_sdi(f, instrstr, result, re);
+
+		if (id == ITM_ID(itm_add) && itm_hasvalue(secop, 1))
+			emit_i(f, "inc", 1, result);
+		else if (id == ITM_ID(itm_sub) && itm_hasvalue(secop, 1))
+			emit_i(f, "dec", 1, result);
+		else
+			emit_sdi(f, instrstr, result, re);
 	}
 
 	if (re == &rimm.base)

@@ -110,6 +110,8 @@ int itm_block_number(struct itm_block *b);
 struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *type);
 struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *type);
 
+bool itm_hasvalue(struct itm_expr *e, int val);
+
 struct itm_container *new_itm_container(enum itm_linkage linkage, char *id,
 	struct ctype *ty);
 void delete_itm_container(struct itm_container *c);
