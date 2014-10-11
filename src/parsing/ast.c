@@ -22,9 +22,9 @@
 #include <string.h>
 #include <assert.h>
 
+#include <acc/target/cpu.h>
 #include <acc/itm/ast.h>
 #include <acc/parsing/ast.h>
-#include <acc/target.h>
 #include <acc/ext.h>
 #include <acc/term.h>
 

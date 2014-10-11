@@ -6,3 +6,5 @@ acc
 *.asm
 *.s
 *.ir
+ovldump
+cpu

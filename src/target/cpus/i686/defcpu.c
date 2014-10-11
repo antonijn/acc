@@ -1,32 +1,23 @@
 /*
- * x86 code emission
+ * i686 default target
  * Copyright (C) 2014  Antonie Blom
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef EMIT_X86_H
-#define EMIT_X86_H
+#include <acc/target/cpu/cpus.h>
+#include <acc/target/cpu.h>
 
-#include <stdio.h>
-
-#include <acc/emit/asm.h>
-#include <acc/parsing/ast.h>
-
-extern asme_type_t asme_x86ea;
-
-void x86_emit(FILE *f, struct list *symbols);
-
-#endif
+const struct cpu *cpu = &cpui686;

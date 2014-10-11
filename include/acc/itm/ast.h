@@ -71,7 +71,7 @@ struct itm_literal {
 	struct itm_expr base;
 
 	union {
-		uint64_t i;
+		int64_t i;
 		float f;
 		double d;
 	} value;
@@ -104,8 +104,13 @@ struct itm_block {
 	struct itm_container *container;
 };
 
+int itm_instr_number(struct itm_instr *i);
+int itm_block_number(struct itm_block *b);
+
 struct itm_literal *new_itm_literal(struct itm_container *c, struct ctype *type);
 struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *type);
+
+bool itm_hasvalue(struct itm_expr *e, int val);
 
 struct itm_container *new_itm_container(enum itm_linkage linkage, char *id,
 	struct ctype *ty);
@@ -121,6 +126,7 @@ void cleanup_instr(struct itm_instr *i);
 void itm_container_to_string(FILE *f, struct itm_container *c);
 
 void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag);
+void itm_untag_expr(struct itm_expr *e, const char *const *ty);
 struct itm_tag *itm_get_tag(struct itm_expr *e, const char *const *ty);
 
 void itm_remi(struct itm_instr *a);

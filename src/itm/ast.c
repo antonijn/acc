@@ -29,9 +29,7 @@
 static void free_dummy(struct itm_expr *e);
 
 // to_string functions
-static int itm_block_number(struct itm_block *block);
-
-static int itm_instr_number(struct itm_instr *i)
+int itm_instr_number(struct itm_instr *i)
 {
 	assert(i != NULL);
 
@@ -42,7 +40,7 @@ static int itm_instr_number(struct itm_instr *i)
 	return itm_instr_number(i->previous) + 1;
 }
 
-static int itm_block_number(struct itm_block *block)
+int itm_block_number(struct itm_block *block)
 {
 	if (!block->lexprev)
 		return 0;
@@ -271,6 +269,17 @@ struct itm_expr *new_itm_undef(struct itm_container *c, struct ctype *ty)
 	return lit;
 }
 
+bool itm_hasvalue(struct itm_expr *e, int val)
+{
+	if (e->etype == ITME_UNDEF)
+		return true;
+	if (e->etype != ITME_LITERAL)
+		return false;
+
+	struct itm_literal *lit = (struct itm_literal *)e;
+	return (int)lit->value.i == val;
+}
+
 struct itm_block *new_itm_block(struct itm_container *container)
 {
 	struct itm_block *res = malloc(sizeof(struct itm_block));
@@ -337,6 +346,18 @@ void itm_tag_expr(struct itm_expr *e, struct itm_tag *tag)
 	if (!e->tags)
 		e->tags = new_list(NULL, 0);
 	list_push_back(e->tags, tag);
+}
+
+void itm_untag_expr(struct itm_expr *e, const char *const *ty)
+{
+	struct itm_tag *tag;
+	for (it_t it = list_iterator(e->tags); iterator_next(&it, (void **)&tag);) {
+		if (itm_tag_type(tag) == ty) {
+			list_remove(e->tags, tag);
+			delete_itm_tag(tag);
+			return;
+		}
+	}
 }
 
 struct itm_tag *itm_get_tag(struct itm_expr *e, const char *const *ty)

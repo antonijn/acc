@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include <acc/itm/ast.h>
 #include <acc/itm/tag.h>
 
 typedef void *asme_type_t;
@@ -39,9 +40,11 @@ struct asme {
 	void (*to_string_d)(FILE *f, struct asme *e);
 };
 
+typedef uint64_t regid_t;
+
 struct asmreg {
 	struct asme base;
-	int id;
+	regid_t id;
 	const char *name;
 	const struct asmreg *parent;
 	const struct asmreg *child1;
@@ -50,7 +53,7 @@ struct asmreg {
 
 #define NEW_REG(size, name, parent, ch1, ch2, id)			\
 	{ { &asme_reg, size, &asmregtostr, &asmregtostr }, 		\
-		1 << (id), name, parent, ch1, ch2 }
+		1ul << (id), name, parent, ch1, ch2 }
 
 struct asmimm {
 	struct asme base;
@@ -87,5 +90,50 @@ void emit_short(FILE *f, size_t cnt, ...);
 void emit_long(FILE *f, size_t cnt, ...);
 void emit_quad(FILE *f, size_t cnt, ...);
 void emit_asciiz(FILE *f, const char *str);
+
+enum locty {
+	LT_REG,
+	LT_LMEM,
+	LT_PMEM,
+	LT_MULTIPLE
+};
+
+struct location {
+	enum locty type;
+	size_t size;
+	void *extended;
+};
+
+struct loc_reg {
+	struct location base;
+	regid_t rid;
+};
+
+struct loc_mem {
+	struct location base;
+	int offset;
+};
+
+struct loc_multiple {
+	struct location base;
+	struct list *locs;
+};
+
+struct location *new_loc_reg(size_t size, regid_t rid);
+struct location *new_loc_regany(size_t size, int of);
+struct location *new_loc_lmem(size_t size, int offset);
+struct location *new_loc_pmem(size_t size, int offset);
+struct location *new_loc_multiple(size_t size, struct list *locs);
+void delete_loc(struct location *loc);
+void loc_to_string(FILE *f, struct location *loc);
+
+struct archdes {
+	regid_t all_iregs;
+	regid_t saved_iregs;
+	regid_t all_fregs;
+	regid_t saved_fregs;
+};
+
+void regalloc(struct itm_block *b, struct archdes rset);
 
 #endif
