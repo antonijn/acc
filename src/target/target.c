@@ -17,9 +17,32 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <string.h>
+
 #include <acc/target/cpu.h>
+#include <acc/options.h>
+#include <acc/error.h>
 
 const struct cpu *getcpu(void)
 {
 	return cpu;
+}
+
+void archoption(const char *opt)
+{
+	if (strncmp(opt, "cpu", 3)) {
+		xarchoption(opt);
+		return;
+	}
+
+	const char *scpu = opt + 3;
+
+	for (int i = 0; cpus[i]; ++i) {
+		if (!strcmp(cpus[i]->name, scpu)) {
+			cpu = cpus[i];
+			return;
+		}
+	}
+
+	report(E_OPTIONS | E_FATAL, NULL, "no such CPU: '%s'", scpu);
 }

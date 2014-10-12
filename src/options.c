@@ -19,6 +19,7 @@
 
 #include <string.h>
 
+#include <acc/target/cpu.h>
 #include <acc/options.h>
 #include <acc/error.h>
 #include <acc/ext.h>
@@ -27,15 +28,6 @@ static char *outfile = NULL;
 static struct list *input;
 static int optimize = 0;
 static bool warnings = true;
-static enum asmflavor flavor =
-#if defined(BUILDFOR_LINUX) || defined(BUILDFOR_OSX)
-	AF_ATT;
-#elif defined(BUILDFOR_WINDOWS)
-	AF_MASM;
-#else
-#error No target defined
-	-1;
-#endif
 static bool emit_ir = false;
 static bool emit_asm = false;
 
@@ -164,12 +156,6 @@ void options_init(int argc, char *argv[])
 			optimize = 2;
 		} else if (!strcmp(arg, "-O3")) {
 			optimize = 3;
-		} else if (!strcmp(arg, "-masm=att") || !strcmp(arg, "-masm=gas")) {
-			flavor = AF_ATT;
-		} else if (!strcmp(arg, "-masm=nasm")) {
-			flavor = AF_NASM;
-		} else if (!strcmp(arg, "-masm=intel") || !strcmp(arg, "-masm=masm")) {
-			flavor = AF_MASM;
 		} else if (!strcmp(arg, "-std=c89")) {
 			setcversion(C89);
 		} else if (!strcmp(arg, "-std=c95")) {
@@ -182,6 +168,8 @@ void options_init(int argc, char *argv[])
 			emit_asm = true;
 		} else if (arg[0] == '-' && arg[1] == 'f') {
 			enableext(&arg[2]);
+		} else if (arg[0] == '-' && arg[1] == 'm') {
+			archoption(&arg[2]);
 		} else if (arg[0] == '-' && arg[1] != '\0') {
 			report(E_OPTIONS, NULL,
 				"invalid command line option: %s", arg);
@@ -212,11 +200,6 @@ int option_optimize(void)
 struct list *option_input(void)
 {
 	return input;
-}
-
-enum asmflavor option_asmflavor(void)
-{
-	return flavor;
 }
 
 bool option_warnings(void)

@@ -71,6 +71,10 @@ enum section {
 	SECTION_BSS
 };
 
+void asmimmtostr(FILE *f, struct asme *e);
+void asmimmtostrd(FILE *f, struct asme *e);
+void asmregtostr(FILE *f, struct asme *e);
+
 void new_asm_imm(struct asmimm *res, int size, long value);
 void new_asm_label(struct asmimm *res, char *value);
 void new_asm_cop(struct asmimm *res, const char *op,
@@ -78,18 +82,6 @@ void new_asm_cop(struct asmimm *res, const char *op,
 void delete_asm_imm(struct asmimm *imm);
 
 void asmregtostr(FILE *f, struct asme *e);
-
-void emit_label(FILE *f, struct asmimm *imm);
-void emit_i(FILE *f, const char *instr, int numops, ...);
-void emit_sdi(FILE *f, const char *instr, struct asme *src, struct asme *dest);
-void emit_global(FILE *f, struct asmimm *imm);
-void emit_extern(FILE *f, struct asmimm *imm);
-void emit_section(FILE *f, enum section sec);
-void emit_byte(FILE *f, size_t cnt, ...);
-void emit_short(FILE *f, size_t cnt, ...);
-void emit_long(FILE *f, size_t cnt, ...);
-void emit_quad(FILE *f, size_t cnt, ...);
-void emit_asciiz(FILE *f, const char *str);
 
 enum locty {
 	LT_REG,

@@ -9,9 +9,12 @@ struct cpu {
 	int offset;
 };
 
+extern const struct cpu *cpus[];
 extern const struct cpu *cpu;
 
 const struct cpu *getcpu(void);
+void archoption(const char *opt);
+void xarchoption(const char *opt);
 
 int gettypesize(struct ctype *ty);
 int getfalign(struct ctype *ty);

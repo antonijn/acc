@@ -25,12 +25,6 @@
 
 #include <acc/list.h>
 
-enum asmflavor {
-	AF_ATT,
-	AF_NASM,
-	AF_MASM
-};
-
 void options_init(int argc, char *argv[]);
 void options_destroy(void);
 
@@ -38,7 +32,6 @@ char *option_outfile(void);
 int option_optimize(void);
 struct list *option_input(void);
 bool option_warnings(void);
-enum asmflavor option_asmflavor(void);
 bool option_emit_ir(void);
 bool option_emit_asm(void);
 

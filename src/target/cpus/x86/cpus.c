@@ -17,7 +17,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#include <string.h>
+
+#include <acc/target/cpu/cpus.h>
 #include <acc/target/cpu.h>
+#include <acc/options.h>
+#include <acc/error.h>
 
 const struct cpu cpu8086 = { "8086", 16, 0 };
 const struct cpu cpui386 = { "i386", 32, 1 };
@@ -27,6 +32,27 @@ const struct cpu cpux86_64 = { "x86_64", 64, 3 };
 const struct cpu *cpus[] = {
 	&cpu8086, &cpui386, &cpui686, &cpux86_64, NULL
 };
+
+static enum asmflavor flavor = AF_ATT;
+
+enum asmflavor asmflavor(void)
+{
+	return flavor;
+}
+
+void xarchoption(const char *opt)
+{
+	if (!strcmp(opt, "asm=nasm") || !strcmp(opt, "asm=intel")) {
+		flavor = AF_NASM;
+		return;
+	} else if (!strcmp(opt, "asm=gas") || !strcmp(opt, "asm=att")) {
+		flavor = AF_ATT;
+		return;
+	}
+
+	report(E_OPTIONS | E_FATAL, NULL,
+		"invalid option for architecture: '-m%s'", opt);
+}
 
 int gettypesize(struct ctype *ty)
 {

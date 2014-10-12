@@ -190,6 +190,254 @@ static const struct asmreg **regav[] = {
 	&regav8086[0], &regavi386[0], &regavi686[0], &regavamd64[0]
 };
 
+/*
+ * to string functionality
+ */
+static void emit_label(FILE *f, struct asmimm *imm);
+static void emit_i(FILE *f, const char *instr, int numops, ...);
+static void emit_sdi(FILE *f, const char *instr, struct asme *src, struct asme *dest);
+static void emit_global(FILE *f, struct asmimm *imm);
+static void emit_extern(FILE *f, struct asmimm *imm);
+static void emit_section(FILE *f, enum section sec);
+static void emit_byte(FILE *f, size_t cnt, ...);
+static void emit_short(FILE *f, size_t cnt, ...);
+static void emit_long(FILE *f, size_t cnt, ...);
+static void emit_quad(FILE *f, size_t cnt, ...);
+
+void asmregtostr(FILE *f, struct asme *e)
+{
+	struct asmreg *r = (struct asmreg *)e;
+	if (asmflavor() == AF_ATT)
+		fprintf(f, "%%");
+	fprintf(f, "%s", r->name);
+}
+
+static void write_intel_size(FILE *f, int size)
+{
+	switch (size) {
+	case 1:
+		fprintf(f, "byte");
+		break;
+	case 2:
+		fprintf(f, "word");
+		break;
+	case 4:
+		fprintf(f, "dword");
+		break;
+	case 8:
+		fprintf(f, "qword");
+		break;
+	}
+}
+
+static void asmimmtostrpfix(FILE *f, struct asmimm *imm, bool attprefix)
+{
+	if (imm->op) {
+		fprintf(f, "(");
+		asmimmtostrpfix(f, imm->l, attprefix);
+		fprintf(f, " %s ", imm->op);
+		asmimmtostrpfix(f, imm->r, attprefix);
+		fprintf(f, ")");
+	} else if (imm->label) {
+		fprintf(f, "%s", imm->label);
+	} else if (attprefix) {
+		if (asmflavor() == AF_ATT) {
+			fprintf(f, "$%ld", imm->value);
+		} else {
+			write_intel_size(f, imm->base.size);
+			fprintf(f, " %ld", imm->value);
+		}
+	} else {
+		fprintf(f, "%ld", imm->value);
+	}
+}
+
+void asmimmtostr(FILE *f, struct asme *imm)
+{
+	asmimmtostrpfix(f, (struct asmimm *)imm, true);
+}
+
+void asmimmtostrd(FILE *f, struct asme *imm)
+{
+	asmimmtostrpfix(f, (struct asmimm *)imm, false);
+}
+
+
+static void emit_label(FILE *f, struct asmimm *imm)
+{
+	assert(imm != NULL);
+	assert(imm->label != NULL);
+
+	fprintf(f, "%s:\n", imm->label);
+}
+
+static void emit_i(FILE *f, const char *instr, int numops, ...)
+{
+	va_list ap;
+	bool reqsuf = 0;
+	struct asme **ops = malloc(sizeof(struct asme *) * numops);
+
+	va_start(ap, numops);
+	for (int i = 0; i < numops; ++i) {
+		struct asme *e = va_arg(ap, struct asme *);
+		assert(e != NULL);
+		ops[i] = e;
+		reqsuf |= (e->type != &asme_imm);
+	}
+
+	fprintf(f, "\t%s", instr);
+	if (asmflavor() == AF_ATT && reqsuf) {
+		switch (ops[0]->size) {
+		case 1:
+			fprintf(f, "b");
+			break;
+		case 2:
+			fprintf(f, "w");
+			break;
+		case 4:
+			fprintf(f, "l");
+			break;
+		case 8:
+			fprintf(f, "q");
+			break;
+		case 10:
+			fprintf(f, "t");
+			break;
+		}
+	}
+
+	if (numops)
+		fprintf(f, " ");
+
+	for (int i = 0; i < numops; ++i) {
+		ops[i]->to_string(f, ops[i]);
+		if (i != numops - 1)
+			fprintf(f, ", ");
+	}
+
+	fprintf(f, "\n");
+
+	va_end(ap);
+	free(ops);
+}
+
+static void emit_sdi(FILE *f, const char *instr,
+	struct asme *dest, struct asme *src)
+{
+	if (asmflavor() == AF_ATT)
+		emit_i(f, instr, 2, src, dest);
+	else
+		emit_i(f, instr, 2, dest, src);
+}
+
+static void emit_global(FILE *f, struct asmimm *imm)
+{
+	assert(imm != NULL);
+	assert(imm->label != NULL);
+
+	if (asmflavor() == AF_ATT)
+		fprintf(f, "\t.globl\t%s\n", imm->label);
+	else
+		fprintf(f, "global\t%s\n", imm->label);
+}
+
+static void emit_extern(FILE *f, struct asmimm *imm)
+{
+	assert(imm != NULL);
+	assert(imm->label != NULL);
+
+	if (asmflavor() == AF_ATT)
+		return;
+
+	fprintf(f, "extern\t%s\n", imm->label);
+}
+
+static void emit_sect(FILE *f, enum section sec)
+{
+	assert(sec != SECTION_INVALID);
+
+	if (asmflavor() == AF_ATT) {
+		fprintf(f, "\t");
+		if (sec == SECTION_RODATA)
+			fprintf(f, ".");
+	}
+
+	if (asmflavor() != AF_ATT || sec == SECTION_RODATA)
+		fprintf(f, "section\t");
+
+	switch (sec) {
+	case SECTION_TEXT:
+		fprintf(f, ".text");
+		break;
+	case SECTION_DATA:
+		fprintf(f, ".data");
+		break;
+	case SECTION_RODATA:
+		fprintf(f, ".rodata");
+		break;
+	case SECTION_BSS:
+		fprintf(f, ".bss");
+		break;
+	}
+	fprintf(f, "\n");
+}
+
+static void emit_reslike(FILE *f, const char *dir, size_t cnt, va_list ap)
+{
+	fprintf(f, "\t%s\t", dir);
+	for (int i = 0; i < cnt; ++i) {
+		fprintf(f, "%s", va_arg(ap, char *));
+		if (i != cnt - 1)
+			fprintf(f, ", ");
+	}
+	fprintf(f, "\n");
+}
+
+static void emit_byte(FILE *f, size_t cnt, ...)
+{
+	va_list ap;
+	va_start(ap, cnt);
+	if (asmflavor() == AF_ATT)
+		emit_reslike(f, ".byte", cnt, ap);
+	else
+		emit_reslike(f, "db", cnt, ap);
+	va_end(ap);
+}
+
+static void emit_short(FILE *f, size_t cnt, ...)
+{
+	va_list ap;
+	va_start(ap, cnt);
+	if (asmflavor() == AF_ATT)
+		emit_reslike(f, ".short", cnt, ap);
+	else
+		emit_reslike(f, "dw", cnt, ap);
+	va_end(ap);
+}
+
+static void emit_long(FILE *f, size_t cnt, ...)
+{
+	va_list ap;
+	va_start(ap, cnt);
+	if (asmflavor() == AF_ATT)
+		emit_reslike(f, ".long", cnt, ap);
+	else
+		emit_reslike(f, "dd", cnt, ap);
+	va_end(ap);
+}
+
+static void emit_quad(FILE *f, size_t cnt, ...)
+{
+	va_list ap;
+	va_start(ap, cnt);
+	if (asmflavor() == AF_ATT)
+		emit_reslike(f, ".quad", cnt, ap);
+	else
+		emit_reslike(f, "dq", cnt, ap);
+	va_end(ap);
+}
+
+
 static void new_x86_ea(struct x86ea *res, int size,
 	const struct asmreg *base,
 	struct asmimm *displacement,
@@ -232,7 +480,7 @@ static void delete_x86_ea(struct x86ea *ea)
 static void x86eatostr(FILE *f, struct asme *e)
 {
 	struct x86ea *ea = (struct x86ea *)e;
-	if (option_asmflavor() == AF_ATT) {
+	if (asmflavor() == AF_ATT) {
 		if (ea->displacement && (ea->basereg || ea->offset))
 			ea->displacement->base.to_string_d(
 				f, (struct asme *)ea->displacement);
