@@ -13,8 +13,6 @@ Its features include:
 
 	- A_USED: Usage analysis. Checks how often the instruction is used by
 	  other instructions, and tags each instruction with a tt_used.
-	- A_ACC: Accumulator analysis. Tags instructions which are only used
-	  by the next instruction (will probably remain unused...).
 	- A_LIFETIME: Lifetime analysis. Checks when an instruction is used
 	  last, and tags the instruction where it ends with tt_endlife.
 	- A_PHIABLE: Tests whether itm_alloca instructions are only used as the
@@ -23,7 +21,11 @@ Its features include:
 
   Analysations are only performed by the optimiser and the assembly emitter.
 
-- Optimising the intermediate abstract syntax tree. Current optimisations only
-  include phi-node optimisations, which involves running A_PHIABLE and
-  converting the appropriate itm_alloca, itm_load and itm_store instructions
-  into a phi-node system.
+- Optimise the intermediate source tree. Optimisations include:
+
+	- o_phiable: Attempts to convert an alloca/load/store system into a
+	  phi node system.
+	- o_cfld: Folds constants where possible ("1 + 2" => "3").
+	- o_prune: Removes all unused blocks (blocks without predecessors).
+	- o_uncsplit: Converts conditional jumps to unconditional jumps where
+	  jump conditions are constant.

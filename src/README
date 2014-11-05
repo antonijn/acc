@@ -11,7 +11,7 @@ Here's a quick overview of the subsystems:
 			intermediate source tree.
 	- src/itm/	The tools for the generation, destruction, analysation
 			and optimisation of the intermediate source code tree.
-	- src/emit/	Tools for generating and writing the target assembly
+	- src/target/	Tools for generating and writing the target assembly
 			language.
 
 The following utilities exist in the main source directory:
@@ -20,8 +20,6 @@ The following utilities exist in the main source directory:
 	- src/error.c	Error reporting utility.
 	- src/option.c	Command-line option management.
 	- src/ext.c	Extension management.
-	- src/target.c	The tools for management of the target CPU and operating
-			system.
 
 All subsystems are brought together by src/main.c. Here's a general overview of
 what it does:
