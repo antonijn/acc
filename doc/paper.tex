@@ -1,5 +1,6 @@
 \documentclass[12pt, a4paper]{article}
 \usepackage{amsmath, listingsutf8, mathtools}
+\lstset{numbers=left}
 \title{Exploring SSA Optimization Techniques}
 \author{A. D. Blom}
 \date{}
@@ -270,8 +271,8 @@ Becomes:
 	return b - 10;
 \end{lstlisting}
 
-Once the value of b is determined, it should then also be filled in, to fold 
-further. Since the value of b is 100, it can be used to fill in the return 
+Once the value of \verb+b+ is determined, it should then also be filled in, to fold 
+further. Since the value of \verb+b+ is 100, it can be used to fill in the return 
 expression:
 
 \begin{lstlisting}
@@ -326,8 +327,8 @@ There is a way compiler-based constant folding might stand in the way of the
 programmer. Mostly the compiler can do this when folding away instructions 
 operating on floating point operands, because different targets may compute 
 floating point operations differently. Therefore cross-compilation becomes an 
-issue; if a floating point instruction for target Y normally yielding Vy, it 
-yields Vx when folded away by target X, causing different semantics before and 
+issue; if a floating point instruction for target $Y$ normally yielding $V_y$, it 
+yields $V_x$ when folded away by target $X$, causing different semantics before and 
 after optimisation.
 
 A solution to this problem is to implement a floating point virtual machine for 
@@ -338,5 +339,60 @@ avoided. If any other optimisation would need to be able to calculate an
 operation on two constants, it should run the same code. Therefore, the actual 
 folding computations are performed outside of the optimiser, by a separate 
 folding system.
+
+
+\section{Constant split removal}
+\subsection{Problem}
+After constant folding, some \verb+split+ instructions may branch on a constant
+condition:
+
+\begin{lstlisting}
+La:	...
+	split((_Bool)1, Lb, Lc);
+Lb:	ret((int)0);
+Lc:	ret((int)1);
+\end{lstlisting}
+
+Could be converted easily into:
+
+\begin{lstlisting}
+La:	...
+	jmp(Lb);
+Lb:	ret((int)0);
+Lc:	ret((int)1);
+\end{lstlisting}
+
+This has only minor implications for further flow, except that it removes a
+predecessor from block \verb+Lc+. The only way that that affects SSA validity is
+that a block-expression pair may need to be removed from $\phi$ nodes in
+\verb+Lc+.
+
+Removing this predecessor may also have implications for further block inlining;
+if a block has only one predecessor and the predecessor has only one successor,
+the block could be merged with its predecessor.
+
+\subsection{Implementation}
+The implementation of this optimization simply needs to check whether the first
+parameter of a \verb+split+ instruction is constant, and convert it into a
+\verb+jmp+ accordingly. It also needs to check for the presence of $\phi$ nodes
+in the block not covered by the \verb+jmp+ instruction, and remove them accordingly:
+
+\begin{lstlisting}
+La:	...
+	split((_Bool)1, Lb, Lc);
+Lb:	...
+Lc:	int tA = phi(La, (int)10, ...);
+	...
+\end{lstlisting}
+
+Needs to get rid of the \verb+La+ items from the \verb+tA+ $\phi$ node too:
+
+\begin{lstlisting}
+La:	...
+	jmp(Lb);
+Lb:	...
+Lc:	int tA = phi(...);
+	...
+\end{lstlisting}
 
 \end{document}
