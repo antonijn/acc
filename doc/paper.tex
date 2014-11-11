@@ -1,9 +1,16 @@
 \documentclass[12pt, a4paper]{article}
+\usepackage[T1]{fontenc}
 \usepackage{amsmath, listingsutf8, mathtools}
-\lstset{numbers=left}
+
+\usepackage{hyperref}
+\usepackage{breakurl}
+
+%\hypersetup{}
+%\lstset{numbers=left}
 \title{Exploring SSA Optimization Techniques}
 \author{A. D. Blom}
 \date{}
+
 \begin{document}
   \maketitle
   \begin{abstract}
@@ -16,10 +23,12 @@ SSA intermediate language.
 
   \section{Introduction}
 
+
   \section{Intermediate representation used}
 The intermediate representation (IR) used here is an SSA implentation, 
-partially based on the LLVM IR. There are a few differences: the IR used here 
-uses a typesystem analogous to C's, and uses a C-like syntax for textual 
+partially based on the LLVM IR as described by~LLVM~\cite{llvm_ir}.
+There are a few differences: the IR used here  uses a typesystem analogous to
+C's, and uses a C-like syntax for textual 
 representation as well.
 
 The custom IR used also lacks implicit blocks, so blocks are declared 
@@ -90,8 +99,7 @@ only needs to keep track of where its temporaries are, but also the registers
 used by the \verb+alloca+ instructions. Furthermore it's complicated by 
 requiring a new lifetime analysis method, instead of the one already provided 
 for temporaries, since most \verb+alloca+ memory needn't be alive for the 
-entirety of the
-surrounding function.
+entirety of the surrounding function.
 
 A system that would allow turning this \verb+alloca+ system into a more
 SSA-appropriate  system would get rid of all these cases where alloca would form
@@ -123,12 +131,14 @@ for example in the case where actual memory is required:
 
 Can't use a $\phi$ node system, since it needs \verb+i+ to actually exist in 
 memory. It is therefore hard for a front-end to decide which system to use, and 
-many default to using the first system all of the time, relying on the 
+many\footnote{At least clang does so: \textit{echo "void foo() \{ int a; \}" |
+ clang -x c - -S -emit-llvm -o /dev/stdout}}
+default to using the first system all of the time, relying on the 
 middle-end to optimize it into a $\phi$ node system. If an \verb+alloca+ 
 variable can convert its \verb+load+/\verb+store+ system it shall be considered 
 \textit{phiable}.
 
-\subsection{Implementation}
+\subsection[Implementation] {Implementation\footnote{This is the o\_phiable() optimization pass in opt.c in acc} }
 Given a simple, one-block SSA graph:
 
 \begin{lstlisting}
@@ -141,7 +151,7 @@ L0:	int* t1 = alloca(int);
 	ret(t4);
 \end{lstlisting}
 
-Can \verb+t1+ be considered phiable? It's been established that an alloca system 
+Can \verb+t1+ be considered phiable? It's been established that an \verb+alloca+ system 
 is not phiable if the memory is actually required to exist. This means (naively) 
 that a system is not phiable if the \verb+alloca+ instruction is used outside 
 its own \verb+load+/\verb+store+ instructions: that is if it is ever used in an 
@@ -176,9 +186,9 @@ L4:	int t5 = load(t1);
 \end{lstlisting}
 
 For the load in line 7 for example, finding the last store is non-trivial, it 
-has in fact got multiple last store instructions, one in \verb+L1+ and one in 
-\verb+L2+. It is now actually required to implement a  $\phi$ node. It selects 
-the value from L1 if that was its predecessor, and the store from \verb+L2+ if 
+has in fact got multiple last \verb+store+ instructions, one in \verb+L2+ and one in 
+\verb+L3+. It is now actually required to implement a  $\phi$ node. It selects 
+the value from \verb+L2+ if that was its predecessor, and the store from \verb+L3+ if 
 that was its predecessor using a $\phi$ node:
 
 \begin{lstlisting}
@@ -254,7 +264,7 @@ constant folding, and subsequently propegates these constants further, filling
 them in for SSA variables along the way in a process known as constant 
 propagation.
 
-\subsection{Implementation}
+\subsection[Implementation] {Implementation\footnote{This is the o\_cfld() optimization pass in opt.c in acc} }
 In order to perform any useful consant folding, the compiler needs to fill in 
 constants for variables where possible, so code of the form:
 
@@ -324,8 +334,8 @@ L0:	ret((int)90);
 \subsection{Considerations}
 \subsubsection{Platform incompatibilities}
 There is a way compiler-based constant folding might stand in the way of the 
-programmer. Mostly the compiler can do this when folding away instructions 
-operating on floating point operands, because different targets may compute 
+programmer, as described by~Wikipedia~\cite{cfld_cross}. Mostly the compiler can do this when folding
+away instructions  operating on floating point operands, because different targets may compute 
 floating point operations differently. Therefore cross-compilation becomes an 
 issue; if a floating point instruction for target $Y$ normally yielding $V_y$, it 
 yields $V_x$ when folded away by target $X$, causing different semantics before and 
@@ -371,7 +381,7 @@ Removing this predecessor may also have implications for further block inlining;
 if a block has only one predecessor and the predecessor has only one successor,
 the block could be merged with its predecessor.
 
-\subsection{Implementation}
+\subsection[Implementation] {Implementation\footnote{This is the o\_uncsplit() pass in opt.c acc} }
 The implementation of this optimization simply needs to check whether the first
 parameter of a \verb+split+ instruction is constant, and convert it into a
 \verb+jmp+ accordingly. It also needs to check for the presence of $\phi$ nodes
@@ -394,5 +404,101 @@ Lb:	...
 Lc:	int tA = phi(...);
 	...
 \end{lstlisting}
+
+
+\section{Block inlining}
+\subsection{Problem and implementation}
+When a block has only one predecessor and its single predecessor
+also has one successor, its instructions can be inlined into the block it succeeds:
+
+\begin{lstlisting}
+L0:	...
+	jmp(L1);
+L1:	int t2 = add((int)0, (int)1);
+	jmp(L3);
+L3:	...
+\end{lstlisting}
+
+Becomes (assuming L1 has no other predecessors):
+
+\begin{lstlisting}
+L0:	...
+	int t1 = add((int)0, (int)1);
+	jmp(L2);
+L2:	...
+\end{lstlisting}
+
+That way the amount of jumps and blocks is reduced without duplicating instructions.
+
+It's a very trivial optimization but occurs quite a lot, especially considering
+the front-end may generate redundant blocks all the time. Consider an infinite
+\verb+for+ loop:
+
+\begin{lstlisting}
+	for (; cond;)
+		;
+\end{lstlisting}
+
+The front-end puts the initialization clause in the block it's currently writing
+to, but generates a new block for the condition, then generates (without knowledge
+of the loop body) a block for the final loop clause (this block is needed to jump
+to when compiling a \verb+continue+ statement). It inserts this block after
+it has generated the body block.
+
+This would therefore be a possible translation:
+
+\begin{lstlisting}
+	/* enter the loop */
+L0:	jmp(L1);
+	/* continue or break from the loop */
+L1:	split(cond, L2, L4);
+	/* go to the final clause */
+L2:	jmp(L3);
+	/* no final clause, jump to loop start */
+L3:	jmp(L1);
+L4:	...
+\end{lstlisting}
+
+It can be noticed quite easily that \verb+L3+ only has one predecessor (\verb+L2+), and its
+predecessor only one successor. It can therefore be merged with \verb+L2+:
+
+\begin{lstlisting}
+	/* enter the loop */
+L0:	jmp(L1);
+	/* continue or break from the loop */
+L1:	split(cond, L2, L3);
+	/* go to the final clause */
+	/* no final clause, jump to loop start */
+L2:	jmp(L1);
+L3:	...
+\end{lstlisting}
+
+This turns out to be quite an interesting case, however; it can also be noticed
+that this example might be optimized further, so the \verb+split+ in \verb+L1+
+jumps to itself immediately. This is because \verb+L2+ is empty besides the \verb+jmp+
+instruction: the condition for empty loops to be inlined is therefore more relaxed.
+
+In fact, all empty blocks (except \verb+L0+ and empty blocks that are their own predecessor) can be inlined:
+
+\begin{lstlisting}
+L0:	jmp(L1);
+L1:	split(cond, L1, L2);
+L2:	...
+\end{lstlisting}
+
+\begin{thebibliography}{9}
+  \bibitem{llvm_ir}
+  \emph{LLVM Language Reference Manual}. (2014) Consulted on 2014/11/11,
+  \url{http://llvm.org/docs/LangRef.html}
+
+  \bibitem{cfld_cross}
+  \emph{Constant folding and cross compilation}. (s.d.) Consulted on 2014/11/11,
+  \url{http://en.wikipedia.org/wiki/Constant_folding#Constant_folding_and_cross_compilation}
+\end{thebibliography}
+
+
+\newpage
+\appendix
+\section{Implementation Details for acc}
 
 \end{document}
