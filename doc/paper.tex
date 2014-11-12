@@ -333,12 +333,12 @@ L0:	ret((int)90);
 \subsection{Considerations}
 \subsubsection{Platform incompatibilities}
 There is a way compiler-based constant folding might stand in the way of the 
-programmer, as described by~Wikipedia~\cite{cfld_cross}. Mostly the compiler can do this when folding
+programmer. Mostly the compiler can do this when folding
 away instructions  operating on floating point operands, because different targets may compute 
 floating point operations differently. Therefore cross-compilation becomes an 
 issue; if a floating point instruction for target $Y$ normally yielding $V_y$, it 
 yields $V_x$ when folded away by target $X$, causing different semantics before and 
-after optimisation.
+after optimisation.\cite{cfld_cross}
 
 A solution to this problem is to implement a floating point virtual machine for 
 several targets, that use non IEEE floating point. Targets using IEEE floating 
@@ -610,6 +610,27 @@ struct itm_block {
 	struct itm_block *lexnext, *lexprev;
 	/* predecessor and successor lists */
 	struct list *next, *prev;
+};
+\end{lstlisting}
+
+Then there has to be a way to store literals (both floating point and integral)
+and \verb+undef+ constants. These structures are trivial:
+
+\begin{lstlisting}
+struct itm_literal {
+	/* expression base */
+	struct itm_expr base;
+
+	/* value, sharing memory */
+	union {
+		long long i;
+		double f;
+	} value;
+};
+
+struct itm_undef {
+	/* expression base */
+	struct itm_expr base;
 };
 \end{lstlisting}
 
