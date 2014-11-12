@@ -1,7 +1,6 @@
 \documentclass[12pt, a4paper]{article}
 \usepackage[T1]{fontenc}
 \usepackage{amsmath, listingsutf8, mathtools}
-
 \usepackage{hyperref}
 \usepackage{breakurl}
 
@@ -500,5 +499,118 @@ L2:	...
 \newpage
 \appendix
 \section{Implementation Details for acc}
+\subsection{Introduction}
+  \textit{acc} (the antonijn/Antonie C Compiler) is a software project with the intent of
+one-day being self-hosting (able to compile itself). The only external library
+it depends on is the C99 standard library, and it's written in portable standard C99.
+
+  acc implements many of the optimizations mentioned in the main paper, and could
+serve as a reference implementation for them. It is however, much more than that,
+of course, since it has to provide not only an optimizer, but back-ends and a C
+front-end as well. Only the subsystems relevant to compiler optimization are
+described here in detail. The most relevant subsystem is the so-called
+\textit{intermediate} subsystem (shortened to \verb+itm+ in code), implementing
+functions and data structures for defining and manipulating an intermediate form
+SSA tree. It also implements functions for writing such a tree to a file in text
+form.
+
+  \subsection{Object oriented programming}
+Although the C language doesn't natively feature object oriented syntax, it doesn't
+exclude the possibility of writing clean object oriented code. For instance, the
+following hierarchy:
+
+INSERT DIAGRAM
+
+Could well be implemented in C as follows:
+
+\begin{lstlisting}
+struct A {
+	/* pointer to a B or C object */
+	void *extended;
+
+	void (*free)(struct A *self);
+};
+
+struct B {
+	struct A base;
+
+	int field;
+};
+
+struct C {
+	struct B base;
+
+	float field;
+};
+\end{lstlisting}
+
+This style will be found a lot in the acc source code, although sometimes
+missing the \verb+extended+ field in a base class (in which case the addresses
+of both types are presumed compatible).
+
+  \subsection{The AST and its elements}
+The \verb+itm+ abstract syntax tree (AST) is not very complex. It mostly uses
+linked lists (the \verb+struct list *+, for instance, is a linked list containing
+only \verb+void *+ instances) for chaining instructions and blocks together.
+
+The following intermediate code is internally represented through a few different
+data structures:
+
+\begin{lstlisting}
+global int (int, int)* @gcd(int p0, int p1) {
+L0:	jmp(L1);
+L1:	int t2 = phi(L0, p0, L5, t7);
+	int t3 = phi(L0, p1, L8, t9);
+	_Bool t4 = cmp neq(t2, t3);
+	split(t4, L6, L10);
+L5:	_Bool t6 = cmp gt(t2, t3);
+	int t7 = sub(t2, t3);
+	split(t6, L1, L8);
+L8:	int t9 = sub(t3, t2);
+	jmp(L1);
+L10:	ret(t2);
+}
+\end{lstlisting}
+
+Global variables (as of yet unimplemented) and functions are represented through
+\textit{container} structures (\verb+struct itm_container *+). They contain an
+entry block, and are expressions themselves (as required to be called):
+
+\begin{lstlisting}
+struct itm_container {
+	/* expression base */
+	struct itm_expr base;
+
+	/* container identifier */
+	char *id;
+	/* entry block */
+	struct itm_block *block;
+};
+\end{lstlisting}
+
+Blocks are represented through \verb+struct itm_block *+ structures. They are
+expressions (as required to be a parameter to \verb+jmp()+ or \verb+split()+),
+contain a pointer to the first instruction, the last instruction (terminal
+instruction), a pointer to the block that's lexically next (\verb+L1+ for
+\verb+L0+ in the first example), a pointer to the block that's lexically previous
+(\verb+L0+ for \verb+L1+ in the first example, \verb+NULL+ for \verb+L0+),
+and two lists of blocks that are sementically next and previous (\verb+L1+ is
+\verb+L10+'s semantic predecessor, for example).
+
+\begin{lstlisting}
+struct itm_block {
+	/* expression base */
+	struct itm_expr base;
+
+	/* the container the block's contained by */
+	struct itm_container *container;
+	/* first and last instructions */
+	struct itm_instr *first, *last;
+	/* blocks lexically next and previous */
+	struct itm_block *lexnext, *lexprev;
+	/* predecessor and successor lists */
+	struct list *next, *prev;
+};
+\end{lstlisting}
 
 \end{document}
