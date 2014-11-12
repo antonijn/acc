@@ -6,11 +6,11 @@
 
 %\hypersetup{}
 %\lstset{numbers=left}
-\title{Exploring SSA Optimization Techniques}
+\title{Exploring Compiler Optimization Techniques}
 \author{A. D. Blom}
 \date{}
 
-\begin{document}
+\begin{document} \sloppy
   \maketitle
   \begin{abstract}
 In this era of global digitalization, the need for performant software is larger
@@ -21,11 +21,79 @@ SSA intermediate language.
   \end{abstract}
 
   \section{Introduction}
+When a compiler translates code from a programming language to assembly languages,
+it may apply a number of transformations to the source code, most often to make
+programs faster (but also to enhance debugging capabilities for example). Doing
+so is called code optimization.
 
+Code optimization is most often done by first translating the source code
+(as read by a \textit{lexer} and interpreted by a \textit{parser}) into an
+\textit{intermediate form}, which is subsequently converted into assembly. Such
+an intermediate form must be designed in such a way that it can be analyzed and
+optimized easily.
+
+The following C source code:
+
+\begin{lstlisting}
+int sub(int a, int b)
+{
+	return a - b;
+}
+\end{lstlisting}
+
+May be converted (by the \textit{front-end}) into the following intermediate form
+(this intermediate form is described in \ref{sec:irused}):
+
+\begin{lstlisting}
+global int (int, int)* @sub(int p0, int p1) {
+L0:	int* t1 = alloca(int);
+	int* t2 = alloca(int);
+	store(t1, p0);
+	store(t2, p1);
+	int t3 = load(t1);
+	int t4 = load(t2);
+	int t5 = sub(t3, t4);
+	ret(t5);
+L1:	leave();
+}
+\end{lstlisting}
+
+Which is subsequently optimized (by the \textit{middle-end}):
+
+\begin{lstlisting}
+global int (int, int)* @sub(int p0, int p1) {
+L0:	int t1 = sub(p0, p1);
+	ret(t1);
+}
+\end{lstlisting}
+
+And converted into assembly (by the \textit{back-end}):
+
+\begin{lstlisting}
+	.globl	sub
+sub:
+	movl	%edi, %eax
+	subl	%esi, %eax
+	ret
+\end{lstlisting}
+
+It is then that the job of the compiler is done, and the assembler takes over,
+and converts the assembly into numerical codes (\textit{"ones and zeroes"}):
+
+\begin{lstlisting}
+89 66 66 f8 f0 29 00 c3
+\end{lstlisting}
+
+One may ask oneself how the intermediate code is optimized from the first into
+the significantly faster second format, and how this is implemented concretlely
+in software. The \textit{acc} project was written to find out, and this article
+describes some of the optimization techniques used by acc (and a few more).
 
   \section{Intermediate representation used}
-The intermediate representation (IR) used here is an SSA implentation, 
-partially based on the LLVM IR as described by~LLVM~\cite{llvm_ir}.
+  \label{sec:irused}
+The intermediate representation (IR) used here is based on the \textit{static
+single assignment} (SSA) principle: every temporary variable may be assigned to
+only once. It is partially based on the LLVM IR as described by~LLVM~\cite{llvm_ir}.
 There are a few differences: the IR used here  uses a typesystem analogous to
 C's, and uses a C-like syntax for textual 
 representation as well.
@@ -57,6 +125,18 @@ value. The custom IR lacks a \verb+null+ constant, it uses \verb+0+ instead.
 A working C front-end is expected to be present, and snippets here will be 
 either in custom IR or C.
 
+\subsection{Common instructions}
+A lot of the instructions are taken from LLVM. The non self-explanatory ones
+behave as described below.
+\subsubsection{alloca}
+Allocates memory of the specified type, and returns a pointer to that memory.
+The memory is deallocated when the function returns.
+\subsubsection{split}
+A conditional jump, \verb+split(a, b, c);+ jumps to \verb+b+ if \verb+a+, and
+\verb+c+ if not.
+\subsubsection{leave}
+In a function returning \verb+T+, \verb+leave();+ is equivalent to
+\verb+ret((T)undef);+. It returns from a function but returns no useful value.
 
   \section{Phiability optimization}
   \subsection{Problem}
@@ -610,6 +690,29 @@ struct itm_block {
 	struct itm_block *lexnext, *lexprev;
 	/* predecessor and successor lists */
 	struct list *next, *prev;
+};
+\end{lstlisting}
+
+Instructions are represented as \verb+struct itm_instr+ pointers. They are
+themselves a linked list: they contains pointers to the previous and next
+instructions. They also link to their parent block, and have a list of their
+operands. They contains a field of a strange type (\verb+itm_instr_id_t+) which
+is an instruction identifier constant for each instruction type.
+
+For instance, an instruction of the type \verb+add+ has a constructor called
+\verb+itm_add()+. Its identifier can be obtained passing that function to the
+\verb+ITM_ID()+ macro: \verb+ITM_ID(itm_add)+.
+
+The structure looks roughly like this:
+
+\begin{lstlisting}
+struct itm_instr {
+	struct itm_expr base;
+
+	itm_instr_id_t id;
+	struct itm_block *block;
+	struct list *operands;
+	struct itm_instr *prev, *next;
 };
 \end{lstlisting}
 
