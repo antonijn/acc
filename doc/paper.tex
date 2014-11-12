@@ -30,7 +30,7 @@ Code optimization is most often done by first translating the source code
 (as read by a \textit{lexer} and interpreted by a \textit{parser}) into an
 \textit{intermediate form}, which is subsequently converted into assembly. Such
 an intermediate form must be designed in such a way that it can be analyzed and
-optimized easily.
+optimized easily.\cite{dragon}
 
 The following C source code:
 
@@ -42,7 +42,7 @@ int sub(int a, int b)
 \end{lstlisting}
 
 May be converted (by the \textit{front-end}) into the following intermediate form
-(this intermediate form is described in \ref{sec:irused}):
+(this intermediate form is described in section~\ref{sec:irused}):
 
 \begin{lstlisting}
 global int (int, int)* @sub(int p0, int p1) {
@@ -566,6 +566,10 @@ L2:	...
 \end{lstlisting}
 
 \begin{thebibliography}{9}
+  \bibitem{dragon} Aho et al.
+  \emph{Compilers: Principles, Techniques And Tools}.
+  (1988)
+
   \bibitem{llvm_ir}
   \emph{LLVM Language Reference Manual}. (2014) Consulted on 2014/11/11,
   \url{http://llvm.org/docs/LangRef.html}
