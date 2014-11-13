@@ -28,9 +28,14 @@ so is called code optimization.
 
 Code optimization is most often done by first translating the source code
 (as read by a \textit{lexer} and interpreted by a \textit{parser}) into an
-\textit{intermediate form}, which is subsequently converted into assembly. Such
-an intermediate form must be designed in such a way that it can be analyzed and
-optimized easily.\cite{dragon}
+\textit{intermediate form}, which is subsequently converted into assembly.\cite{dragon}
+Such an intermediate form must be designed in such a way that it can be analyzed and
+optimized easily. Such a intermediate form commonly consists of a
+list of instructions (using so-called \textit{three-way address code}) grouped
+into \textit{basic blocks}. Each basic block has one starting point and one
+end-point. The endpoint is always a \textit{terminal instruction}
+which causes control flow to leave the block (\verb+jmp+, \verb+split+, \verb+ret+
+and \verb+leave+ in the intermediate form used here).
 
 The following C source code:
 
@@ -138,13 +143,18 @@ A conditional jump, \verb+split(a, b, c);+ jumps to \verb+b+ if \verb+a+, and
 In a function returning \verb+T+, \verb+leave();+ is equivalent to
 \verb+ret((T)undef);+. It returns from a function but returns no useful value.
 
-  \section{Phiability optimization}
+  \section{SSA conversion optimization}
   \subsection{Problem}
 Imperative languages usually allow variables and memory to be rewritten. SSA 
 inherently, does not allow temporary variables to change their value over time. 
 SSA supports several ways to support this model. One is using the \verb+alloca+
 instruction to allocate memory and use the \verb+load+/\verb+store+ system,
-another, is cleverly using $\phi$ (phi) nodes.
+another, is cleverly using SSA and its $\phi$ nodes. The first translation uses
+rewritable memory and is therefore not a strict SSA representation of control
+flow.\footnote{The intermediate form used is still SSA compliant, however, even though it
+allows rewriting of \textit{memory}. The temporary values (t1 etc.) are
+still single-assignment. Allowing rewritable memory is a necessary evil for
+imperative languages.}
 
 Consider the following imperative code:
 
@@ -180,10 +190,9 @@ requiring a new lifetime analysis method, instead of the one already provided
 for temporaries, since most \verb+alloca+ memory needn't be alive for the 
 entirety of the surrounding function.
 
-A system that would allow turning this \verb+alloca+ system into a more
-SSA-appropriate  system would get rid of all these cases where alloca would form
-an exception, by morphing an advanced \verb+load+/\verb+store+ mechanism into a
-mechanism using mostly temporaries for storage.
+For further optimization it's far more convenient to turn such a complex system
+with \verb+alloca+, \verb+load+ and \verb+store+ into an pure system where each
+variable is truly written to once.
 
 SSA features a mechanism that allows selecting a value based on the previously 
 run block. This system is a $\phi$ node system, where a $\phi$ node is an
@@ -213,9 +222,9 @@ memory. It is therefore hard for a front-end to decide which system to use, and
 many\footnote{At least clang does so: \textit{echo "void foo() \{ int a; \}" |
  clang -x c - -S -emit-llvm -o /dev/stdout}}
 default to using the first system all of the time, relying on the 
-middle-end to optimize it into a $\phi$ node system. If an \verb+alloca+ 
+middle-end to optimize it into an SSA system. If an \verb+alloca+ 
 variable can convert its \verb+load+/\verb+store+ system it shall be considered 
-\textit{phiable}.
+\textit{SSA-capable}.
 
 \subsection[Implementation] {Implementation\footnote{This is the o\_phiable() optimization pass in opt.c in acc} }
 Given a simple, one-block SSA graph:
@@ -230,9 +239,9 @@ L0:	int* t1 = alloca(int);
 	ret(t4);
 \end{lstlisting}
 
-Can \verb+t1+ be considered phiable? It's been established that an \verb+alloca+ system 
-is not phiable if the memory is actually required to exist. This means (naively) 
-that a system is not phiable if the \verb+alloca+ instruction is used outside 
+Can \verb+t1+ be considered SSA-capable? It's been established that an \verb+alloca+ system 
+is not SSA-capable if the memory is actually required to exist. This means (naively) 
+that a system is not SSA-capable if the \verb+alloca+ instruction is used outside 
 its own \verb+load+/\verb+store+ instructions: that is if it is ever used in an 
 instruction, except as the first operand of a \verb+store+ or \verb+load+.
 
