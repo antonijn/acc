@@ -3,7 +3,7 @@
 \usepackage{amsmath, listingsutf8, mathtools}
 \usepackage{hyperref}
 \usepackage{breakurl}
-
+\usepackage{graphicx}
 %\hypersetup{}
 %\lstset{numbers=left}
 \title{Exploring Compiler Optimization Techniques}
@@ -28,7 +28,8 @@ so is called code optimization.
 
 Code optimization is most often done by first translating the source code
 (as read by a \textit{lexer} and interpreted by a \textit{parser}) into an
-\textit{intermediate form}, which is subsequently converted into assembly.\cite{dragon}
+\textit{intermediate form}, which is subsequently converted into
+assembly.\cite[chapter~2]{dragon}
 Such an intermediate form must be designed in such a way that it can be analyzed and
 optimized easily. Such a intermediate form commonly consists of a
 list of instructions (using so-called \textit{three-way address code}) grouped
@@ -606,6 +607,7 @@ an item for the block marked for removal, that item must be removed. That's
 always the case, however, when removing a block.
 
   \section{Register allocation}
+  \label{sec:regalloc}
   \subsection{As an optimization}
 It's hard to categorize register allocation as either an optimization or a
 general method used in assembly generation. For the purposes of this article
@@ -613,9 +615,9 @@ it'll be classified as the former, because it is a way to speed up generated
 assembly.
 
 \subsection{Problem}
-The original i386 processors had only very few general purpose registers
-(\verb+eax+, \verb+ebx+, \verb+ecx+, \verb+edx+, \verb+esi+ and
-\verb+edi+).\cite[section~3.4.1]{intel}
+CPUs have only a limited amount of registers. The original i386 processors had
+only six general purpose registers for example (\verb+eax+, \verb+ebx+, \verb+ecx+,
+\verb+edx+, \verb+esi+ and \verb+edi+).\cite[section~3.4.1]{intel}
 
 \begin{thebibliography}{9}
   \bibitem{dragon} Aho et al.
@@ -631,6 +633,7 @@ The original i386 processors had only very few general purpose registers
   \url{http://en.wikipedia.org/wiki/Constant_folding#Constant_folding_and_cross_compilation}
 
   \bibitem{intel}
+  Intel Corporation.
   \emph{Intel\textregistered{} 64 and IA-32 Architectures Software Developer's
 Manual Volume~1}.
   (2014)
@@ -658,12 +661,18 @@ form.
 
   \subsection{Object oriented programming}
 Although the C language doesn't natively feature object oriented syntax, it doesn't
-exclude the possibility of writing clean object oriented code. For instance, the
-following hierarchy:
+exclude the possibility of writing clean object oriented code.
 
-INSERT DIAGRAM
+\begin{figure}[h]
+\begin{center}
+\includegraphics[resolution=256]{ABC.png}
+\caption{Class diagram example}
+\label{fig:abc}
+\end{center}
+\end{figure}
 
-Could well be implemented in C as follows:
+The class diagram described in figure~\ref{fig:abc} could be implemented in
+C as follows:
 
 \begin{lstlisting}
 struct A {
@@ -695,8 +704,7 @@ The \verb+itm+ abstract syntax tree (AST) is not very complex. It mostly uses
 linked lists (the \verb+struct list *+, for instance, is a linked list containing
 only \verb+void *+ instances) for chaining instructions and blocks together.
 
-The following intermediate code is internally represented through a few different
-data structures:
+A variety of structures is needed to store the following snippet internally:
 
 \begin{lstlisting}
 global int (int, int)* @gcd(int p0, int p1) {
@@ -712,6 +720,51 @@ L8:	int t9 = sub(t3, t2);
 	jmp(L1);
 L10:	ret(t2);
 }
+\end{lstlisting}
+
+And AST capable of storing such an IR, must be able to store functions, global
+variables (unimplemented as of yet), basic blocks, instructions, parameters
+(unimplemented as of yet), literals and \verb+undef+ constants. These elements
+are implemented through a structure system as described in figure~\ref{fig:ast}.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[resolution=150]{ast.png}
+\caption{The AST class diagram}
+\label{fig:ast}
+\end{center}
+\end{figure}
+
+A common base type for most AST elements is \verb+struct itm_expr+ (the
+expression base type). It contains a destructor, a (C) typename, and a list of
+\textit{tags}. Tags are used to store expression attributes (\textit{"tag"}).
+Tags are used in section~\ref{sec:regalloc} for example.
+
+\begin{lstlisting}
+struct itm_expr {
+	/* derived type identifier
+	 *
+	 * The enumeration contains for
+	 * example:
+	 *  ITME_INSTRUCTION,
+	 *  ITME_LITERAL
+	 *  ITME_BLOCK
+	 *  ...
+	 */
+	enum itm_expr_type etype;
+
+	/* expression's C typename */
+	struct ctype *type;
+	/* tag list */
+	struct list *tags;
+
+	/* destructor
+	 * (implemented by derived class) */
+	void (*free)(struct itm_expr *e);
+	/* to_string for file dumps
+	 * (implemented by derived class) */
+	void (*to_string)(FILE *f, struct itm_expr *e);
+};
 \end{lstlisting}
 
 Global variables (as of yet unimplemented) and functions are represented through
@@ -769,11 +822,17 @@ The structure looks roughly like this:
 
 \begin{lstlisting}
 struct itm_instr {
+	/* expression base type */
 	struct itm_expr base;
 
+	/* instruction identifier (add, sub,
+	 * leave, etc.) */
 	itm_instr_id_t id;
+	/* parent block */
 	struct itm_block *block;
+	/* instruction operand list */
 	struct list *operands;
+	/* previous and next instructions */
 	struct itm_instr *prev, *next;
 };
 \end{lstlisting}
@@ -789,7 +848,8 @@ struct itm_literal {
 	/* value, sharing memory */
 	union {
 		long long i;
-		double f;
+		double d;
+		float f;
 	} value;
 };
 
