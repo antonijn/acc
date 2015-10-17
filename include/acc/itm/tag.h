@@ -23,6 +23,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+typedef const char *const *tagtype_t;
+
 enum itm_tag_object {
 	TO_NONE,
 	TO_INT,
@@ -32,12 +34,12 @@ enum itm_tag_object {
 
 struct itm_tag;
 
-struct itm_tag *new_itm_tag(const char *const *type, enum itm_tag_object obj);
+struct itm_tag *new_itm_tag(tagtype_t type, enum itm_tag_object obj);
 void delete_itm_tag(struct itm_tag *tag);
 
 void itm_tag_to_string(FILE *f, struct itm_tag *tag);
 
-const char *const *itm_tag_type(struct itm_tag *tag);
+tagtype_t itm_tag_type(struct itm_tag *tag);
 enum itm_tag_object itm_tag_object(struct itm_tag *tag);
 void itm_tag_seti(struct itm_tag *tag, int i);
 int itm_tag_geti(struct itm_tag *tag);

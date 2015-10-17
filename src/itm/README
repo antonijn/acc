@@ -5,11 +5,11 @@ subsystems.
 
 Its features include:
 
-- Providing an interface for reading and writing the intermediate form abstract
+- ast.h: Providing an interface for reading and writing the intermediate form abstract
   syntax tree for the parsing and emission subsystems respectively. These
   functions are provided by ast.c.
 
-- Analyse the intermediate form abstract syntax tree. Analysations include:
+- analyze.h: Analyse the intermediate form abstract syntax tree. Analysations include:
 
 	- A_USED: Usage analysis. Checks how often the instruction is used by
 	  other instructions, and tags each instruction with a tt_used.
@@ -21,7 +21,7 @@ Its features include:
 
   Analysations are only performed by the optimiser and the assembly emitter.
 
-- Optimise the intermediate source tree. Optimisations include:
+- opt.h: Optimise the intermediate source tree. Optimisations include:
 
 	- o_phiable: Attempts to convert an alloca/load/store system into a
 	  phi node system.
@@ -29,3 +29,5 @@ Its features include:
 	- o_prune: Removes all unused blocks (blocks without predecessors).
 	- o_uncsplit: Converts conditional jumps to unconditional jumps where
 	  jump conditions are constant.
+
+- tag.h: Provides data structures used to tag SSA-nodes.

@@ -1,0 +1,13 @@
+	Finding Your Way Around the src/target/ subsystem
+
+In this subsystem, different compilation targets are implemented, only one of
+which will be used in each acc build ('make config' automatically selects the
+appropriate target for the system built on).
+
+A target is selected by creating a symlink /src/target/cpu to the appropriate
+CPU directory from the directories in /src/target/cpus.
+
+Each target in the /src/target/cpus directory contains information specific to
+the CPU, most importantly they implement assembly emission.
+/include/acc/target/cpu.h and emit.h in the same folder contain all functions
+requiring implementations for each CPU.

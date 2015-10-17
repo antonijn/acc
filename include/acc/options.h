@@ -25,14 +25,39 @@
 
 #include <acc/list.h>
 
+/*
+ * Initialize options from command-line args
+ */
 void options_init(int argc, char *argv[]);
+/*
+ * Options cleanup
+ */
 void options_destroy(void);
 
+
+/*
+ * The output file ('-o')
+ */
 char *option_outfile(void);
+/*
+ * The optimization number (the X in '-OX')
+ */
 int option_optimize(void);
+/*
+ * The list of input files
+ */
 struct list *option_input(void);
+/*
+ * Indicates whether to give warnings ('-W')
+ */
 bool option_warnings(void);
+/*
+ * Indicates whether to emit IR ('-Sir')
+ */
 bool option_emit_ir(void);
+/*
+ * Indicates whether to emit assembly ('-S')
+ */
 bool option_emit_asm(void);
 
 #endif

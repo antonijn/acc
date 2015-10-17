@@ -20,6 +20,9 @@
 #ifndef ACC_EXT_H
 #define ACC_EXT_H
 
+/*
+ * Extension codes
+ */
 enum exno {
 	EX_MIXED_DECLARATIONS,
 	EX_PURE,
@@ -45,10 +48,25 @@ enum exno {
 	EX_COUNT
 };
 
+/*
+ * Get extension code from string
+ */
 enum exno getex(const char *ext);
+
+/*
+ * Enable/disable extension
+ */
 void enableext(const char *ext);
 void disableext(const char *ext);
+
+/*
+ * Enable extension by extension code
+ */
 void orext(enum exno ext);
+
+/*
+ * Returns whether extension is enabled
+ */
 bool isext(enum exno ext);
 
 #endif

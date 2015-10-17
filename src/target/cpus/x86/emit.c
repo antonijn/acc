@@ -665,7 +665,7 @@ static void x86_restrictmul(struct itm_instr *i)
 
 	struct location *actloc = new_loc_reg(i->base.type->size, rax.id);
 	struct itm_instr *mov = itm_mov(i->block, l);
-	struct itm_tag *loc = new_itm_tag(&tt_loc, TO_USER_PTR);
+	struct itm_tag *loc = new_itm_tag(tt_loc, TO_USER_PTR);
 	itm_tag_set_user_ptr(loc, actloc, (void (*)(FILE *, void *))&loc_to_string);
 	itm_tag_expr(&mov->base, loc);
 	itm_inserti(mov, i);
@@ -673,7 +673,7 @@ static void x86_restrictmul(struct itm_instr *i)
 
 	actloc = new_loc_reg(i->base.type->size, rdx.id);
 	struct itm_instr *clobb = itm_clobb(i->block);
-	loc = new_itm_tag(&tt_loc, TO_USER_PTR);
+	loc = new_itm_tag(tt_loc, TO_USER_PTR);
 	itm_tag_set_user_ptr(loc, actloc, (void (*)(FILE *, void *))&loc_to_string);
 	itm_tag_expr(&clobb->base, loc);
 	itm_inserti(clobb, i->next);
@@ -705,7 +705,7 @@ static void x86_restrictcmp(struct itm_instr *i)
 	set_list_item(mov->operands, 0, &i->base);
 
 	struct location *actloc = new_loc_reg(i->base.type->size, reg);
-	struct itm_tag *loc = new_itm_tag(&tt_loc, TO_USER_PTR);
+	struct itm_tag *loc = new_itm_tag(tt_loc, TO_USER_PTR);
 	itm_tag_set_user_ptr(loc, actloc, (void (*)(FILE *, void *))&loc_to_string);
 	itm_tag_expr(&i->base, loc);
 }
@@ -718,7 +718,7 @@ static void x86_restrictret(struct itm_instr *i)
 	if (hastc(i->base.type, TC_POINTER) ||
 	    hastc(i->base.type, TC_INTEGRAL)) {
 		struct itm_instr *mov = itm_mov(i->block, list_head(i->operands));
-		struct itm_tag *loc = new_itm_tag(&tt_loc, TO_USER_PTR);
+		struct itm_tag *loc = new_itm_tag(tt_loc, TO_USER_PTR);
 		struct location *actloc = new_loc_reg(i->base.type->size, rax.id);
 		itm_tag_set_user_ptr(loc, actloc, (void (*)(FILE *, void *))&loc_to_string);
 		itm_tag_expr(&mov->base, loc);
@@ -834,7 +834,7 @@ static struct asme *x86_getasme(struct asmimm *imm, struct itm_expr *e)
 		return &imm->base;
 	}
 
-	struct itm_tag *restag = itm_get_tag(e, &tt_loc);
+	struct itm_tag *restag = itm_get_tag(e, tt_loc);
 	assert(restag != NULL);
 	struct location *loc = itm_tag_get_user_ptr(restag);
 	assert(loc != NULL);
@@ -945,7 +945,7 @@ static struct itm_instr *x86_emit_split(FILE *f, struct itm_instr *i,
 	 * Think of functions returning boolean values...
 	 */
 	struct asme *conde = x86_getasme(NULL, cond);
-	struct itm_tag *loct = itm_get_tag(cond, &tt_loc);
+	struct itm_tag *loct = itm_get_tag(cond, tt_loc);
 	struct location *locg = itm_tag_get_user_ptr(loct);
 	assert(locg->type == LT_REG);
 	struct loc_reg *locr = locg->extended;

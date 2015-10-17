@@ -24,6 +24,9 @@
 
 #include <acc/parsing/token.h>
 
+/*
+ * Error type flags to pass to report()
+ */
 enum errorty {
 	E_ERROR = 0x00,
 	E_FATAL = 0x01,
@@ -37,6 +40,10 @@ enum errorty {
 	E_PARSER = E_ERROR
 };
 
+/*
+ * Reports error on a given token, using formatted string as output
+ * token may be NULL if E_HIDE_TOKEN | E_HIDE_LOCATION are passed
+ */
 void report(enum errorty ty, struct token *tok, const char *frmt, ...);
 
 extern const char *currentfile;

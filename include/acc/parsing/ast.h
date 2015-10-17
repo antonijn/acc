@@ -1,17 +1,17 @@
 /*
  * Utilities for AST manipulation
  * Copyright (C) 2014  Antonie Blom
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -25,6 +25,9 @@
 
 #include <acc/list.h>
 
+/*
+ * Indicates type compatibility
+ */
 enum typecomp {
 	TC_EQUAL,
 	TC_IMPLICIT,
@@ -40,7 +43,7 @@ enum ctypeid {
 	FUNCTION,
 	STRUCTURE,
 	UNION,
-	QUALIFIED
+	QUALIFIED /* e.g. const, volatile */
 };
 
 enum storageclass {
@@ -67,15 +70,24 @@ struct ctype {
 	enum typecomp (*compare)(struct ctype *t, struct ctype *r);
 };
 
+/*
+ * The primitive types in C
+ */
 extern struct ctype cint, cshort, clong, cuint, cushort, culong,
 	clonglong, culonglong, cchar, cuchar,
 	cfloat, cdouble, cvoid, clongdouble, cbool;
 
+/*
+ * struct/union fields
+ */
 struct field {
 	struct ctype *type;
 	char *id;
 };
 
+/*
+ * Also used to represent union types (in which case the offset is 0 for all elements)
+ */
 struct cstruct {
 	struct ctype base;
 	struct list *fields;
@@ -93,6 +105,9 @@ struct carray {
 	struct ctype *elementtype;
 };
 
+/*
+ * 'type' represents the unqualified type being qualified
+ */
 struct cqualified {
 	struct ctype base;
 	struct ctype *type;
@@ -136,14 +151,23 @@ struct symbol {
 
 struct symbol *new_symbol(struct ctype *type, char *id,
 	enum storageclass sc, bool reg);
+/*
+ * Register a symbol in the AST
+ */
 void registersym(struct symbol *sym);
 
+/*
+ * C enumerator
+ */
 struct enumerator {
 	struct ctype *type;
 	char *id;
 	long i;
 };
 
+/*
+ * C operator
+ */
 struct operator {
 	int prec;
 	bool rtol;
@@ -156,13 +180,23 @@ void ast_destroy(void);
 void enter_scope(void);
 void leave_scope(void);
 
+/*
+ * Extract data from the AST
+ */
 struct symbol *get_symbol(char *id);
 struct enumerator *get_enumerator(char *id);
 struct cstruct *get_struct(char *name);
 struct cstruct *get_union(char *name);
 struct ctype *get_typedef(char *id);
 
+/*
+ * Get binary operator by operator string
+ */
 struct operator *getbop(const char *opname);
+/*
+ * Get unary operator by operator string
+ * Always returns preinc and predec operators for "++" and "--" respectively
+ */
 struct operator *getuop(const char *opname);
 
 extern struct operator binop_plus;

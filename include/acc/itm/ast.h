@@ -140,7 +140,7 @@ void itm_inserti(struct itm_instr *a, struct itm_instr *before);
 bool itm_isconst(struct itm_expr *e);
 /*
  * Evaluates a value in a sort of VM, if possible
- * Asserts itm_isconst(&i->base)
+ * Asserts itm_isconst(&e->base)
  */
 struct itm_expr *itm_eval(struct itm_expr *e);
 

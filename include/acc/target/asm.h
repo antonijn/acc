@@ -31,7 +31,7 @@ typedef void *asme_type_t;
 extern asme_type_t asme_reg;
 extern asme_type_t asme_imm;
 
-extern const char *const tt_loc;
+const tagtype_t tt_loc;
 
 struct asme {
 	asme_type_t *type;

@@ -23,13 +23,28 @@
 #include <acc/itm/ast.h>
 #include <acc/itm/tag.h>
 
-extern const char *const tt_used;
-extern const char *const tt_endlife;
-extern const char *const tt_phiable;
+/*
+ * The tags used to represent analysis information provided by analyze()
+ */
+extern const tagtype_t tt_used;
+extern const tagtype_t tt_endlife;
+extern const tagtype_t tt_phiable;
 
+/*
+ * Analysis flags to pass to analyze()
+ */
 enum analysis {
+	/*
+	 * Analyzes whether SSA-nodes are used
+	 */
 	A_USED = 0x1,
+	/*
+	 * Tags the lifetime of SSA-nodes
+	 */
 	A_LIFETIME = 0x2,
+	/*
+	 * Tags 'phiable' nodes as such
+	 */
 	A_PHIABLE = 0x4
 };
 

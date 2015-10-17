@@ -25,9 +25,12 @@
 #include <acc/itm/tag.h>
 #include <acc/parsing/ast.h>
 
-const char *const tt_used = "used";
-const char *const tt_endlife = "endlife";
-const char *const tt_phiable = "phiable";
+static const char *const usedstr = "used";
+const tagtype_t tt_used = &usedstr;
+static const char *const endlifestr = "endlife";
+const tagtype_t tt_endlife = &endlifestr;
+static const char *const phiablestr = "phiable";
+const tagtype_t tt_phiable = &phiablestr;
 
 static void canalias(struct itm_expr *l, struct itm_expr *r);
 
@@ -55,17 +58,17 @@ static void a_used(struct itm_instr *i)
 		return;
 
 	if (i->base.type != &cvoid &&
-	   !itm_get_tag((struct itm_expr *)i, &tt_used)) {
-		struct itm_tag *tag = new_itm_tag(&tt_used, TO_INT);
+	   !itm_get_tag((struct itm_expr *)i, tt_used)) {
+		struct itm_tag *tag = new_itm_tag(tt_used, TO_INT);
 		itm_tag_expr((struct itm_expr *)i, tag);
 	}
 
 	struct itm_expr *e;
 	it_t it = list_iterator(i->operands);
 	while (iterator_next(&it, (void **)&e)) {
-		struct itm_tag *tag = itm_get_tag(e, &tt_used);
+		struct itm_tag *tag = itm_get_tag(e, tt_used);
 		if (!tag) {
-			tag = new_itm_tag(&tt_used, TO_INT);
+			tag = new_itm_tag(tt_used, TO_INT);
 			itm_tag_expr(e, tag);
 		}
 		itm_tag_seti(tag, itm_tag_geti(tag) + 1);
@@ -151,9 +154,9 @@ static bool lifetime(struct itm_instr *instr, struct itm_block *block, struct li
 		struct itm_instr *i;
 		for (i = baft->first; i->id == ITM_ID(itm_phi); i = i->next)
 			;
-		struct itm_tag *endlife = itm_get_tag(&i->base, &tt_endlife);
+		struct itm_tag *endlife = itm_get_tag(&i->base, tt_endlife);
 		if (!endlife) {
-			endlife = new_itm_tag(&tt_endlife, TO_EXPR_LIST);
+			endlife = new_itm_tag(tt_endlife, TO_EXPR_LIST);
 			itm_tag_expr(&i->base, endlife);
 		}
 		itm_tag_add_item(endlife, instr);
@@ -162,9 +165,9 @@ static bool lifetime(struct itm_instr *instr, struct itm_block *block, struct li
 tag:
 	// used in block only
 	if (localuse && !orf) {
-		struct itm_tag *endlife = itm_get_tag(&bi->base, &tt_endlife);
+		struct itm_tag *endlife = itm_get_tag(&bi->base, tt_endlife);
 		if (!endlife) {
-			endlife = new_itm_tag(&tt_endlife, TO_EXPR_LIST);
+			endlife = new_itm_tag(tt_endlife, TO_EXPR_LIST);
 			itm_tag_expr(&bi->base, endlife);
 		}
 		itm_tag_add_item(endlife, instr);
@@ -209,7 +212,7 @@ static void a_phiable(struct itm_instr *instr)
 		return;
 
 	if (!isreferenced(instr, instr->block)) {
-		struct itm_tag *phi = new_itm_tag(&tt_phiable, TO_NONE);
+		struct itm_tag *phi = new_itm_tag(tt_phiable, TO_NONE);
 		itm_tag_expr(&instr->base, phi);
 	}
 

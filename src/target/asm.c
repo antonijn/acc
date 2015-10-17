@@ -31,8 +31,10 @@
 asme_type_t asme_reg;
 asme_type_t asme_imm;
 
-const char *const tt_loc = "loc";
-static const char *const tt_lochint = "lochint";
+static const char *const locstr = "loc";
+const tagtype_t tt_loc = &locstr;
+static const char *const lochintstr = "lochint";
+static const tagtype_t tt_lochint = &lochintstr;
 
 static inline void loc_init(struct location *loc, enum locty type,
 	size_t size, void *ex)
@@ -112,14 +114,14 @@ static bool loc_eq(struct location *a, struct location *b)
 {
 	assert(a != NULL);
 	assert(b != NULL);
-	
+
 	if (a->type != b->type)
 		return false;
 
 	struct loc_reg *reg1, *reg2;
 	struct loc_mem *mem1, *mem2;
 	struct loc_multiple *mul1, *mul2;
-	
+
 	switch (a->type) {
 	case LT_REG:
 		reg1 = a->extended;
@@ -277,7 +279,7 @@ void regalloc(struct itm_block *b, struct archdes ades)
 static void ovldump(struct list *overlapdict)
 {
 	FILE *f = fopen("ovldump", "wb");
-	
+
 	struct itm_instr *i;
 	it_t it = list_iterator(overlapdict);
 	while (iterator_next(&it, (void **)&i)) {
@@ -290,7 +292,7 @@ static void ovldump(struct list *overlapdict)
 		fprintf(f, "\n");
 		fflush(f);
 	}
-	
+
 	fclose(f);
 }
 #endif
@@ -315,7 +317,7 @@ static void getovlps(struct itm_block *b, struct archdes ades,
 
 static void killinstrs(struct itm_instr *i, struct list *alive)
 {
-	struct itm_tag *elifet = itm_get_tag(&i->base, &tt_endlife);
+	struct itm_tag *elifet = itm_get_tag(&i->base, tt_endlife);
 	if (!elifet)
 		return;
 
@@ -414,11 +416,11 @@ static void resolvconfls(struct itm_block *b, struct archdes ades,
 		if (!win)
 			continue;
 
-		struct itm_tag *loct = itm_get_tag(&win->base, &tt_lochint);
+		struct itm_tag *loct = itm_get_tag(&win->base, tt_lochint);
 		struct location *loc = copy_loc(itm_tag_get_user_ptr(loct));
-		struct itm_tag *nloct = new_itm_tag(&tt_loc, TO_USER_PTR);
+		struct itm_tag *nloct = new_itm_tag(tt_loc, TO_USER_PTR);
 		itm_tag_set_user_ptr(nloct, loc, (void (*)(FILE *, void *))&loc_to_string);
-		itm_untag_expr(&win->base, &tt_lochint);
+		itm_untag_expr(&win->base, tt_lochint);
 		itm_tag_expr(&win->base, nloct);
 	}
 
@@ -431,12 +433,12 @@ static void resolvconfls(struct itm_block *b, struct archdes ades,
 static struct itm_instr *resolvconfl(struct itm_instr *i, struct archdes ades,
 	struct list *overlapdict)
 {
-	struct itm_tag *lochint = itm_get_tag(&i->base, &tt_lochint);
+	struct itm_tag *lochint = itm_get_tag(&i->base, tt_lochint);
 	if (!lochint)
 		return NULL;
 
 	struct itm_instr *winner = i;
-	struct itm_tag *usedt = itm_get_tag(&i->base, &tt_used);
+	struct itm_tag *usedt = itm_get_tag(&i->base, tt_used);
 	assert(usedt != NULL);
 	int used = itm_tag_geti(usedt);
 	struct location *loc = itm_tag_get_user_ptr(lochint);
@@ -446,7 +448,7 @@ static struct itm_instr *resolvconfl(struct itm_instr *i, struct archdes ades,
 	dict_get(overlapdict, i, (void **)&ovl);
 	it_t it = list_iterator(ovl);
 	while (iterator_next(&it, (void **)&ovli)) {
-		struct itm_tag *other = itm_get_tag(&ovli->base, &tt_lochint);
+		struct itm_tag *other = itm_get_tag(&ovli->base, tt_lochint);
 		if (!other)
 			continue;
 		struct location *oloc = itm_tag_get_user_ptr(other);
@@ -454,7 +456,7 @@ static struct itm_instr *resolvconfl(struct itm_instr *i, struct archdes ades,
 			continue;
 
 		// there is a conflict
-		struct itm_tag *otherut = itm_get_tag(&ovli->base, &tt_used);
+		struct itm_tag *otherut = itm_get_tag(&ovli->base, tt_used);
 		assert(otherut != NULL);
 		int oused = itm_tag_geti(otherut);
 		if (oused > used && resolvconfl(ovli, ades, overlapdict) == ovli) {
@@ -463,7 +465,7 @@ static struct itm_instr *resolvconfl(struct itm_instr *i, struct archdes ades,
 			continue;
 		}
 
-		itm_untag_expr(&ovli->base, &tt_lochint);
+		itm_untag_expr(&ovli->base, tt_lochint);
 	}
 
 	return winner;
@@ -489,14 +491,14 @@ static void inducereg(struct itm_instr *i, struct archdes ades,
 	if (i->id != ITM_ID(itm_mov))
 		return;
 
-	struct itm_tag *movto = itm_get_tag(&i->base, &tt_loc);
+	struct itm_tag *movto = itm_get_tag(&i->base, tt_loc);
 	if (!movto)
 		return;
-	
+
 	struct location *loc = itm_tag_get_user_ptr(movto);
 	if (loc->type != LT_REG)
 		return; // TODO: implement non-regs? multiple regs?
-	
+
 	struct loc_reg *reg = loc->extended;
 
 	struct itm_expr *op = list_head(i->operands);
@@ -504,11 +506,11 @@ static void inducereg(struct itm_instr *i, struct archdes ades,
 		return;
 
 	struct itm_instr *opi = (struct itm_instr *)op;
-	if (itm_get_tag(&opi->base, &tt_loc))
+	if (itm_get_tag(&opi->base, tt_loc))
 		return;
 
 	struct location *newl = copy_loc(loc);
-	struct itm_tag *newt = new_itm_tag(&tt_lochint, TO_USER_PTR);
+	struct itm_tag *newt = new_itm_tag(tt_lochint, TO_USER_PTR);
 	itm_tag_set_user_ptr(newt, newl, (void (*)(FILE *, void *))&loc_to_string);
 	itm_tag_expr(op, newt);
 }
@@ -519,13 +521,13 @@ static void deducereg(struct itm_instr *i, struct archdes ades,
 	if (i->id != ITM_ID(itm_mov))
 		return;
 
-	if (itm_get_tag(&i->base, &tt_loc))
+	if (itm_get_tag(&i->base, tt_loc))
 		return;
 
 	struct itm_expr *op = list_head(i->operands);
-	struct itm_tag *movto = itm_get_tag(op, &tt_loc);
+	struct itm_tag *movto = itm_get_tag(op, tt_loc);
 	if (!movto) {
-		movto = itm_get_tag(op, &tt_lochint);
+		movto = itm_get_tag(op, tt_lochint);
 		if (!movto)
 			return;
 	}
@@ -537,7 +539,7 @@ static void deducereg(struct itm_instr *i, struct archdes ades,
 	struct loc_reg *reg = loc->extended;
 
 	struct location *newl = copy_loc(loc);
-	struct itm_tag *newt = new_itm_tag(&tt_lochint, TO_USER_PTR);
+	struct itm_tag *newt = new_itm_tag(tt_lochint, TO_USER_PTR);
 	itm_tag_set_user_ptr(newt, newl, (void (*)(FILE *, void *))&loc_to_string);
 	itm_tag_expr(&i->base, newt);
 }
@@ -573,7 +575,7 @@ static regid_t rgetreg(struct itm_instr *i, struct archdes ades,
 	struct itm_instr *other;
 	it_t it = list_iterator(ovlps);
 	while (iterator_next(&it, (void **)&other)) {
-		struct itm_tag *loct = itm_get_tag(&other->base, &tt_loc);
+		struct itm_tag *loct = itm_get_tag(&other->base, tt_loc);
 		if (!loct)
 			continue;
 		struct location *loc = itm_tag_get_user_ptr(loct);
@@ -601,7 +603,7 @@ static regid_t getreg(struct itm_instr *i, struct archdes ades,
 static void asnrem(struct itm_instr *i, struct archdes ades,
 	struct list *overlapdict)
 {
-	if (itm_get_tag(&i->base, &tt_loc))
+	if (itm_get_tag(&i->base, tt_loc))
 		return;
 
 	regid_t try = getreg(i, ades, overlapdict, ades.all_iregs & ~ades.saved_iregs);
@@ -609,7 +611,7 @@ static void asnrem(struct itm_instr *i, struct archdes ades,
 		try = getreg(i, ades, overlapdict, ades.saved_iregs);
 
 	struct loc_reg *reg = new_loc_reg(i->base.type->size, try)->extended;
-	struct itm_tag *regt = new_itm_tag(&tt_loc, TO_USER_PTR);
+	struct itm_tag *regt = new_itm_tag(tt_loc, TO_USER_PTR);
 	itm_tag_set_user_ptr(regt, reg, (void (*)(FILE *, void *))&loc_to_string);
 	itm_tag_expr(&i->base, regt);
 }

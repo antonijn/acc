@@ -134,20 +134,20 @@ static void remphiables(struct itm_instr *strt)
 		}
 
 		if (strt->id == ITM_ID(itm_store) &&
-		    itm_get_tag(list_last(strt->operands), &tt_phiable))
+		    itm_get_tag(list_last(strt->operands), tt_phiable))
 			itm_remi(strt);
 		else if (strt->id == ITM_ID(itm_load) &&
-		         itm_get_tag(list_head(strt->operands), &tt_phiable))
+		         itm_get_tag(list_head(strt->operands), tt_phiable))
 			itm_remi(strt);
 
 		strt = nnxt;
 	}
-	
+
 	strt = first->first;
 	while (strt) {
 		struct itm_instr *nnxt = strt->next;
 		if (strt->id == ITM_ID(itm_alloca) &&
-		    itm_get_tag(&strt->base, &tt_phiable))
+		    itm_get_tag(&strt->base, tt_phiable))
 			itm_remi(strt);
 		strt = nnxt;
 	}
@@ -158,7 +158,7 @@ static void o_phiable(struct itm_instr *strt, struct list *dict)
 	struct itm_instr *nxt = strt->next;
 
 	if (strt->id == ITM_ID(itm_load) &&
-	    itm_get_tag(list_head(strt->operands), &tt_phiable))
+	    itm_get_tag(list_head(strt->operands), tt_phiable))
 		itm_replocc(&strt->base, traceload(strt, strt, dict), strt->block);
 
 	if (nxt)

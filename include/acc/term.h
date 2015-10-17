@@ -20,6 +20,9 @@
 #ifndef ACC_TERM_H
 #define ACC_TERM_H
 
+/*
+ * All return the ANSI terminal escape sequence their name implies, only if 'x' is true
+ */
 #define ANSI_RESET(x)	((x) ? "\033[0m" : "")
 #define ANSI_BOLD(x)	((x) ? "\033[1m" : "")
 #define ANSI_BLACK(x)	((x) ? "\033[30m" : "")
