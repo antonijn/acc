@@ -28,6 +28,18 @@
 
 static void free_dummy(struct itm_expr *e);
 
+int64_t itm_getsi(struct itm_literal *lit)
+{
+	uint64_t u = lit->value.i;
+	uint64_t sign = 1ul << (lit->base.type->size * 8 - 1);
+	if (!(u & sign))
+		return (int64_t)u;
+
+	uint64_t newbits = ~(uint64_t)0;
+	newbits <<= lit->base.type->size * 8;
+	return u | newbits;
+}
+
 // to_string functions
 int itm_instr_number(struct itm_instr *i)
 {
@@ -456,8 +468,10 @@ bool itm_isconst(struct itm_expr *e)
 	struct itm_instr *i = (struct itm_instr *)e;
 	if (i->id != ITM_ID(itm_add) && i->id != ITM_ID(itm_sub) &&
 	    i->id != ITM_ID(itm_mul) && i->id != ITM_ID(itm_div) &&
+	    i->id != ITM_ID(itm_rem) && i->id != ITM_ID(itm_xor) &&
 	    i->id != ITM_ID(itm_shl) && i->id != ITM_ID(itm_shr) &&
 	    i->id != ITM_ID(itm_sal) && i->id != ITM_ID(itm_sar) &&
+	    i->id != ITM_ID(itm_or) && i->id != ITM_ID(itm_and) &&
 	    i->id != ITM_ID(itm_cmpeq) && i->id != ITM_ID(itm_cmpneq) &&
 	    i->id != ITM_ID(itm_cmpgt) && i->id != ITM_ID(itm_cmpgte) &&
 	    i->id != ITM_ID(itm_cmplt) && i->id != ITM_ID(itm_cmplte))
@@ -489,48 +503,71 @@ struct itm_expr *itm_eval(struct itm_expr *e)
 
 	uint64_t li = l->value.i;
 	uint64_t ri = r->value.i;
-	uint64_t resi;
+	int64_t lis = itm_getsi(l);
+	int64_t ris = itm_getsi(r);
+	union {
+		uint64_t u;
+		int64_t s;
+	} resi;
 
 	// TODO: floating point emulation
 	if (i->id == ITM_ID(itm_add))
-		resi = li + ri;
+		resi.u = li + ri;
 	else if (i->id == ITM_ID(itm_sub))
-		resi = li - ri;
+		resi.u = li - ri;
 	else if (i->id == ITM_ID(itm_mul))
-		resi = li * ri;
-	else if (i->id == ITM_ID(itm_div))
-		resi = li / ri;
+		resi.u = li * ri;
+	else if (i->id == ITM_ID(itm_div) && hastc(l->base.type, TC_UNSIGNED))
+		resi.u = li / ri;
+	else if (i->id == ITM_ID(itm_div) && hastc(l->base.type, TC_SIGNED))
+		resi.s = lis / ris;
 	else if (i->id == ITM_ID(itm_sub))
-		resi = li - ri;
+		resi.u = li - ri;
+	else if (i->id == ITM_ID(itm_rem))
+		resi.u = l->value.i % r->value.i;
+	else if (i->id == ITM_ID(itm_xor))
+		resi.u = li ^ ri;
+	else if (i->id == ITM_ID(itm_and))
+		resi.u = li & ri;
+	else if (i->id == ITM_ID(itm_or))
+		resi.u = li | ri;
 	else if (i->id == ITM_ID(itm_shl))
-		resi = li << ri;
+		resi.u = li << ri;
 	else if (i->id == ITM_ID(itm_shr))
-		resi = li >> ri;
+		resi.u = li >> ri;
 	else if (i->id == ITM_ID(itm_sal))
-		resi = (int64_t)li / (1l >> ri);
+		resi.s = lis / (1l >> ri);
 	else if (i->id == ITM_ID(itm_sar))
-		resi = (int64_t)li * (1l >> ri);
+		resi.s = lis * (1l >> ri);
 	else if (i->id == ITM_ID(itm_cmpeq))
-		resi = li == ri;
+		resi.u = li == ri;
 	else if (i->id == ITM_ID(itm_cmpneq))
-		resi = li != ri;
-	else if (i->id == ITM_ID(itm_cmpgt))
-		resi = li > ri;
-	else if (i->id == ITM_ID(itm_cmpgte))
-		resi = li >= ri;
-	else if (i->id == ITM_ID(itm_cmplt))
-		resi = li < ri;
-	else if (i->id == ITM_ID(itm_cmplte))
-		resi = li <= ri;
+		resi.u = li != ri;
+	else if (i->id == ITM_ID(itm_cmpgt) && hastc(l->base.type, TC_UNSIGNED))
+		resi.u = li > ri;
+	else if (i->id == ITM_ID(itm_cmpgt) && hastc(l->base.type, TC_SIGNED))
+		resi.u = lis > ris;
+	else if (i->id == ITM_ID(itm_cmpgte) && hastc(l->base.type, TC_UNSIGNED))
+		resi.u = li >= ri;
+	else if (i->id == ITM_ID(itm_cmpgte) && hastc(l->base.type, TC_SIGNED))
+		resi.u = lis >= ris;
+	else if (i->id == ITM_ID(itm_cmplt) && hastc(l->base.type, TC_UNSIGNED))
+		resi.u = li < ri;
+	else if (i->id == ITM_ID(itm_cmplt) && hastc(l->base.type, TC_SIGNED))
+		resi.u = lis < ris;
+	else if (i->id == ITM_ID(itm_cmplte) && hastc(l->base.type, TC_UNSIGNED))
+		resi.u = li <= ri;
+	else if (i->id == ITM_ID(itm_cmplte) && hastc(l->base.type, TC_SIGNED))
+		resi.u = lis <= ris;
 	else
 		return &i->base;
 
-	uint64_t mask = 1ul << (i->base.type->size - 1);
+	uint64_t mask = 1ul << (i->base.type->size * 8 - 1);
 	mask |= mask - 1;
-	resi &= mask;
+	resi.u &= mask;
 
 	struct itm_literal *res = new_itm_literal(i->block->container, i->base.type);
-	res->value.i = resi;
+	res->value.i = resi.u;
 	return &res->base;
 }
 

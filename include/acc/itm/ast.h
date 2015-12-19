@@ -71,7 +71,7 @@ struct itm_literal {
 	struct itm_expr base;
 
 	union {
-		int64_t i;
+		uint64_t i;
 		float f;
 		double d;
 	} value;
@@ -103,6 +103,8 @@ struct itm_block {
 
 	struct itm_container *container;
 };
+
+int64_t itm_getsi(struct itm_literal *lit);
 
 int itm_instr_number(struct itm_instr *i);
 int itm_block_number(struct itm_block *b);
