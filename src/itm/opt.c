@@ -36,25 +36,34 @@ static void o_phiable(struct itm_instr *strt, struct list *dict);
 static void o_prune(struct itm_block *blk);
 /*
  * Performs constant folding
+ * Returns the amount of folded constants
  */
-static void o_cfld(struct itm_instr *i);
+static int o_cfld(struct itm_instr *i);
 /*
  * Converts splits with a constant condition into a jmp
+ * Returns the amount of removed splits
  */
-static void o_uncsplit(struct itm_block *b);
+static int o_uncsplit(struct itm_block *b);
 
 void optimize(struct itm_block *strt)
 {
-	if (option_optimize() > 0) {
-		analyze(strt, A_PHIABLE);
-		struct list *dict = new_list(NULL, 0);
-		o_phiable(strt->first, dict);
-		delete_list(dict, NULL);
+	if (option_optimize() == 0)
+		return;
 
-		o_cfld(strt->first);
-		o_uncsplit(strt);
-		o_prune(strt->lexnext);
+	analyze(strt, A_PHIABLE);
+	struct list *dict = new_list(NULL, 0);
+	o_phiable(strt->first, dict);
+	delete_list(dict, NULL);
+
+	while (true) {
+		int opts = 0;
+		opts += o_cfld(strt->first);
+		opts += o_uncsplit(strt);
+		if (opts == 0)
+			break;
 	}
+
+	o_prune(strt->lexnext);
 }
 
 static struct itm_expr *traceload(struct itm_instr *ld, struct itm_instr *i,
@@ -223,32 +232,33 @@ static void o_prune(struct itm_block *blk)
 }
 
 
-static void o_cfld(struct itm_instr *strt)
+static int o_cfld(struct itm_instr *strt)
 {
 	struct itm_instr *nxt = strt->next;
 
+	int numfold = 0;
 	if (itm_isconst(&strt->base)) {
 		struct itm_expr *repl = itm_eval(&strt->base);
 		if (repl != &strt->base)
 			itm_repli(strt, repl);
+		numfold = 1;
 	}
 
 	if (nxt)
-		o_cfld(nxt);
-	else if (strt->block->lexnext)
-		o_cfld(strt->block->lexnext->first);
+		return numfold + o_cfld(nxt);
+
+	if (strt->block->lexnext)
+		return numfold + o_cfld(strt->block->lexnext->first);
 }
 
-static void o_uncsplit(struct itm_block *b)
+static int o_uncsplit(struct itm_block *b)
 {
 	if (!b)
-		return;
+		return 0;
 
 	struct itm_instr *i = b->last;
-	if (i->id != ITM_ID(itm_split)) {
-		o_uncsplit(b->lexnext);
-		return;
-	}
+	if (i->id != ITM_ID(itm_split))
+		return o_uncsplit(b->lexnext);
 
 	struct itm_block *to, *other;
 	struct itm_expr *c = list_head(i->operands);
@@ -259,8 +269,7 @@ static void o_uncsplit(struct itm_block *b)
 		to = list_last(i->operands);
 		other = get_list_item(i->operands, 1);
 	} else {
-		o_uncsplit(b->lexnext);
-		return;
+		return o_uncsplit(b->lexnext);
 	}
 
 	itm_jmp(b, to);
@@ -269,5 +278,5 @@ static void o_uncsplit(struct itm_block *b)
 	list_remove(other->previous, b);
 	itm_remi(i);
 
-	o_uncsplit(b->lexnext);
+	return 1 + o_uncsplit(b->lexnext);
 }
