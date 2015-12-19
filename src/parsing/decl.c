@@ -1,17 +1,17 @@
 /*
  * Declaration parsing and generation of intermediate representation
  * Copyright (C) 2014  Antonie Blom
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -90,7 +90,7 @@ bool parsedecl(FILE *f, enum declflags flags, struct list *syms, struct itm_bloc
 			sym->value = &new_itm_container(IL_GLOBAL, sym->id,
 				sym->type)->base;
 		}
-		
+
 		if ((flags & DF_INIT) && chkt(f, "=") &&
 		    sc != SC_EXTERN && sc != SC_TYPEDEF) {
 			// TODO: this only works for locals
@@ -473,7 +473,7 @@ static struct ctype *parsestructure(FILE *f)
 	str = (struct cstruct *)new_struct(hasid ? idtok.lexeme : NULL);
 	if (hasid)
 		freetok(&idtok);
-	
+
 	while (!chkt(f, "}")) {
 		struct list *syms = new_list(NULL, 0);
 		parsedecl(f, DF_FIELD, syms, NULL);

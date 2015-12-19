@@ -1,17 +1,17 @@
 /*
  * Utilities for intermediate representation
  * Copyright (C) 2014  Antonie Blom
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -95,7 +95,7 @@ static void itm_instr_to_string(FILE *f, struct itm_instr *i)
 
 	if (i->base.tags)
 		print_tags(f, &i->base);
-	
+
 	fprintf(f, "\n");
 	if (i->next)
 		itm_instr_to_string(f, i->next);
@@ -160,7 +160,7 @@ static void itm_block_to_string(FILE *f, struct itm_block *block)
 
 	if (block->first)
 		itm_instr_to_string(f, block->first);
-	
+
 	if (block->lexnext)
 		itm_block_to_string(f, block->lexnext);
 }
@@ -321,7 +321,7 @@ void cleanup_instr(struct itm_instr *i)
 	while (iterator_next(&it, (void **)&op))
 		op->free(op);*/
 	delete_list(i->operands, NULL);
-	
+
 	if (i->next)
 		cleanup_instr(i->next);
 	free(i);
@@ -569,24 +569,24 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 		struct itm_instr *after;
 		if (opflags & OF_START)
 			b = b->container->block;
-		
+
 		// find first non-id instruction
 		after = b->first;
 		while (after && after->id == id) {
 			before = after;
 			after = after->next;
 		}
-		
+
 		if (after)
 			after->previous = res;
 		else
 			b->last = res;
-		
+
 		if (before)
 			before->next = res;
 		else
 			b->first = res;
-		
+
 		res->previous = before;
 		res->next = after;
 	} else {
@@ -598,7 +598,7 @@ static struct itm_instr *impl_op(struct itm_block *b, struct ctype *type, void (
 		b->last = res;
 	}
 	res->block = b;
-	
+
 	return res;
 }
 
@@ -606,7 +606,7 @@ static struct itm_instr *impl_aop(struct itm_block *b, struct itm_expr *l, struc
 	void (*id)(void), const char *operation)
 {
 	struct itm_instr *res = impl_op(b, l->type, id, operation, OF_NONE);
-	
+
 	list_push_back(res->operands, l);
 	list_push_back(res->operands, r);
 

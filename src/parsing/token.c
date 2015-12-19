@@ -1,26 +1,26 @@
 /*
  * Tokenizer
  * Copyright (C) 2014  Antonie Blom
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- * 
- * 
- * 
+ *
+ *
+ *
  * The acc tokenizer tokenizes on the fly in order to decrease memory usage.
  * A token can be read from a file using readtok().
- * 
+ *
  * The standard interface provides buffered access to tokens, although this is
  * abstracted away through an interface that seems unbuffered. The variable
  * "isbuffered" indicates whether the next token is already buffered or not. If
@@ -335,7 +335,7 @@ static void skipf(FILE *f)
 {
 	while (chkc(f, NULL, " \n\t\v\r\f"))
 		;
-	
+
 	// look for comments
 	if (chks(f, NULL, "/*")) {
 		while (!chks(f, NULL, "*/"))
@@ -620,7 +620,7 @@ static bool readch(FILE *f, SFILE *t, char terminator)
 
 	if (!chkc(f, t, "abfnrtv\\'\"?"))
 		report(E_TOKENIZER, NULL, "invalid escape sequence");
-	
+
 	return true;
 }
 

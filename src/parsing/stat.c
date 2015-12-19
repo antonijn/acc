@@ -1,17 +1,17 @@
 /*
  * Statement parsing and generation of intermediate representation
  * Copyright (C) 2014  Antonie Blom
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -75,10 +75,10 @@ static bool parseif(FILE *f, enum statflags flags, struct itm_block **block,
 	 */
 
 	struct token tok;
-	
+
 	if (!chkt(f, "if"))
 		return false;
-	
+
 	if (!chkt(f, "(")) {
 		tok = gettok(f);
 		report(E_PARSER, &tok, "expected '('");
@@ -90,7 +90,7 @@ static bool parseif(FILE *f, enum statflags flags, struct itm_block **block,
 	struct itm_block *ontruelbl = ontrue;
 	struct itm_block *onfalse = new_itm_block((*block)->container);
 	struct itm_block *onfalselbl = onfalse;
-	
+
 	struct expr cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE, block, NULL);
 	cond = cast(cond, &cbool, *block);
 
@@ -152,24 +152,24 @@ static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block,
 	 *   finalb
 	 *     final
 	 *     jmp condb
-	 * 
+	 *
 	 * if cond is omitted:
 	 *   condb is aliased to body
 	 * if final is omitted:
 	 *   final is aliased to condb
-	 * 
+	 *
 	 * continue jumps to final
 	 * break jumps to quit
-	 * 
+	 *
 	 * As opposed to the other control flow statements, the graph is
 	 * generated on the fly instead of at the end in this one.
 	 */
-	
+
 	struct token tok;
-	
+
 	if (!chkt(f, "for"))
 		return false;
-	
+
 	if (!chkt(f, "(")) {
 		tok = gettok(f);
 		report(E_PARSER, &tok, "expected '('");
@@ -185,7 +185,7 @@ static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block,
 	struct itm_block *finalblbl;
 	struct itm_block *quit = new_itm_block((*block)->container);
 	struct itm_block *quitlbl = quit;
-	
+
 	if (!chkt(f, ";")) {
 		parseexpr(f, EF_FINISH_SEMICOLON, block, NULL);
 
@@ -193,7 +193,7 @@ static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block,
 		tok = gettok(f);
 		freetok(&tok);
 	}
-	
+
 	if (!chkt(f, ";")) {
 		condb = new_itm_block((*block)->container);
 		condblbl = condb;
@@ -208,46 +208,46 @@ static bool parsefor(FILE *f, enum statflags flags, struct itm_block **block,
 		// remove ; from stream
 		tok = gettok(f);
 		freetok(&tok);
-		
+
 		itm_split(condb, cond.itm, bodylbl, quitlbl);
 		itm_progress(condb, bodylbl);
 		itm_progress(condb, quitlbl);
 	} else {
 		condb = body;
 		condblbl = bodylbl;
-		
+
 		itm_jmp(*block, bodylbl);
 		itm_progress(*block, bodylbl);
 	}
-	
+
 	if (!chkt(f, ")")) {
 		finalb = new_itm_block((*block)->container);
 		finalblbl = finalb;
-		
+
 		parseexpr(f, EF_FINISH_BRACKET, &finalb, NULL);
 
 		// remove ) from stream
 		tok = gettok(f);
 		freetok(&tok);
-		
+
 		itm_jmp(finalb, condblbl);
 		itm_progress(finalb, condblbl);
 	} else {
 		finalb = condb;
 		finalblbl = condblbl;
 	}
-	
+
 	parsestatx(f, SF_NORMAL, &body, quitlbl, finalblbl, fun);
 	itm_jmp(body, finalblbl);
 	itm_progress(body, finalblbl);
-	
+
 	itm_lex_progress(*block, condblbl);
 	if (condb != body)
 		itm_lex_progress(condb, bodylbl);
 	itm_lex_progress(body, finalblbl);
 	if (finalb != condb)
 		itm_lex_progress(finalb, quitlbl);
-	
+
 	*block = quit;
 	return true;
 }
@@ -345,7 +345,7 @@ static bool parsewhile(FILE *f, enum statflags flags, struct itm_block **block,
 
 	if (!chkt(f, "while"))
 		return false;
-	
+
 	if (!chkt(f, "(")) {
 		tok = gettok(f);
 		report(E_PARSER, &tok, "expected '('");
@@ -361,7 +361,7 @@ static bool parsewhile(FILE *f, enum statflags flags, struct itm_block **block,
 	struct itm_block *quitlbl = quit;
 
 	itm_jmp(*block, condblbl);
-	
+
 	struct expr cond = parseexpr(f, EF_FINISH_BRACKET | EF_EXPECT_RVALUE,
 		&condb, NULL);
 	cond = cast(cond, &cbool, condb);

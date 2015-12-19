@@ -1,17 +1,17 @@
 /*
  * Expression parsing and generation of intermediate representation
  * Copyright (C) 2014  Antonie Blom
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program; if not, write to the Free Software Foundation, Inc.,
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
@@ -108,7 +108,7 @@ static struct expr parseexpro(FILE *f, enum exprflags flags,
 		freetok(&tok);
 		return pack(*block, acc, flags);
 	}
-	
+
 	if ((res = parselit(f, flags, block, initty, operators, acc), res.itm) ||
 	    (res = parseid(f, flags, block, initty, operators, acc), res.itm) ||
 	    (res = parseparents(f, flags, block, initty, operators, acc), res.itm) ||
@@ -157,21 +157,21 @@ static struct expr parsebop(FILE *f, enum exprflags flags,
 	struct expr acc)
 {
 	struct expr nil = { 0 };
-	
+
 	if (!acc.itm)
 		return nil;
-	
+
 	struct token tok;
 	if (!chkttp(f, T_OPERATOR, &tok))
 		return nil;
-	
+
 	struct operator *op = getbop(tok.lexeme);
 	if (!op) {
 		ungettok(&tok, f);
 		freetok(&tok);
 		return nil;
 	}
-	
+
 	if (op->rtol) {
 		if (list_length(operators) > 0 &&
 		   ((struct operator *)list_head(operators))->prec < op->prec)
@@ -181,22 +181,22 @@ static struct expr parsebop(FILE *f, enum exprflags flags,
 		   ((struct operator *)list_last(operators))->prec <= op->prec)
 			goto opbreak;
 	}
-	
+
 	list_push_back(operators, op);
-	
+
 	struct expr e = performasnop(f, op, flags, block, initty, operators, acc);
 	if (e.itm)
 		goto ret;
 	e = performaop(f, op, flags, block, initty, operators, acc);
 	if (e.itm)
 		goto ret;
-	
+
 ret:
 	list_pop_back(operators);
 
 	freetok(&tok);
 	return parseexpro(f, flags, block, initty, operators, e);
-	
+
 opbreak:
 	ungettok(&tok, f);
 	freetok(&tok);
@@ -554,18 +554,18 @@ static struct expr parseparents(FILE *f, enum exprflags flags,
 
 	if (!chkt(f, "("))
 		return nil;
-	
+
 	/* TODO: check for type cast */
-	
+
 	struct list *noperators = new_list(NULL, 0);
 	acc = parseexpro(f, EF_NORMAL | EF_FINISH_BRACKET,
 		block, initty, noperators, nil);
 	delete_list(noperators, NULL);
-	
+
 	/* remove closing ) from the stream */
 	struct token close = gettok(f);
 	freetok(&close);
-	
+
 	return parseexpro(f, flags, block, initty, operators, acc);
 }
 
@@ -590,7 +590,7 @@ static struct expr parseintlit(FILE *f, enum exprflags flags,
 	struct token tok = gettok(f);
 	struct ctype *itypes[5] = { 0 };
 	struct expr nil = { 0 };
-	
+
 	switch (tok.type) {
 	case T_DEC:
 		sscanf(tok.lexeme, "%" SCNu64, &ul);
@@ -617,7 +617,7 @@ static struct expr parseintlit(FILE *f, enum exprflags flags,
 		freetok(&tok);
 		return nil;
 	}
-	
+
 	freetok(&tok);
 
 	struct ctype *type;
@@ -666,9 +666,9 @@ static struct expr parsefloatlit(FILE *f, enum exprflags flags,
 	} else {
 		return nil;
 	}
-	
+
 	freetok(&tok);
-	
+
 	acc.itm = (struct itm_expr *)lit;
 	acc.islvalue = false;
 	return parseexpro(f, flags, block, initty, operators, acc);
