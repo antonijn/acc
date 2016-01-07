@@ -274,6 +274,12 @@ static int o_uncsplit(struct itm_block *b)
 
 	itm_jmp(b, to);
 
+	struct itm_instr *phi = other->first;
+	while (phi && phi->id == ITM_ID(itm_phi)) {
+		rmfromphi(b, phi);
+		phi = phi->next;
+	}
+
 	list_remove(b->next, other);
 	list_remove(other->previous, b);
 	itm_remi(i);
