@@ -43,11 +43,11 @@ $(TARGET): $(OBJECTS)
 	$(LD) -o $@ $^ $(LDFLAGS)
 
 config:
-	ln -sf cpus/$(ARCH) -T src/target/cpu
-	ln -sf cpus/$(ARCH) -T include/acc/target/cpu
+	ln -s cpus/$(ARCH) src/target/cpu
+	ln -s cpus/$(ARCH) include/acc/target/cpu
 
 %.o: %.c
 	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
-	rm $(TARGET) $(OBJECTS) src/target/cpu include/acc/target/cpu
+	rm -f $(TARGET) $(OBJECTS) src/target/cpu include/acc/target/cpu
